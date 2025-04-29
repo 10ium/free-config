@@ -368,6 +368,15 @@ proxy-groups:
     type: select
     use:
       - proxy
+      - Eternity
+      - mtn1
+      - mtn2
+      - mtn3
+      - mtn4
+      - mci1
+      - mci2
+      - mci3
+      - mci4
   - name: خودکار (بهترین پینگ) 🤖
     type: url-test
     url: https://api.v2fly.org/checkConnection.svgz

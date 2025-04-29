@@ -690,7 +690,9 @@ rules:
   - RULE-SET,YouTube,▶️ یوتیوب
   - RULE-SET,youtube,▶️ یوتیوب
   - RULE-SET,YouTubeMusic,▶️ یوتیوب
+  - PROCESS-NAME,com.instagram.android,📸 اینستاگرام
   - RULE-SET,instagram,📸 اینستاگرام
+  - DOMAIN-SUFFIX,deepseek.com,🤖 هوش مصنوعی
   - RULE-SET,category-ai,🤖 هوش مصنوعی
   - RULE-SET,censor,🤬 سایتای سانسوری
   - RULE-SET,apps,🇮🇷 سایتای ایرانی

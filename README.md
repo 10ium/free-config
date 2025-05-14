@@ -1,14 +1,14 @@
 ## کانفیگای کلش متا با قوانین مخصوص ایران:
 
-[MahsaFreeConfig-mtn](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/free-mihomo-sub/MahsaFreeConfig-mtn.yaml)
+[MahsaFreeConfig-mtn](https://raw.githubusercontent.com/10ium/Vpnclashfa/refs/heads/main/free-mihomo-sub/MahsaFreeConfig-mtn.yaml)
 
-[MahsaFreeConfig-mci](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/free-mihomo-sub/MahsaFreeConfig-mci.yaml)
+[MahsaFreeConfig-mci](https://raw.githubusercontent.com/10ium/Vpnclashfa/refs/heads/main/free-mihomo-sub/MahsaFreeConfig-mci.yaml)
 
-[MahsaFreeConfig-mix](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/free-mihomo-sub/MahsaFreeConfig-mix.yaml)
+[MahsaFreeConfig-mix](https://raw.githubusercontent.com/10ium/Vpnclashfa/refs/heads/main/free-mihomo-sub/MahsaFreeConfig-mix.yaml)
 
-[soroushmirzaei.tuic.hysteria](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/free-mihomo-sub/soroushmirzaei.tuic.hysteria.yaml)
+[soroushmirzaei.tuic.hysteria](https://raw.githubusercontent.com/10ium/Vpnclashfa/refs/heads/main/free-mihomo-sub/soroushmirzaei.tuic.hysteria.yaml)
 
-[10ium-tuic-hysteria2](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/free-mihomo-sub/10iumV2ray-Config-tuic-hysteria2.yaml)
+[10ium-tuic-hysteria2](https://raw.githubusercontent.com/10ium/Vpnclashfa/refs/heads/main/free-mihomo-sub/10iumV2ray-Config-tuic-hysteria2.yaml)
 
 [بقیه کانفیگا منتقل شدن](https://github.com/10ium/MihomoSaz/blob/main/README.md)
 
@@ -29,21 +29,21 @@
 
 | لینک کانفیگ کلش متا                                                                                                             | لینک کانفیگ کلش متا                                                                                                            |
 |----------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| [shecan](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/shecan.yml)               | [begzar](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/begzar.yml)               |
-| [electro](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/electro.yml)             | [403](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/403.yml)                     |
-| [radar game](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/radar.yml)                  | [controld](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/controld.yml)           |
-| [shelter](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/shelter.yml)             | [Level3](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Level3.yml)               |
-| [shelter-mobile](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/shelter-mobile.yml) | [mix](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/all.yml)                     |
+| [shecan](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/shecan.yml)               | [begzar](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/begzar.yml)               |
+| [electro](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/electro.yml)             | [403](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/403.yml)                     |
+| [radar game](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/radar.yml)                  | [controld](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/controld.yml)           |
+| [shelter](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/shelter.yml)             | [Level3](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Level3.yml)               |
+| [shelter-mobile](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/shelter-mobile.yml) | [mix](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/all.yml)                     |
 | [AD-Blocker](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/AD-Blocker.yml)                  | [Adguard](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Adguard.yml)
-| [Cloudflare](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Cloudflare.yml)               | [Google](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Google.yml)  
-| [LagSlayer](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/LagSlayer.yml)               | [LagZero](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/LagZero.yml)  
-| [NextDNS](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/NextDNS.yml)               | [NTT](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/NTT.yml)  
-| [OpenDNS](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/OpenDNS.yml)               | [Rethinkdns](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Rethinkdns.yml)  
-| [Sprintlink](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Sprintlink.yml)               | [Comodo](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Comodo.yml)
-| [DNSWatch](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/DNSWatch.yml)               | [NordVPN](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/NordVPN.yml)
-| [Quad9](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Quad9.yml)               | [Surfshark](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Surfshark.yml)
-| [UltraDNS](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/UltraDNS.yml)               | [Verisign](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Verisign.yml)
-| [Yandex](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/Yandex.yml)               | [UncensoredDNS](https://raw.githubusercontent.com/coldwater-10/Vpnclashfa/refs/heads/main/dnsforgame/UncensoredDNS.yml)
+| [Cloudflare](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Cloudflare.yml)               | [Google](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Google.yml)  
+| [LagSlayer](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/LagSlayer.yml)               | [LagZero](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/LagZero.yml)  
+| [NextDNS](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/NextDNS.yml)               | [NTT](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/NTT.yml)  
+| [OpenDNS](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/OpenDNS.yml)               | [Rethinkdns](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Rethinkdns.yml)  
+| [Sprintlink](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Sprintlink.yml)               | [Comodo](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Comodo.yml)
+| [DNSWatch](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/DNSWatch.yml)               | [NordVPN](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/NordVPN.yml)
+| [Quad9](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Quad9.yml)               | [Surfshark](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Surfshark.yml)
+| [UltraDNS](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/UltraDNS.yml)               | [Verisign](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Verisign.yml)
+| [Yandex](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/Yandex.yml)               | [UncensoredDNS](https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/dnsforgame/UncensoredDNS.yml)
 
 برای ویندوز از [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev/releases) استفاده کنین و از تنظیمات tun رو فعال کنین
 

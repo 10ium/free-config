@@ -2,14 +2,17 @@ port: 7890
 socks-port: 7891
 redir-port: 7892
 mixed-port: 7893
-tproxy-port: 7895
 allow-lan: true
-log-level: debug
+log-level: warning
 external-controller: 0.0.0.0:9090
 secret: ''
 bind-address: '*'
-find-process-mode: always
-unified-delay: true
+find-process-mode: strict
+ipv6: true
+unified-delay: false
+disable-keep-alive: false
+keep-alive-idle: 30
+keep-alive-interval: 15
 profile:
   store-selected: true
   store-fake-ip: false
@@ -22,27 +25,12 @@ dns:
   use-system-hosts: true
   use-host: true
   nameserver:
-    - '10.202.10.10'
-    - '10.202.10.11'
-    - 'https://dns.electrotm.org/dns-query'
-    - '78.157.42.100'
-    - '78.157.42.101'
-    - '78.157.60.19'
-    - '78.157.61.17'
-    - '94.103.125.157'
-    - '94.103.125.158'
-    - '5.160.132.222'
-    - '5.160.132.221'
-    - '95.38.132.152'
-    - '95.38.132.153'
-    - 'https://free.shecan.ir/dns-query'
-    - 'tls://free.shecan.ir'
-    - '178.22.122.100'
-    - '185.51.200.2'
+    - 'https://dns.nextdns.io/f1d647'
+    - 'tls://f1d647.dns.nextdns.io'
 
 tun:
   enable: true
-  stack: system
+  stack: mixed
   auto-route: true
   auto-detect-interface: true
   auto-redir: true
@@ -65,3 +53,9 @@ proxy-groups:
 
 rules:
   - MATCH,🔀 DIRECT
+
+ntp:
+  enable: true
+  server: "time.apple.com"
+  port: 123
+  interval: 30

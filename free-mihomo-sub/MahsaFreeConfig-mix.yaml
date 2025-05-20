@@ -958,6 +958,7 @@ rules:
   - RULE-SET,twitch,توییچ 📡
   - PROCESS-NAME,Telegram.exe,تلگرام 💬
   - PROCESS-NAME,org.telegram.messenger,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬
   - RULE-SET,telegram,تلگرام 💬
   - RULE-SET,YouTube,یوتیوب ▶️
   - RULE-SET,youtube,یوتیوب ▶️
@@ -992,6 +993,8 @@ rules:
   - RULE-SET,windows,ویندوز 🧊
   - RULE-SET,cloudflare,کلودفلر ☁️
   - RULE-SET,github,گیتهاب 🐙
+  - PROCESS-NAME,com.android.vending,نوع انتخاب پروکسی 🔀
+  - PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀
   - RULE-SET,google-play,نوع انتخاب پروکسی 🔀
   - RULE-SET,google,گوگل 🌍
   - RULE-SET,local_ips,بدون فیلترشکن 🛡️

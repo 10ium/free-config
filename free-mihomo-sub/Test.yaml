@@ -923,6 +923,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
 
 rules:
+  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀
   - RULE-SET,DownloadManagers,دانلود منیجر 📥
   - RULE-SET,Download,دانلود منیجر 📥
   - RULE-SET,stremio,استریمیو 🎬

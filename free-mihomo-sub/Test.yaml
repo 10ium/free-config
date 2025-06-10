@@ -26,24 +26,23 @@ dns:
   ipv6: true
   respect-rules: false
   prefer-h3: true
-  cache-algorithm: arc   
+  cache-algorithm: arc
   use-system-hosts: true
   use-host: true
   listen: 0.0.0.0:53
   enhanced-mode: fake-ip
-  fake-ip-filter-mode: blacklist
   fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
   fake-ip-filter:
-    - '*.lan'             
-    - '*.localdomain'     
-    - '*.invalid'         
-    - '*.localhost'       
-    - '*.test'            
-    - '*.local'           
+    - '*.lan'
+    - '*.localdomain'
+    - '*.invalid'
+    - '*.localhost'
+    - '*.test'
+    - '*.local'
     - '*.home.arpa'
     - 'time.*.com'
     - 'ntp.*.com'
-    - 'time.*.com'  
     - '*.ir'
   default-nameserver:
     - 8.8.8.8
@@ -58,12 +57,12 @@ dns:
     - 223.5.5.5
     - 77.88.8.8
   nameserver:
-    - 'https://dns.nextdns.io/15441b'
-    - 'tls://15441b.dns.nextdns.io'
-    - '45.90.28.10'
-    - '45.90.30.10'
-    - '2a07:a8c0::15:441b'
-    - '2a07:a8c1::15:441b'
+    - 'https://dns.nextdns.io/15441b'
+    - 'tls://15441b.dns.nextdns.io'
+    - '45.90.28.10'
+    - '45.90.30.10'
+    - '2a07:a8c0::15:441b'
+    - '2a07:a8c1::15:441b'
   direct-nameserver:
     - '78.157.42.100'
     - '78.157.42.101'

@@ -923,7 +923,6 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
 
 rules:
-  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀
   - RULE-SET,DownloadManagers,دانلود منیجر 📥
   - RULE-SET,Download,دانلود منیجر 📥
   - RULE-SET,stremio,استریمیو 🎬
@@ -983,6 +982,7 @@ rules:
   - PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀
   - RULE-SET,google-play,نوع انتخاب پروکسی 🔀
   - RULE-SET,google,گوگل 🌍
+  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀
   - RULE-SET,local_ips,بدون فیلترشکن 🛡️
   - RULE-SET,private,بدون فیلترشکن 🛡️
   - MATCH,نوع انتخاب پروکسی 🔀

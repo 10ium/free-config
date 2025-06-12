@@ -45,18 +45,21 @@ dns:
     - 'ntp.*.com'
     - '*.ir'
   nameserver:
-    - 'https://dns.nextdns.io/15441b'
-    - 'tls://15441b.dns.nextdns.io'
-    - '2a07:a8c0::15:441b'
-    - '2a07:a8c1::15:441b'
+    - "https://dns.nextdns.io/15441b"
+    - "tls://15441b.dns.nextdns.io"
+    - "2a07:a8c0::15:441b"
+    - "2a07:a8c1::15:441b"
+
   direct-nameserver:
-    - '78.157.42.100'
-    - '78.157.42.101'
+    - "78.157.42.100"
+    - "78.157.42.101"
+
   proxy-server-nameserver:
-    - 'https://dns.nextdns.io/15441b'
-    - 'tls://15441b.dns.nextdns.io'
-    - '2a07:a8c0::15:441b'
-    - '2a07:a8c1::15:441b'
+    - "https://dns.nextdns.io/15441b"
+    - "tls://15441b.dns.nextdns.io"
+    - "2a07:a8c0::15:441b"
+    - "2a07:a8c1::15:441b"
+
 sniffer:
   enable: true
   force-dns-mapping: true

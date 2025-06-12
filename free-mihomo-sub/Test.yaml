@@ -966,6 +966,7 @@ rules:
   - RULE-SET,github,گیتهاب 🐙
   - PROCESS-NAME,com.android.vending,نوع انتخاب پروکسی 🔀
   - PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀
+  - PROCESS-NAME,com.twitter.android,نوع انتخاب پروکسی 🔀
   - RULE-SET,google-play,نوع انتخاب پروکسی 🔀
   - RULE-SET,google,گوگل 🌍
   - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀

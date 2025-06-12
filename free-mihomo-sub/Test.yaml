@@ -56,7 +56,7 @@ dns:
     - 'https://dns.nextdns.io/15441b'
     - 'tls://15441b.dns.nextdns.io'
     - '2a07:a8c0::15:441b'
-    - '2a07:a8c1::15:441b
+    - '2a07:a8c1::15:441b'
 
 
 sniffer:

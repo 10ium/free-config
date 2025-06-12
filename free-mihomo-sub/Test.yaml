@@ -58,7 +58,6 @@ dns:
     - '2a07:a8c0::15:441b'
     - '2a07:a8c1::15:441b'
 
-
 sniffer:
   enable: true
   force-dns-mapping: true

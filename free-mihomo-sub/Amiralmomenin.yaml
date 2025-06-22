@@ -186,7 +186,7 @@ proxy-providers:
   configshubplus:
     type: http
     url: >-
-      https://raw.githubusercontent.com/10ium/ClashFactory/main/output/configshubplus.yaml
+      https://raw.githubusercontent.com/10ium/ClashFactory/main/providers/configshubplus.txt
     interval: 3600
     include-all: true
     path: ./configshubplus.yaml
@@ -199,7 +199,7 @@ proxy-providers:
   speedsvpn:
     type: http
     url: >-
-      https://raw.githubusercontent.com/10ium/ClashFactory/main/output/speeds_vpn1.yaml
+      https://raw.githubusercontent.com/10ium/ClashFactory/main/providers/speeds_vpn1.txt
     interval: 3600
     include-all: true
     path: ./speedsvpn.yaml
@@ -212,7 +212,7 @@ proxy-providers:
   v2ray1ng:
     type: http
     url: >-
-      https://raw.githubusercontent.com/10ium/ClashFactory/main/output/v2ray1_ng.yaml
+      https://raw.githubusercontent.com/10ium/ClashFactory/main/providers/v2ray1_ng.txt
     interval: 3600
     include-all: true
     path: ./v2ray1ng.yaml

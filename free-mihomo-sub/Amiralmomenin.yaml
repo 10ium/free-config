@@ -119,9 +119,9 @@ proxy-groups:
     type: url-test
     icon: https://www.svgrepo.com/show/7876/speedometer.svg
     url: https://api.v2fly.org/checkConnection.svgz
-    interval: 360000
+    interval: 600
     timeout: 120000
-    tolerance: 10
+    tolerance: 500
     lazy: true
     use:
       - v2ray1ng
@@ -131,9 +131,8 @@ proxy-groups:
     type: fallback
     icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg
     url: https://www.gstatic.com/generate_204
-    interval: 360000
+    interval: 600
     timeout: 120000
-    tolerance: 6
     lazy: true
     use:
       - v2ray1ng

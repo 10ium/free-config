@@ -773,9 +773,9 @@ proxy-groups:
 proxy-providers:
   proxy:
     type: http
-    url: "https://raw.githubusercontent.com/DiDiten/ScrapeAndCategorize/main/Clash/providers/diditen-mix.txt"
+    url: "https://raw.githubusercontent.com/DiDiten/ScrapeAndCategorize/main/Clash/output/diditen-fetcher.yaml"
     interval: 3600
-    path: "./../providers/diditen-mix.txt"
+    path: "./../providers/diditen-fetcher.txt"
     health-check:
       enable: true
       interval: 3600

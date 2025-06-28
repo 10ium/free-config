@@ -59,8 +59,6 @@ dns:
   nameserver:
     - 'https://dns.nextdns.io/15441b'
     - 'tls://15441b.dns.nextdns.io'
-    - '45.90.28.10'
-    - '45.90.30.10'
     - '2a07:a8c0::15:441b'
     - '2a07:a8c1::15:441b'
   direct-nameserver:
@@ -459,9 +457,9 @@ proxy-groups:
     icon: https://www.svgrepo.com/show/7876/speedometer.svg 
     url: https://api.v2fly.org/checkConnection.svgz 
     interval: 600 
-    timeout: 6000 
-    tolerance: 200 
-    max-failed-times: 5 
+    timeout: 120000 
+    tolerance: 500 
+    max-failed-times: 6
     lazy: true 
     use: 
       - proxy 
@@ -470,8 +468,7 @@ proxy-groups:
     icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg 
     url: https://www.gstatic.com/generate_204 
     interval: 600 
-    timeout: 6000 
-    tolerance: 300 
+    timeout: 120000 
     max-failed-times: 3 
     lazy: true 
     use: 
@@ -480,10 +477,9 @@ proxy-groups:
     type: url-test 
     icon: https://www.svgrepo.com/show/428774/connection-internet-communication.svg 
     url: https://cp.cloudflare.com/generate_204 
-    interval: 30 
-    timeout: 3000 
-    tolerance: 200 
-    max-failed-times: 3 
+    interval: 60
+    timeout: 30000
+    tolerance: 400
     lazy: true 
     proxies: 
       - خودکار (بهترین پینگ) 🤖 
@@ -495,7 +491,7 @@ proxy-groups:
     url: https://api.v2fly.org/checkConnection.svgz 
     strategy: consistent-hashing 
     interval: 600 
-    timeout: 6000 
+    timeout: 120000 
     max-failed-times: 5 
     lazy: true 
     use: 
@@ -507,7 +503,7 @@ proxy-groups:
     strategy: round-robin 
     interval: 600 
     tolerance: 200 
-    timeout: 6000 
+    timeout: 120000 
     max-failed-times: 3 
     lazy: true 
     use: 
@@ -518,7 +514,7 @@ proxy-groups:
     url: https://api.v2fly.org/checkConnection.svgz 
     strategy: sticky-sessions 
     interval: 600 
-    timeout: 6000 
+    timeout: 120000 
     max-failed-times: 5 
     lazy: true 
     use: 
@@ -774,19 +770,16 @@ proxy-groups:
     hidden: true 
 
 
-proxy-providers: 
-
-  proxy: 
-    type: http 
-    url: >- 
-      https://url.v1.mk/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fmulti-proxy-config-fetcher%2Frefs%2Fheads%2Fmain%2Fconfigs%2Fsingbox_configs.json&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false 
-    interval: 86400 
-    include-all: true 
-    path: ./proxy.yaml 
-    health-check: 
-      enable: true 
-      interval: 1800 
-      url: "https://www.gstatic.com/generate_204" 
+proxy-providers:
+  proxy:
+    type: http
+    url: "https://raw.githubusercontent.com/DiDiten/ScrapeAndCategorize/main/Clash/providers/diditen-mix.txt"
+    interval: 3600
+    path: "./../providers/diditen-mix.txt"
+    health-check:
+      enable: true
+      interval: 3600
+      url: "https://www.gstatic.com/generate_204"
 
 rules: 
   - RULE-SET,DownloadManagers,دانلود منیجر 📥 

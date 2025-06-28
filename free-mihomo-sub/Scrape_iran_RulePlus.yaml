@@ -775,7 +775,7 @@ proxy-providers:
     type: http
     url: "https://raw.githubusercontent.com/DiDiten/ScrapeAndCategorize/main/Clash/providers/diditen-mix.txt"
     interval: 3600
-    path: "./../providers/diditen-mix.txt"
+    path: "./../providers/scapeiran.txt"
     health-check:
       enable: true
       interval: 3600

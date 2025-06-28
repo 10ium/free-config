@@ -59,8 +59,6 @@ dns:
   nameserver:
     - 'https://dns.nextdns.io/15441b'
     - 'tls://15441b.dns.nextdns.io'
-    - '45.90.28.10'
-    - '45.90.30.10'
     - '2a07:a8c0::15:441b'
     - '2a07:a8c1::15:441b'
   direct-nameserver:

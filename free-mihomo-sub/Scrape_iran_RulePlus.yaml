@@ -774,18 +774,16 @@ proxy-groups:
     hidden: true 
 
 
-proxy-providers: 
-
-  proxy: 
-    type: http 
-    url: >- https://raw.githubusercontent.com/DiDiten/ScrapeAndCategorize/main/Clash/output/scrape-iran.yaml
-    interval: 86400 
-    include-all: true 
-    path: ./proxy.yaml 
-    health-check: 
-      enable: true 
-      interval: 1800 
-      url: "https://www.gstatic.com/generate_204" 
+proxy-providers:
+  proxy:
+    type: http
+    url: "https://raw.githubusercontent.com/DiDiten/ScrapeAndCategorize/main/Clash/providers/diditen-mix.txt"
+    interval: 3600
+    path: "./../providers/diditen-mix.txt"
+    health-check:
+      enable: true
+      interval: 3600
+      url: "https://www.gstatic.com/generate_204"
 
 rules: 
   - RULE-SET,DownloadManagers,دانلود منیجر 📥 

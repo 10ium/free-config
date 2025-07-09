@@ -7,7 +7,7 @@ log-level: warning
 external-controller: 0.0.0.0:9090
 secret: ''
 bind-address: '*'
-find-process-mode: strict
+find-process-mode: always
 ipv6: true
 unified-delay: false
 disable-keep-alive: false

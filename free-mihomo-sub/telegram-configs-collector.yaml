@@ -557,8 +557,8 @@ proxy-groups:
     icon: https://www.svgrepo.com/show/475656/google-color.svg 
     proxies: 
       - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
       - نوع انتخاب پروکسی 🔀 
+      - اجازه ندادن 🚫 
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 
@@ -567,9 +567,9 @@ proxy-groups:
     type: select 
     icon: https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg 
     proxies: 
+      - نوع انتخاب پروکسی 🔀 
       - بدون فیلترشکن 🛡️ 
       - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 
@@ -645,8 +645,8 @@ proxy-groups:
     icon: https://www.svgrepo.com/show/452107/steam.svg 
     proxies: 
       - بدون فیلترشکن 🛡️ 
+      - نوع انتخاب پروکسی 🔀
       - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 
@@ -688,9 +688,9 @@ proxy-groups:
     type: select 
     icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg 
     proxies: 
+      - نوع انتخاب پروکسی 🔀 
       - بدون فیلترشکن 🛡️ 
       - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 

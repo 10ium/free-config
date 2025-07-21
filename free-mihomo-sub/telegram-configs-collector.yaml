@@ -775,7 +775,7 @@ proxy-providers:
     type: http
     url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fir%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fae%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbh%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fkz%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fom%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fpk%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fam%2Fmixed%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fprotocols%2Fhysteria%7Chttps%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fprotocols%2Freality&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=false&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=false"
     interval: 3600
-    path: "./../providers/diditen-mix.txt"
+    path: "./telegram-configs-collector.yaml"
     health-check:
       enable: true
       interval: 3600

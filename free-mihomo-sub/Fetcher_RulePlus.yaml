@@ -44,6 +44,7 @@ dns:
     - 'time.*.com' 
     - 'ntp.*.com' 
     - '*.ir' 
+ 
   default-nameserver: 
     - 8.8.8.8 
     - 8.8.4.4 
@@ -57,10 +58,8 @@ dns:
     - 223.5.5.5 
     - 77.88.8.8
   nameserver:
-    - 'https://dns.nextdns.io/15441b'
-    - 'tls://15441b.dns.nextdns.io'
-    - '2a07:a8c0::15:441b'
-    - '2a07:a8c1::15:441b'
+    - 'https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI'
+    - 'tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com'
   direct-nameserver:
     - '78.157.42.100'
     - '78.157.42.101' 

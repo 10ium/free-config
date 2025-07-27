@@ -25,10 +25,8 @@ dns:
   use-system-hosts: true
   use-host: true
   nameserver:
-    - 'https://sky.rethinkdns.com/1:sIMQAAAFMAAAEQgAAgA='
-    - 'tls://1-wcbraaaaauyaaaarbaaaeaa.max.rethinkdns.com'
-    - 'https://dns.nextdns.io/f1d647'
-    - 'tls://f1d647.dns.nextdns.io'
+    - 'https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI'
+    - 'tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com'
     - 'https://dns.adguard-dns.com/dns-query'
     - 'quic://dns.adguard-dns.com'
     - 'tls://dns.adguard-dns.com'

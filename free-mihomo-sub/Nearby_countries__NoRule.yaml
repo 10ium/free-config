@@ -114,7 +114,6 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
     proxies:
-      - ایران 🇮🇷
       - عراق 🇮🇶
       - ارمنستان 🇦🇲
       - ترکیه 🇹🇷
@@ -126,6 +125,7 @@ proxy-groups:
       - قبرس 🇨🇾
       - اسرائیل 🇮🇱
       - اردن 🇯🇴
+      - ایران 🇮🇷
       - تایلند 🇹🇭
       - کره جنوبی 🇰🇷
       - ژاپن 🇯🇵

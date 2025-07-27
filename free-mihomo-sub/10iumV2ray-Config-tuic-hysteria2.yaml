@@ -718,13 +718,13 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/355033/github.svg
     proxies:
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - نوع انتخاب پروکسی 🔀
-      - اتصال پایدار 🔗
-      - خودکار (بهترین پینگ) 🤖
-      - دستی 🤏🏻
-      - پشتیبان (در صورت قطعی) 🧯
+      - نوع انتخاب پروکسی 🔀 
+      - بدون فیلترشکن 🛡️ 
+      - اجازه ندادن 🚫 
+      - اتصال پایدار 🔗 
+      - خودکار (بهترین پینگ) 🤖 
+      - دستی 🤏🏻 
+      - پشتیبان (در صورت قطعی) 🧯 
   - name: دیسکورد 🗣️
     type: select
     icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg

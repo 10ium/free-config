@@ -709,9 +709,9 @@ proxy-groups:
     type: select 
     icon: https://www.svgrepo.com/show/355033/github.svg 
     proxies: 
+      - نوع انتخاب پروکسی 🔀 
       - بدون فیلترشکن 🛡️ 
       - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 

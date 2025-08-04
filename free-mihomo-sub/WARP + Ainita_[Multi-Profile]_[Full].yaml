@@ -4801,6 +4801,7 @@ proxies:
         remote-dns-resolve: true
         ipv6: 2606:4700:110:8ee9:3793:3ef5:c096:e041
         amnezia-wg-option: {jc: 10, jmin: 30, jmax: 60, s1: 0, s2: 0, h1: 1, h2: 2, h3: 3, h4: 4}
+
     - name: Ainita-Direct-1
         server: azure-sto.edgeservers.org
         port: 48172

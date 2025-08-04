@@ -4801,38 +4801,38 @@ proxies:
         remote-dns-resolve: true
         ipv6: 2606:4700:110:8ee9:3793:3ef5:c096:e041
         amnezia-wg-option: {jc: 10, jmin: 30, jmax: 60, s1: 0, s2: 0, h1: 1, h2: 2, h3: 3, h4: 4}
-          - name: Ainita-Direct-1
-            server: azure-sto.edgeservers.org
-            port: 48172
-            client-fingerprint: chrome
-            type: ss
-            cipher: chacha20-ietf-poly1305
-            password: 51yloQC8D9w1Wae7FHtI65
-            udp: true
+        - name: Ainita-Direct-1
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
           - name: Ainita-Direct-2
-            server: azure-sto.edgeservers.org
-            port: 48172
-            client-fingerprint: chrome
-            type: ss
-            cipher: chacha20-ietf-poly1305
-            password: 51yloQC8D9w1Wae7FHtI65
-            udp: true
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
           - name: Ainita-Direct-3
-            server: azure-sto.edgeservers.org
-            port: 48172
-            client-fingerprint: chrome
-            type: ss
-            cipher: chacha20-ietf-poly1305
-            password: 51yloQC8D9w1Wae7FHtI65
-            udp: true
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
           - name: Ainita-Direct-4
-            server: azure-sto.edgeservers.org
-            port: 48172
-            client-fingerprint: chrome
-            type: ss
-            cipher: chacha20-ietf-poly1305
-            password: 51yloQC8D9w1Wae7FHtI65
-            udp: true
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
 
 proxy-providers:
   Ainita:

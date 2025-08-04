@@ -1,0 +1,1838 @@
+global-client-fingerprint: chrome
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+tcp-concurrent: true
+enable-process: true
+find-process-mode: always
+ipv6: true
+log-level: debug
+geo-auto-update: true
+geo-update-interval: 168
+secret: ''
+bind-address: '*'
+unified-delay: false
+disable-keep-alive: false
+keep-alive-idle: 30
+keep-alive-interval: 30
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  ipv6: true
+  respect-rules: false
+  prefer-h3: true
+  cache-algorithm: arc
+  use-system-hosts: true
+  use-host: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-filter-mode: blacklist
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '*.localdomain'
+    - '*.invalid'
+    - '*.localhost'
+    - '*.test'
+    - '*.local'
+    - '*.home.arpa'
+    - 'time.*.com'
+    - 'ntp.*.com'
+    - '*.ir'
+ 
+  default-nameserver: 
+    - 8.8.8.8 
+    - 8.8.4.4 
+    - 1.0.0.1 
+    - 1.1.1.1 
+    - 9.9.9.9 
+    - 9.9.9.11 
+    - 9.9.9.10 
+    - 94.140.14.15 
+    - 94.140.15.15 
+    - 223.5.5.5 
+    - 77.88.8.8
+  nameserver:
+    - 'https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI'
+    - 'tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com'
+  direct-nameserver:
+    - '78.157.42.100'
+    - '78.157.42.101'
+    - 'https://dns.electrotm.org/dns-query'
+  proxy-server-nameserver: 
+    - '2606:4700:4700::1111' 
+    - '2606:4700:4700::1001' 
+    - '2001:4860:4860::8888' 
+    - '2001:4860:4860::8844' 
+    - '1.1.1.1' 
+    - '8.8.8.8' 
+    - '8.8.4.4' 
+    - '9.9.9.9' 
+    - '223.5.5.5' 
+    - '77.88.8.8' 
+    - '2400:3200::1' 
+    - '2a02:6b8::feed:0ff' 
+    - '2620:fe::fe' 
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080, 8880, 2052, 2082, 2086, 2095]
+    TLS:
+      ports: [443, 8443, 2053, 2083, 2087, 2096]
+
+tun:
+  enable: true
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  auto-redir: true
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+
+rule-providers:
+  category_public_tracker:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml
+    interval: 86400
+    path: ./ruleset/category_public_tracker.yaml
+  iran_ads:
+    type: http
+    behavior: domain
+    url: https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml
+    interval: 86400
+    path: ./ruleset/iran_ads.yaml
+  PersianBlocker:
+    type: http
+    behavior: domain
+    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"
+    path: ./ruleset/PersianBlocker.yaml
+    interval: 86400
+  youtube:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml
+    interval: 86400
+    path: ./ruleset/youtube.yaml
+  telegram:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml
+    interval: 86400
+    path: ./ruleset/telegram.yaml
+  twitch:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml
+    interval: 86400
+    path: ./ruleset/twitch.yaml
+  censor:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml
+    interval: 86400
+    path: ./ruleset/censor.yaml
+  local_ips:
+    type: http
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml
+    interval: 86400
+    path: ./ruleset/local_ips.yaml
+  private:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml
+    interval: 86400
+    path: ./ruleset/private.yaml
+  category_ir:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml
+    interval: 86400
+    path: ./ruleset/category_ir.yaml
+  iran:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml
+    interval: 86400
+    path: ./ruleset/iran.yaml
+  steam:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml
+    interval: 86400
+    path: ./ruleset/steam.yaml
+  game:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml
+    interval: 86400
+    path: ./ruleset/game.yaml
+  category-games:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml
+    interval: 86400
+    path: ./ruleset/category-games.yaml
+  ir:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml"
+    path: ./ruleset/ir.yaml
+    interval: 86400
+  apps:
+    type: http
+    format: yaml
+    behavior: classical
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"
+    path: ./ruleset/apps.yaml
+    interval: 86400
+  ircidr:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml"
+    path: ./ruleset/ircidr.yaml
+    interval: 86400
+  irasn:
+    type: http
+    format: yaml
+    behavior: classical
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml"
+    path: ./ruleset/irasn.yaml
+    interval: 86400
+  arvancloud:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml"
+    path: ./ruleset/arvancloud.yaml
+    interval: 86400
+  derakcloud:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml"
+    path: ./ruleset/derakcloud.yaml
+    interval: 86400
+  iranserver:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml"
+    path: ./ruleset/iranserver.yaml
+    interval: 86400
+  parspack:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml"
+    path: ./ruleset/parspack.yaml
+    interval: 86400
+  malware:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml"
+    path: ./ruleset/malware.yaml
+    interval: 86400
+  phishing:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml"
+    path: ./ruleset/phishing.yaml
+    interval: 86400
+  cryptominers:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml"
+    path: ./ruleset/cryptominers.yaml
+    interval: 86400
+  ads:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/releases/latest/download/category-ads-all.yaml"
+    path: ./ruleset/ads.yaml
+    interval: 86400
+  DownloadManagers:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml
+    interval: 86400
+    path: ./ruleset/DownloadManagers.yaml
+  BanProgramAD:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml
+    interval: 86400
+    path: ./ruleset/BanProgramAD.yaml
+  BanAD:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml
+    interval: 86400
+    path: ./ruleset/BanAD.yaml
+  PrivateTracker:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml
+    interval: 86400
+    path: ./ruleset/PrivateTracker.yaml
+  BanEasyList:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml
+    interval: 86400
+    path: ./ruleset/BanEasyList.yaml
+  Download:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml
+    interval: 86400
+    path: ./ruleset/Download.yaml
+  GameDownload:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml
+    interval: 86400
+    path: ./ruleset/GameDownload.yaml
+  SteamRegionCheck:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml
+    interval: 86400
+    path: ./ruleset/SteamRegionCheck.yaml
+  Xbox:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml
+    interval: 86400
+    path: ./ruleset/Xbox.yaml
+  YouTubeMusic:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml
+    interval: 86400
+    path: ./ruleset/YouTubeMusic.yaml
+  YouTube:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml
+    interval: 86400
+    path: ./ruleset/YouTube.yaml
+  Ponzi:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml
+    interval: 86400
+    path: ./ruleset/Ponzi.yaml
+  warninglist:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml
+    interval: 86400
+    path: ./ruleset/warninglist.yaml
+  google:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml
+    interval: 86400
+    path: ./ruleset/google.yaml
+  google-play:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml
+    interval: 86400
+    path: ./ruleset/google-play.yaml
+  xiaomi-ads:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/xiaomi-ads.yaml
+    interval: 86400
+    path: ./ruleset/xiaomi-ads.yaml
+  xiaomi_block_list:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml"
+    path: ./ruleset/xiaomi_block_list.yaml
+    interval: 86400
+  xiaomi_white_list:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml"
+    path: ./ruleset/xiaomi_white_list.yaml
+    interval: 86400
+  cloudflare:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml
+    interval: 86400
+    path: ./ruleset/cloudflare.yaml
+  github:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml
+    interval: 86400
+    path: ./ruleset/xgithub.yaml
+  whatsapp:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml
+    interval: 86400
+    path: ./ruleset/whatsapp.yaml
+  LiteAds:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml"
+    path: ./ruleset/LiteAds.yaml
+    interval: 86400
+  discord:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"
+    path: ./ruleset/discord.yaml
+    interval: 86400
+  instagram:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml
+    interval: 86400
+    path: ./ruleset/instagram.yaml
+  category-ai:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml
+    interval: 86400
+    path: ./ruleset/category-ai.yaml
+  stremio:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml"
+    path: ./ruleset/stremio.yaml
+    interval: 86400
+  windows:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"
+    path: ./ruleset/windows.yaml
+    interval: 86400
+
+proxies:
+  - name: WARP-8.35.211.140:7156
+    type: wireguard
+    server: 8.35.211.140
+    port: 7156
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.39.204.244:3476
+    type: wireguard
+    server: 8.39.204.244
+    port: 3476
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.34.146.156:2408
+    type: wireguard
+    server: 8.34.146.156
+    port: 2408
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.34.70.82:988
+    type: wireguard
+    server: 8.34.70.82
+    port: 988
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.34.70.34:1002
+    type: wireguard
+    server: 8.34.70.34
+    port: 1002
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.35.211.119:500
+    type: wireguard
+    server: 8.35.211.119
+    port: 500
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.34.146.37:3854
+    type: wireguard
+    server: 8.34.146.37
+    port: 3854
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-8.34.146.47:864
+    type: wireguard
+    server: 8.34.146.47
+    port: 864
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:878
+    type: wireguard
+    server: 188.114.98.224
+    port: 878
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.61:955
+    type: wireguard
+    server: 188.114.98.61
+    port: 955
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:2408
+    type: wireguard
+    server: 188.114.98.224
+    port: 2408
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.99.66:4198
+    type: wireguard
+    server: 188.114.99.66
+    port: 4198
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-162.159.192.19:1701
+    type: wireguard
+    server: 162.159.192.19
+    port: 1701
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.228:878
+    type: wireguard
+    server: 188.114.98.228
+    port: 878
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:894
+    type: wireguard
+    server: 188.114.98.224
+    port: 894
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.96.6:890
+    type: wireguard
+    server: 188.114.96.6
+    port: 890
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:908
+    type: wireguard
+    server: 188.114.98.224
+    port: 908
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.99.53:890
+    type: wireguard
+    server: 188.114.99.53
+    port: 890
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.96.145:1074
+    type: wireguard
+    server: 188.114.96.145
+    port: 1074
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-162.159.195.238:7156
+    type: wireguard
+    server: 162.159.195.238
+    port: 7156
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:1387
+    type: wireguard
+    server: 188.114.98.224
+    port: 1387
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:1070
+    type: wireguard
+    server: 188.114.98.224
+    port: 1070
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-162.159.192.121:2371
+    type: wireguard
+    server: 162.159.192.121
+    port: 2371
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:4500
+    type: wireguard
+    server: 188.114.98.224
+    port: 4500
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:2371
+    type: wireguard
+    server: 188.114.98.224
+    port: 2371
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:854
+    type: wireguard
+    server: 188.114.98.224
+    port: 854
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.96.157:890
+    type: wireguard
+    server: 188.114.96.157
+    port: 890
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.99.212:1074
+    type: wireguard
+    server: 188.114.99.212
+    port: 1074
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.99.137:968
+    type: wireguard
+    server: 188.114.99.137
+    port: 968
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.96.239:1387
+    type: wireguard
+    server: 188.114.96.239
+    port: 1387
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:864
+    type: wireguard
+    server: 188.114.98.224
+    port: 864
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.99.0:878
+    type: wireguard
+    server: 188.114.99.0
+    port: 878
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:1074
+    type: wireguard
+    server: 188.114.98.224
+    port: 1074
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.96.137:988
+    type: wireguard
+    server: 188.114.96.137
+    port: 988
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:939
+    type: wireguard
+    server: 188.114.98.224
+    port: 939
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:500
+    type: wireguard
+    server: 188.114.98.224
+    port: 500
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.0:878
+    type: wireguard
+    server: 188.114.98.0
+    port: 878
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.98.224:3476
+    type: wireguard
+    server: 188.114.98.224
+    port: 3476
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+  - name: WARP-188.114.96.191:3854
+    type: wireguard
+    server: 188.114.96.191
+    port: 3854
+    ip: 172.16.0.2
+    private-key: 'UJGsCxh8HJHSI3byxI2QMQCUoIxQ1L+7d8/Mv5rksnU='
+    public-key: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+    allowed-ips:
+      - 0.0.0.0/0
+      - '::/0'
+    udp: true
+    mtu: 1280
+    remote-dns-resolve: true
+    ipv6: 2606:4700:110:870b:d85d:a02a:bad8:e151
+    amnezia-wg-option:
+      jc: 8
+      jmin: 64
+      jmax: 150
+      s1: 0
+      s2: 0
+      h1: 1
+      h2: 2
+      h3: 3
+      h4: 4
+
+  - name: Ainita-Direct-1
+    server: azure-sto.edgeservers.org
+    port: 48172
+    client-fingerprint: chrome
+    type: ss
+    cipher: chacha20-ietf-poly1305
+    password: 51yloQC8D9w1Wae7FHtI65
+    udp: true
+  - name: Ainita-Direct-2
+    server: azure-sto.edgeservers.org
+    port: 48172
+    client-fingerprint: chrome
+    type: ss
+    cipher: chacha20-ietf-poly1305
+    password: 51yloQC8D9w1Wae7FHtI65
+    udp: true
+  - name: Ainita-Direct-3
+    server: azure-sto.edgeservers.org
+    port: 48172
+    client-fingerprint: chrome
+    type: ss
+    cipher: chacha20-ietf-poly1305
+    password: 51yloQC8D9w1Wae7FHtI65
+    udp: true
+  - name: Ainita-Direct-4
+    server: azure-sto.edgeservers.org
+    port: 48172
+    client-fingerprint: chrome
+    type: ss
+    cipher: chacha20-ietf-poly1305
+    password: 51yloQC8D9w1Wae7FHtI65
+    udp: true
+
+proxy-providers:
+  Ainita:
+    type: inline
+    override:
+      dialer-proxy: "خودکار 🤖"
+    payload:
+      - name: Ainita-1
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
+      - name: Ainita-2
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
+      - name: Ainita-3
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
+      - name: Ainita-4
+        server: azure-sto.edgeservers.org
+        port: 48172
+        client-fingerprint: chrome
+        type: ss
+        cipher: chacha20-ietf-poly1305
+        password: 51yloQC8D9w1Wae7FHtI65
+        udp: true
+
+proxy-groups:
+  - name: "نوع انتخاب پروکسی 🔀"
+    icon: https://www.svgrepo.com/show/412721/choose.svg
+    type: select
+    proxies:
+      - "خودکار 🤖"
+      - "وارپ + آی نیتا 🌩"
+      - "دستی 🤏🏻"
+      - "قطع اینترنت ⛔"
+      - "بدون فیلترشکن 🛡️"
+
+  - name: "وارپ + آی نیتا 🌩"
+    type: select
+    icon: https://www.svgrepo.com/show/321996/cctv-camera.svg
+    use:
+      - Ainita
+
+  - name: "دستی 🤏🏻"
+    type: select
+    icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
+    proxies:
+      - "Ainita-Direct-1"
+      - "Ainita-Direct-2"
+      - "Ainita-Direct-3"
+      - "Ainita-Direct-4"
+      - "WARP-8.35.211.140:7156"
+      - "WARP-8.39.204.244:3476"
+      - "WARP-8.34.146.156:2408"
+      - "WARP-8.34.70.82:988"
+      - "WARP-8.34.70.34:1002"
+      - "WARP-8.35.211.119:500"
+      - "WARP-8.34.146.37:3854"
+      - "WARP-8.34.146.47:864"
+      - "WARP-188.114.98.224:878"
+      - "WARP-188.114.98.61:955"
+      - "WARP-188.114.98.224:2408"
+      - "WARP-188.114.99.66:4198"
+      - "WARP-162.159.192.19:1701"
+      - "WARP-188.114.98.228:878"
+      - "WARP-188.114.98.224:894"
+      - "WARP-188.114.96.6:890"
+      - "WARP-188.114.98.224:908"
+      - "WARP-188.114.99.53:890"
+      - "WARP-188.114.96.145:1074"
+      - "WARP-162.159.195.238:7156"
+      - "WARP-188.114.98.224:1387"
+      - "WARP-188.114.98.224:1070"
+      - "WARP-162.159.192.121:2371"
+      - "WARP-188.114.98.224:4500"
+      - "WARP-188.114.98.224:2371"
+      - "WARP-188.114.98.224:854"
+      - "WARP-188.114.96.157:890"
+      - "WARP-188.114.99.212:1074"
+      - "WARP-188.114.99.137:968"
+      - "WARP-188.114.96.239:1387"
+      - "WARP-188.114.98.224:864"
+      - "WARP-188.114.99.0:878"
+      - "WARP-188.114.98.224:1074"
+      - "WARP-188.114.96.137:988"
+      - "WARP-188.114.98.224:939"
+      - "WARP-188.114.98.224:500"
+      - "WARP-188.114.98.0:878"
+      - "WARP-188.114.98.224:3476"
+      - "WARP-188.114.96.191:3854"
+
+  - name: "خودکار 🤖"
+    type: url-test
+    icon: https://www.svgrepo.com/show/7876/speedometer.svg
+    url: https://api.v2fly.org/checkConnection.svgz
+    interval: 300
+    timeout: 5000
+    tolerance: 50
+    max-failed-times: 3
+    lazy: true
+    proxies:
+      - "WARP-8.35.211.140:7156"
+      - "WARP-8.39.204.244:3476"
+      - "WARP-8.34.146.156:2408"
+      - "WARP-8.34.70.82:988"
+      - "WARP-8.34.70.34:1002"
+      - "WARP-8.35.211.119:500"
+      - "WARP-8.34.146.37:3854"
+      - "WARP-8.34.146.47:864"
+      - "WARP-188.114.98.224:878"
+      - "WARP-188.114.98.61:955"
+      - "WARP-188.114.98.224:2408"
+      - "WARP-188.114.99.66:4198"
+      - "WARP-162.159.192.19:1701"
+      - "WARP-188.114.98.228:878"
+      - "WARP-188.114.98.224:894"
+      - "WARP-188.114.96.6:890"
+      - "WARP-188.114.98.224:908"
+      - "WARP-188.114.99.53:890"
+      - "WARP-188.114.96.145:1074"
+      - "WARP-162.159.195.238:7156"
+      - "WARP-188.114.98.224:1387"
+      - "WARP-188.114.98.224:1070"
+      - "WARP-162.159.192.121:2371"
+      - "WARP-188.114.98.224:4500"
+      - "WARP-188.114.98.224:2371"
+      - "WARP-188.114.98.224:854"
+      - "WARP-188.114.96.157:890"
+      - "WARP-188.114.99.212:1074"
+      - "WARP-188.114.99.137:968"
+      - "WARP-188.114.96.239:1387"
+      - "WARP-188.114.98.224:864"
+      - "WARP-188.114.99.0:878"
+      - "WARP-188.114.98.224:1074"
+      - "WARP-188.114.96.137:988"
+      - "WARP-188.114.98.224:939"
+      - "WARP-188.114.98.224:500"
+      - "WARP-188.114.98.0:878"
+      - "WARP-188.114.98.224:3476"
+      - "WARP-188.114.96.191:3854"
+
+  - name: دانلود منیجر 📥
+    type: select
+    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: تلگرام 💬
+    type: select
+    icon: https://www.svgrepo.com/show/354443/telegram.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: یوتیوب ▶️
+    type: select
+    icon: https://www.svgrepo.com/show/475700/youtube-color.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+  - name: گوگل 🌍
+    type: select
+    icon: https://www.svgrepo.com/show/475656/google-color.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: واتس آپ 🟢
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+  - name: هوش مصنوعی 🤖
+    type: select
+    icon: https://www.svgrepo.com/show/306500/openai.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: اینستاگرام 📸
+    type: select
+    icon: https://www.svgrepo.com/show/452229/instagram-1.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+  - name: تبلیغات 🆎
+    type: select
+    icon: https://www.svgrepo.com/show/336358/ad.svg
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+  - name: تبلیغات اپ ها 🍃
+    type: select
+    icon: https://www.svgrepo.com/show/12172/smartphone-ad.svg
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+  - name: رهگیری جهانی 🛑
+    type: select
+    icon: https://www.svgrepo.com/show/298725/tracking-track.svg
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+  - name: سایتای مخرب ⚠️
+    type: select
+    icon: https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+  - name: استیم 🖥️
+    type: select
+    icon: https://www.svgrepo.com/show/452107/steam.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: گیم 🎮
+    type: select
+    icon: https://www.svgrepo.com/show/167729/game-controller.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: توییچ 📡
+    type: select
+    icon: https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: سایتای ایرانی 🇮🇷
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: ویندوز 🧊
+    type: select
+    icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "اجازه ندادن 🚫"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+  - name: کلودفلر ☁️
+    type: select
+    icon: https://icon.icepanel.io/Technology/svg/Cloudflare.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: گیتهاب 🐙
+    type: select
+    icon: https://www.svgrepo.com/show/355033/github.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: دیسکورد 🗣️
+    type: select
+    icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: استریمیو 🎬
+    type: select
+    icon: https://stremio.github.io/stremio-addon-guide/img/stremio.svg
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: سایتای سانسوری 🤬
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+  - name: "بدون فیلترشکن 🛡️"
+    type: select
+    icon: https://www.svgrepo.com/show/6318/connection.svg
+    proxies:
+      - DIRECT
+    hidden: true
+  - name: "قطع اینترنت ⛔"
+    type: select
+    icon: https://www.svgrepo.com/show/305372/wifi-off.svg
+    proxies:
+      - REJECT
+    hidden: true
+  - name: "اجازه ندادن 🚫"
+    type: select
+    icon: https://www.svgrepo.com/show/444307/gui-ban.svg
+    proxies:
+      - REJECT
+    hidden: true
+
+rules:
+  - RULE-SET,DownloadManagers,دانلود منیجر 📥
+  - RULE-SET,Download,دانلود منیجر 📥
+  - RULE-SET,stremio,استریمیو 🎬
+  - RULE-SET,BanProgramAD,تبلیغات اپ ها 🍃
+  - RULE-SET,BanAD,رهگیری جهانی 🛑
+  - RULE-SET,PrivateTracker,رهگیری جهانی 🛑
+  - RULE-SET,category_public_tracker,رهگیری جهانی 🛑
+  - RULE-SET,malware,سایتای مخرب ⚠️
+  - RULE-SET,phishing,سایتای مخرب ⚠️
+  - RULE-SET,cryptominers,سایتای مخرب ⚠️
+  - RULE-SET,warninglist,سایتای مخرب ⚠️
+  - RULE-SET,Ponzi,سایتای مخرب ⚠️
+  - RULE-SET,LiteAds,تبلیغات 🆎
+  - RULE-SET,iran_ads,تبلیغات 🆎
+  - RULE-SET,PersianBlocker,تبلیغات 🆎
+  - RULE-SET,ads,تبلیغات 🆎
+  - RULE-SET,BanEasyList,تبلیغات 🆎
+  - RULE-SET,twitch,توییچ 📡
+  - PROCESS-NAME,Telegram.exe,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬
+  - RULE-SET,telegram,تلگرام 💬
+  - RULE-SET,YouTube,یوتیوب ▶️
+  - RULE-SET,youtube,یوتیوب ▶️
+  - RULE-SET,YouTubeMusic,یوتیوب ▶️
+  - PROCESS-NAME,com.instagram.android,اینستاگرام 📸
+  - RULE-SET,instagram,اینستاگرام 📸
+  - DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖
+  - DOMAIN-SUFFIX,qwen.ai,هوش مصنوعی 🤖
+  - RULE-SET,category-ai,هوش مصنوعی 🤖
+  - RULE-SET,censor,سایتای سانسوری 🤬
+  - RULE-SET,apps,سایتای ایرانی 🇮🇷
+  - RULE-SET,iran,سایتای ایرانی 🇮🇷
+  - RULE-SET,arvancloud,سایتای ایرانی 🇮🇷
+  - RULE-SET,derakcloud,سایتای ایرانی 🇮🇷
+  - RULE-SET,iranserver,سایتای ایرانی 🇮🇷
+  - RULE-SET,parspack,سایتای ایرانی 🇮🇷
+  - RULE-SET,irasn,سایتای ایرانی 🇮🇷
+  - RULE-SET,ircidr,سایتای ایرانی 🇮🇷
+  - RULE-SET,ir,سایتای ایرانی 🇮🇷
+  - RULE-SET,category_ir,سایتای ایرانی 🇮🇷
+  - RULE-SET,whatsapp,واتس آپ 🟢
+  - RULE-SET,steam,استیم 🖥️
+  - RULE-SET,SteamRegionCheck,استیم 🖥️
+  - RULE-SET,game,گیم 🎮
+  - RULE-SET,GameDownload,گیم 🎮
+  - RULE-SET,category-games,گیم 🎮
+  - RULE-SET,Xbox,گیم 🎮
+  - RULE-SET,discord,دیسکورد 🗣️
+  - RULE-SET,xiaomi_white_list,نوع انتخاب پروکسی 🔀
+  - RULE-SET,xiaomi-ads,تبلیغات اپ ها 🍃
+  - RULE-SET,xiaomi_block_list,تبلیغات اپ ها 🍃
+  - RULE-SET,windows,ویندوز 🧊
+  - RULE-SET,cloudflare,کلودفلر ☁️
+  - RULE-SET,github,گیتهاب 🐙
+  - PROCESS-NAME,com.android.vending,نوع انتخاب پروکسی 🔀
+  - PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀
+  - RULE-SET,google-play,نوع انتخاب پروکسی 🔀
+  - RULE-SET,google,گوگل 🌍
+  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀
+  - RULE-SET,local_ips,بدون فیلترشکن 🛡️
+  - RULE-SET,private,بدون فیلترشکن 🛡️
+  - MATCH,نوع انتخاب پروکسی 🔀
+
+ntp:
+  enable: true
+  server: "time.apple.com"
+  port: 123
+  interval: 30

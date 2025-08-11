@@ -625,24 +625,24 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/475689/twitter-color.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
+      - نوع انتخاب پروکسی 🔀
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 
       - پشتیبان (در صورت قطعی) 🧯
+      - بدون فیلترشکن 🛡️ 
+      - اجازه ندادن 🚫 
   - name: اسپاتیفای 🎵
     type: select
     icon: https://www.svgrepo.com/show/475684/spotify-color.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
+      - نوع انتخاب پروکسی 🔀
       - اتصال پایدار 🔗 
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 
       - پشتیبان (در صورت قطعی) 🧯
+      - بدون فیلترشکن 🛡️ 
+      - اجازه ندادن 🚫 
   - name: اینستاگرام 📸 
     type: select 
     icon: https://www.svgrepo.com/show/452229/instagram-1.svg 

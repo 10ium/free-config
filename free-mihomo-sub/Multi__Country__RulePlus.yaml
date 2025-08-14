@@ -1682,8 +1682,8 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/475689/twitter-color.svg
     proxies:
-      - کانادا 🇨🇦
       - آمریکا 🇺🇸
+      - کانادا 🇨🇦
       - ایران 🇮🇷
       - نوع انتخاب پروکسی 🔀
       - بدون فیلترشکن 🛡️

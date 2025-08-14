@@ -431,6 +431,43 @@ rule-providers:
     url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml" 
     path: ./ruleset/windows.yaml 
     interval: 86400
+  Chotwitter:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"
+    path: ./ruleset/Chotwitter.yaml
+    interval: 86400
+  mihTwitter:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"
+    path: ./ruleset/mihTwitter.yaml
+    interval: 86400
+  Domtwitter:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml
+    interval: 86400
+    path: ./ruleset/Domtwitter.yaml
+  spotifyads:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify-ads.yaml
+    interval: 86400
+    path: ./ruleset/spotifyads.yaml
+  DomainSpotify:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml
+    interval: 86400
+    path: ./ruleset/DomainSpotify.yaml
+  mihspotify:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml
+    interval: 86400
+    path: ./ruleset/mihSpotify.yaml
 
 # Proxy Groups
 proxy-groups:
@@ -1588,7 +1625,119 @@ proxy-groups:
   - name: هوش مصنوعی 🤖 
     type: select 
     icon: https://www.svgrepo.com/show/306500/openai.svg 
-    proxies: 
+    proxies:
+      - انگلیس 🇬🇧
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - خودکار 🤖
+      - دستی 🤏🏻
+      - ارمنستان 🇦🇲
+      - ترکیه 🇹🇷
+      - عراق 🇮🇶
+      - بحرین 🇧🇭
+      - امارات 🇦🇪
+      - اردن 🇯🇴
+      - عمان 🇴🇲
+      - ازبکستان 🇺🇿
+      - ایران 🇮🇷
+      - اسرائیل 🇮🇱
+      - قبرس 🇨🇾
+      - پاکستان 🇵🇰
+      - یونان 🇬🇷
+      - بلغارستان 🇧🇬
+      - اوکراین 🇺🇦
+      - رومانی 🇷🇴
+      - روسیه 🇷🇺
+      - صربستان 🇷🇸
+      - اتریش 🇦🇹
+      - لهستان 🇵🇱
+      - لیتوانی 🇱🇹
+      - فنلاند 🇫🇮
+      - استونی 🇪🇪
+      - ایتالیا 🇮🇹
+      - سوئد 🇸🇪
+      - آلمان 🇩🇪
+      - سوئیس 🇨🇭
+      - دانمارک 🇩🇰
+      - نروژ 🇳🇴
+      - هلند 🇳🇱
+      - بلژیک 🇧🇪
+      - لوکزامبورگ 🇱🇺
+      - فرانسه 🇫🇷
+      - اسپانیا 🇪🇸
+      - چین 🇨🇳
+      - تایلند 🇹🇭
+      - هنگ کنگ 🇭🇰
+      - کره جنوبی 🇰🇷
+      - مالزی 🇲🇾
+      - سنگاپور 🇸🇬
+      - تایوان 🇹🇼
+      - ژاپن 🇯🇵
+      - کانادا 🇨🇦
+      - آمریکا 🇺🇸
+      - استرالیا 🇦🇺
+      - آرژانتین 🇦🇷
+  - name: توییتر 🐦
+    type: select
+    icon: https://www.svgrepo.com/show/475689/twitter-color.svg
+    proxies:
+      - کانادا 🇨🇦
+      - آمریکا 🇺🇸
+      - ایران 🇮🇷
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - خودکار 🤖
+      - دستی 🤏🏻
+      - ارمنستان 🇦🇲
+      - ترکیه 🇹🇷
+      - عراق 🇮🇶
+      - بحرین 🇧🇭
+      - امارات 🇦🇪
+      - اردن 🇯🇴
+      - عمان 🇴🇲
+      - ازبکستان 🇺🇿
+      - اسرائیل 🇮🇱
+      - قبرس 🇨🇾
+      - پاکستان 🇵🇰
+      - یونان 🇬🇷
+      - بلغارستان 🇧🇬
+      - اوکراین 🇺🇦
+      - رومانی 🇷🇴
+      - روسیه 🇷🇺
+      - صربستان 🇷🇸
+      - اتریش 🇦🇹
+      - لهستان 🇵🇱
+      - لیتوانی 🇱🇹
+      - فنلاند 🇫🇮
+      - استونی 🇪🇪
+      - ایتالیا 🇮🇹
+      - سوئد 🇸🇪
+      - آلمان 🇩🇪
+      - سوئیس 🇨🇭
+      - دانمارک 🇩🇰
+      - نروژ 🇳🇴
+      - هلند 🇳🇱
+      - بلژیک 🇧🇪
+      - لوکزامبورگ 🇱🇺
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - اسپانیا 🇪🇸
+      - چین 🇨🇳
+      - تایلند 🇹🇭
+      - هنگ کنگ 🇭🇰
+      - کره جنوبی 🇰🇷
+      - مالزی 🇲🇾
+      - سنگاپور 🇸🇬
+      - تایوان 🇹🇼
+      - ژاپن 🇯🇵
+      - استرالیا 🇦🇺
+      - آرژانتین 🇦🇷
+  - name: اسپاتیفای 🎵
+    type: select
+    icon: https://www.svgrepo.com/show/475684/spotify-color.svg
+    proxies:
       - نوع انتخاب پروکسی 🔀
       - بدون فیلترشکن 🛡️
       - اجازه ندادن 🚫
@@ -2367,6 +2516,62 @@ proxy-groups:
       - آمریکا 🇺🇸
       - استرالیا 🇦🇺
       - آرژانتین 🇦🇷
+  - name: انی‌دسک 🔴
+    type: select 
+    icon: https://upload.wikimedia.org/wikipedia/commons/6/60/AnyDesk-logo.svg 
+    proxies: 
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اجازه ندادن 🚫
+      - خودکار 🤖
+      - دستی 🤏🏻
+      - ارمنستان 🇦🇲
+      - ترکیه 🇹🇷
+      - عراق 🇮🇶
+      - بحرین 🇧🇭
+      - امارات 🇦🇪
+      - اردن 🇯🇴
+      - عمان 🇴🇲
+      - ازبکستان 🇺🇿
+      - ایران 🇮🇷
+      - اسرائیل 🇮🇱
+      - قبرس 🇨🇾
+      - پاکستان 🇵🇰
+      - یونان 🇬🇷
+      - بلغارستان 🇧🇬
+      - اوکراین 🇺🇦
+      - رومانی 🇷🇴
+      - روسیه 🇷🇺
+      - صربستان 🇷🇸
+      - اتریش 🇦🇹
+      - لهستان 🇵🇱
+      - لیتوانی 🇱🇹
+      - فنلاند 🇫🇮
+      - استونی 🇪🇪
+      - ایتالیا 🇮🇹
+      - سوئد 🇸🇪
+      - آلمان 🇩🇪
+      - سوئیس 🇨🇭
+      - دانمارک 🇩🇰
+      - نروژ 🇳🇴
+      - هلند 🇳🇱
+      - بلژیک 🇧🇪
+      - لوکزامبورگ 🇱🇺
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - اسپانیا 🇪🇸
+      - چین 🇨🇳
+      - تایلند 🇹🇭
+      - هنگ کنگ 🇭🇰
+      - کره جنوبی 🇰🇷
+      - مالزی 🇲🇾
+      - سنگاپور 🇸🇬
+      - تایوان 🇹🇼
+      - ژاپن 🇯🇵
+      - کانادا 🇨🇦
+      - آمریکا 🇺🇸
+      - استرالیا 🇦🇺
+      - آرژانتین 🇦🇷
   - name: استریمیو 🎬 
     type: select 
     icon: https://stremio.github.io/stremio-addon-guide/img/stremio.svg 
@@ -2930,7 +3135,8 @@ proxy-providers:
 rules: 
   - RULE-SET,DownloadManagers,دانلود منیجر 📥 
   - RULE-SET,Download,دانلود منیجر 📥 
-  - RULE-SET,stremio,استریمیو 🎬 
+  - RULE-SET,stremio,استریمیو 🎬
+  - RULE-SET,spotifyads,تبلیغات اپ ها 🍃
   - RULE-SET,BanProgramAD,تبلیغات اپ ها 🍃 
   - RULE-SET,BanAD,رهگیری جهانی 🛑 
   - RULE-SET,PrivateTracker,رهگیری جهانی 🛑 
@@ -2950,9 +3156,21 @@ rules:
   - PROCESS-NAME,org.telegram.messenger,تلگرام 💬 
   - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬 
   - RULE-SET,telegram,تلگرام 💬 
-  - RULE-SET,YouTube,یوتیوب ▶️ 
-  - RULE-SET,youtube,یوتیوب ▶️ 
-  - RULE-SET,YouTubeMusic,یوتیوب ▶️ 
+  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
+  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
+  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
+  - RULE-SET,YouTubeMusic,یوتیوب ▶️
+  - RULE-SET,YouTube,یوتیوب ▶️
+  - RULE-SET,youtube,یوتیوب ▶️
+  - PROCESS-NAME,Twitter.exe,توییتر 🐦
+  - PROCESS-NAME,com.twitter.android,توییتر 🐦
+  - RULE-SET,Chotwitter,توییتر 🐦
+  - RULE-SET,mihTwitter,توییتر 🐦
+  - RULE-SET,Domtwitter,توییتر 🐦
+  - PROCESS-NAME,com.spotify.music,اسپاتیفای 🎵
+  - PROCESS-NAME,Spotify.exe,اسپاتیفای 🎵
+  - RULE-SET,DomainSpotify,اسپاتیفای 🎵
+  - RULE-SET,mihspotify,اسپاتیفای 🎵
   - PROCESS-NAME,com.instagram.android,اینستاگرام 📸 
   - RULE-SET,instagram,اینستاگرام 📸 
   - DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖 

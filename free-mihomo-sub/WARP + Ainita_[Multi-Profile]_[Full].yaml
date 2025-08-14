@@ -5731,6 +5731,15 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
+  - name: انی‌دسک 🔴
+    type: select 
+    icon: https://upload.wikimedia.org/wikipedia/commons/6/60/AnyDesk-logo.svg 
+    proxies: 
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
   - name: سایتای سانسوری 🤬
     type: select
     icon: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png
@@ -5783,6 +5792,9 @@ rules:
   - PROCESS-NAME,org.telegram.messenger,تلگرام 💬
   - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬
   - RULE-SET,telegram,تلگرام 💬
+  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
+  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
+  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
   - RULE-SET,YouTubeMusic,یوتیوب ▶️
   - RULE-SET,YouTube,یوتیوب ▶️
   - RULE-SET,youtube,یوتیوب ▶️

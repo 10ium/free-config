@@ -865,7 +865,7 @@ proxy-providers:
   tuic:
     type: http
     url: >-
-      https://url.v1.mk/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2FV2ray-Config%2Fmain%2FSplitted-By-Protocol%2Ftuic.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
+      https://raw.githubusercontent.com/vpnclashfa-backup/subconverter/refs/heads/main/output_configs/clash/MahsaNetConfigTopic.yaml
     interval: 86400
     include-all: true
     path: ./tuic.yaml

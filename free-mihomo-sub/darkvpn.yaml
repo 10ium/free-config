@@ -799,7 +799,7 @@ proxy-groups:
       - پشتیبان (در صورت قطعی) 🧯 
   - name: انی‌دسک 🔴
     type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/6/60/AnyDesk-logo.svg 
+    icon: https://www.svgrepo.com/show/331289/anydesk.svg 
     proxies: 
       - بدون فیلترشکن 🛡️ 
       - نوع انتخاب پروکسی 🔀 

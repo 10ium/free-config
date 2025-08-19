@@ -432,43 +432,6 @@ rule-providers:
     url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"
     path: ./ruleset/windows.yaml
     interval: 86400
-  Chotwitter:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"
-    path: ./ruleset/Chotwitter.yaml
-    interval: 86400
-  mihTwitter:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"
-    path: ./ruleset/mihTwitter.yaml
-    interval: 86400
-  Domtwitter:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml
-    interval: 86400
-    path: ./ruleset/Domtwitter.yaml
-  spotifyads:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify-ads.yaml
-    interval: 86400
-    path: ./ruleset/spotifyads.yaml
-  DomainSpotify:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml
-    interval: 86400
-    path: ./ruleset/DomainSpotify.yaml
-  mihspotify:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml
-    interval: 86400
-    path: ./ruleset/mihSpotify.yaml
 
 proxy-groups:
   - name: نوع انتخاب پروکسی 🔀
@@ -488,6 +451,8 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
     use:
+      - proxy
+      - Eternity
       - mtn1
       - mtn2
       - mtn3
@@ -506,6 +471,8 @@ proxy-groups:
     max-failed-times: 5
     lazy: true
     use:
+      - proxy
+      - Eternity
       - mtn1
       - mtn2
       - mtn3
@@ -524,6 +491,8 @@ proxy-groups:
     max-failed-times: 3
     lazy: true
     use:
+      - proxy
+      - Eternity
       - mtn1
       - mtn2
       - mtn3
@@ -555,6 +524,8 @@ proxy-groups:
     max-failed-times: 5
     lazy: true
     use:
+      - proxy
+      - Eternity
       - mtn1
       - mtn2
       - mtn3
@@ -574,6 +545,8 @@ proxy-groups:
     max-failed-times: 3
     lazy: true
     use:
+      - proxy
+      - Eternity
       - mtn1
       - mtn2
       - mtn3
@@ -592,6 +565,8 @@ proxy-groups:
     max-failed-times: 5
     lazy: true
     use:
+      - proxy
+      - Eternity
       - mtn1
       - mtn2
       - mtn3
@@ -637,9 +612,9 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/475656/google-color.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
       - بدون فیلترشکن 🛡️
       - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
       - اتصال پایدار 🔗
       - خودکار (بهترین پینگ) 🤖
       - دستی 🤏🏻
@@ -648,9 +623,9 @@ proxy-groups:
     type: select
     icon: https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
       - بدون فیلترشکن 🛡️
       - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
       - اتصال پایدار 🔗
       - خودکار (بهترین پینگ) 🤖
       - دستی 🤏🏻
@@ -658,28 +633,6 @@ proxy-groups:
   - name: هوش مصنوعی 🤖
     type: select
     icon: https://www.svgrepo.com/show/306500/openai.svg
-    proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - اتصال پایدار 🔗
-      - خودکار (بهترین پینگ) 🤖
-      - دستی 🤏🏻
-      - پشتیبان (در صورت قطعی) 🧯
-  - name: توییتر 🐦
-    type: select
-    icon: https://www.svgrepo.com/show/475689/twitter-color.svg
-    proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - اتصال پایدار 🔗
-      - خودکار (بهترین پینگ) 🤖
-      - دستی 🤏🏻
-      - پشتیبان (در صورت قطعی) 🧯
-  - name: اسپاتیفای 🎵
-    type: select
-    icon: https://www.svgrepo.com/show/475684/spotify-color.svg
     proxies:
       - نوع انتخاب پروکسی 🔀
       - بدون فیلترشکن 🛡️
@@ -791,9 +744,9 @@ proxy-groups:
     type: select
     icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
       - بدون فیلترشکن 🛡️
       - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
       - اتصال پایدار 🔗
       - خودکار (بهترین پینگ) 🤖
       - دستی 🤏🏻
@@ -813,13 +766,13 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/355033/github.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
   - name: دیسکورد 🗣️
     type: select
     icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg
@@ -835,17 +788,6 @@ proxy-groups:
     type: select
     icon: https://stremio.github.io/stremio-addon-guide/img/stremio.svg
     proxies:
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - اجازه ندادن 🚫
-      - اتصال پایدار 🔗
-      - خودکار (بهترین پینگ) 🤖
-      - دستی 🤏🏻
-      - پشتیبان (در صورت قطعی) 🧯
-  - name: انی‌دسک 🔴
-    type: select 
-    icon: https://www.svgrepo.com/show/331289/anydesk.svg 
-    proxies: 
       - بدون فیلترشکن 🛡️
       - نوع انتخاب پروکسی 🔀
       - اجازه ندادن 🚫
@@ -884,6 +826,30 @@ proxy-groups:
     hidden: true
 
 proxy-providers:
+
+  proxy:
+    type: http
+    url: >-
+      https://url.v1.mk/sub?&url=https://raw.githubusercontent.com/10ium/multi-proxy-config-fetcher/refs/heads/main/configs/singbox_configs.json&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
+    interval: 86400
+    include-all: true
+    path: ./proxy.yaml
+    health-check:
+      enable: true
+      interval: 1800
+      url: "https://www.gstatic.com/generate_204"
+
+  Eternity:
+    type: http
+    url: >-
+      https://raw.githubusercontent.com/10ium/V2RayAggregator/refs/heads/master/Eternity.yml
+    interval: 86400
+    include-all: true
+    path: ./Eternity.yaml
+    health-check:
+      enable: true
+      interval: 1800
+      url: "https://www.gstatic.com/generate_204"
 
   mtn1:
     type: http
@@ -1015,18 +981,6 @@ rules:
   - RULE-SET,YouTube,یوتیوب ▶️
   - RULE-SET,youtube,یوتیوب ▶️
   - RULE-SET,YouTubeMusic,یوتیوب ▶️
-  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
-  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
-  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
-  - PROCESS-NAME,Twitter.exe,توییتر 🐦
-  - PROCESS-NAME,com.twitter.android,توییتر 🐦
-  - RULE-SET,Chotwitter,توییتر 🐦
-  - RULE-SET,mihTwitter,توییتر 🐦
-  - RULE-SET,Domtwitter,توییتر 🐦
-  - PROCESS-NAME,com.spotify.music,اسپاتیفای 🎵
-  - PROCESS-NAME,Spotify.exe,اسپاتیفای 🎵
-  - RULE-SET,DomainSpotify,اسپاتیفای 🎵
-  - RULE-SET,mihspotify,اسپاتیفای 🎵
   - PROCESS-NAME,com.instagram.android,اینستاگرام 📸
   - RULE-SET,instagram,اینستاگرام 📸
   - DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖

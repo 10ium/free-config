@@ -430,7 +430,44 @@ rule-providers:
     behavior: classical 
     url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml" 
     path: ./ruleset/windows.yaml 
-    interval: 86400 
+    interval: 86400
+  Chotwitter:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"
+    path: ./ruleset/Chotwitter.yaml
+    interval: 86400
+  mihTwitter:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"
+    path: ./ruleset/mihTwitter.yaml
+    interval: 86400
+  Domtwitter:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml
+    interval: 86400
+    path: ./ruleset/Domtwitter.yaml
+  spotifyads:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify-ads.yaml
+    interval: 86400
+    path: ./ruleset/spotifyads.yaml
+  DomainSpotify:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml
+    interval: 86400
+    path: ./ruleset/DomainSpotify.yaml
+  mihspotify:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml
+    interval: 86400
+    path: ./ruleset/mihSpotify.yaml
 
 proxy-groups: 
   - name: نوع انتخاب پروکسی 🔀 
@@ -518,142 +555,219 @@ proxy-groups:
     lazy: true 
     use: 
       - proxy 
-  - name: دانلود منیجر 📥 
-    type: select 
-    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️ 
-      - نوع انتخاب پروکسی 🔀 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-      - اجازه ندادن 🚫 
-  - name: تلگرام 💬 
-    type: select 
-    icon: https://www.svgrepo.com/show/354443/telegram.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-      - اجازه ندادن 🚫 
-  - name: یوتیوب ▶️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/475700/youtube-color.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-      - اجازه ندادن 🚫 
-  - name: گوگل 🌍 
-    type: select 
-    icon: https://www.svgrepo.com/show/475656/google-color.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️ 
-      - نوع انتخاب پروکسی 🔀 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: واتس آپ 🟢 
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: هوش مصنوعی 🤖 
-    type: select 
-    icon: https://www.svgrepo.com/show/306500/openai.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: اینستاگرام 📸 
-    type: select 
-    icon: https://www.svgrepo.com/show/452229/instagram-1.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: تبلیغات 🆎 
-    type: select 
-    icon: https://www.svgrepo.com/show/336358/ad.svg 
-    proxies: 
-      - اجازه ندادن 🚫 
-      - بدون فیلترشکن 🛡️ 
-      - نوع انتخاب پروکسی 🔀 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: تبلیغات اپ ها 🍃 
-    type: select 
-    icon: https://www.svgrepo.com/show/12172/smartphone-ad.svg 
-    proxies: 
-      - اجازه ندادن 🚫 
-      - بدون فیلترشکن 🛡️ 
-      - نوع انتخاب پروکسی 🔀 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: رهگیری جهانی 🛑 
-    type: select 
-    icon: https://www.svgrepo.com/show/298725/tracking-track.svg 
-    proxies: 
-      - اجازه ندادن 🚫 
-      - بدون فیلترشکن 🛡️ 
-      - نوع انتخاب پروکسی 🔀 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: سایتای مخرب ⚠️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg 
-    proxies: 
-      - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: استیم 🖥️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/452107/steam.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️ 
+  - name: دانلود منیجر 📥
+    type: select
+    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
       - نوع انتخاب پروکسی 🔀
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: گیم 🎮 
-    type: select 
-    icon: https://www.svgrepo.com/show/167729/game-controller.svg 
-    proxies: 
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+      - اجازه ندادن 🚫
+  - name: تلگرام 💬
+    type: select
+    icon: https://www.svgrepo.com/show/354443/telegram.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+      - اجازه ندادن 🚫
+  - name: یوتیوب ▶️
+    type: select
+    icon: https://www.svgrepo.com/show/475700/youtube-color.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+      - اجازه ندادن 🚫
+  - name: گوگل 🌍
+    type: select
+    icon: https://www.svgrepo.com/show/475656/google-color.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: واتس آپ 🟢
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: هوش مصنوعی 🤖
+    type: select
+    icon: https://www.svgrepo.com/show/306500/openai.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: توییتر 🐦
+    type: select
+    icon: https://www.svgrepo.com/show/475689/twitter-color.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: اسپاتیفای 🎵
+    type: select
+    icon: https://www.svgrepo.com/show/475684/spotify-color.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: اینستاگرام 📸
+    type: select
+    icon: https://www.svgrepo.com/show/452229/instagram-1.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: تبلیغات 🆎
+    type: select
+    icon: https://www.svgrepo.com/show/336358/ad.svg
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: تبلیغات اپ ها 🍃
+    type: select
+    icon: https://www.svgrepo.com/show/12172/smartphone-ad.svg
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: رهگیری جهانی 🛑
+    type: select
+    icon: https://www.svgrepo.com/show/298725/tracking-track.svg
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: سایتای مخرب ⚠️
+    type: select
+    icon: https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg
+    proxies:
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: استیم 🖥️
+    type: select
+    icon: https://www.svgrepo.com/show/452107/steam.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: گیم 🎮
+    type: select
+    icon: https://www.svgrepo.com/show/167729/game-controller.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: توییچ 📡
+    type: select
+    icon: https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: سایتای ایرانی 🇮🇷
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: ویندوز 🧊
+    type: select
+    icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: کلودفلر ☁️
+    type: select
+    icon: https://icon.icepanel.io/Technology/svg/Cloudflare.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: گیتهاب 🐙
+    type: select
+    icon: https://www.svgrepo.com/show/355033/github.svg
+    proxies:
       - نوع انتخاب پروکسی 🔀 
       - بدون فیلترشکن 🛡️ 
       - اجازه ندادن 🚫 
@@ -661,112 +775,68 @@ proxy-groups:
       - خودکار (بهترین پینگ) 🤖 
       - دستی 🤏🏻 
       - پشتیبان (در صورت قطعی) 🧯 
-  - name: توییچ 📡 
+  - name: دیسکورد 🗣️
+    type: select
+    icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: استریمیو 🎬
+    type: select
+    icon: https://stremio.github.io/stremio-addon-guide/img/stremio.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: انی‌دسک 🔴
     type: select 
-    icon: https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg 
+    icon: https://www.svgrepo.com/show/331289/anydesk.svg 
     proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: سایتای ایرانی 🇮🇷 
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: ویندوز 🧊 
-    type: select 
-    icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: کلودفلر ☁️ 
-    type: select 
-    icon: https://icon.icepanel.io/Technology/svg/Cloudflare.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: گیتهاب 🐙 
-    type: select 
-    icon: https://www.svgrepo.com/show/355033/github.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: دیسکورد 🗣️ 
-    type: select 
-    icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: استریمیو 🎬 
-    type: select 
-    icon: https://stremio.github.io/stremio-addon-guide/img/stremio.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️ 
-      - نوع انتخاب پروکسی 🔀 
-      - اجازه ندادن 🚫 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: سایتای سانسوری 🤬 
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png 
-    proxies: 
-      - اجازه ندادن 🚫 
-      - نوع انتخاب پروکسی 🔀 
-      - بدون فیلترشکن 🛡️ 
-      - اتصال پایدار 🔗 
-      - خودکار (بهترین پینگ) 🤖 
-      - دستی 🤏🏻 
-      - پشتیبان (در صورت قطعی) 🧯 
-  - name: بدون فیلترشکن 🛡️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/6318/connection.svg 
-    proxies: 
-      - DIRECT 
-    hidden: true 
-  - name: قطع اینترنت ⛔ 
-    type: select 
-    icon: https://www.svgrepo.com/show/305372/wifi-off.svg 
-    proxies: 
-      - REJECT 
-    hidden: true 
-  - name: اجازه ندادن 🚫 
-    type: select 
-    icon: https://www.svgrepo.com/show/444307/gui-ban.svg 
-    proxies: 
-      - REJECT 
-    hidden: true 
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اجازه ندادن 🚫
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: سایتای سانسوری 🤬
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png
+    proxies:
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: بدون فیلترشکن 🛡️
+    type: select
+    icon: https://www.svgrepo.com/show/6318/connection.svg
+    proxies:
+      - DIRECT
+    hidden: true
+  - name: قطع اینترنت ⛔
+    type: select
+    icon: https://www.svgrepo.com/show/305372/wifi-off.svg
+    proxies:
+      - REJECT
+    hidden: true
+  - name: اجازه ندادن 🚫
+    type: select
+    icon: https://www.svgrepo.com/show/444307/gui-ban.svg
+    proxies:
+      - REJECT
+    hidden: true
 
 
 proxy-providers:
@@ -805,7 +875,19 @@ rules:
   - RULE-SET,telegram,تلگرام 💬 
   - RULE-SET,YouTube,یوتیوب ▶️ 
   - RULE-SET,youtube,یوتیوب ▶️ 
-  - RULE-SET,YouTubeMusic,یوتیوب ▶️ 
+  - RULE-SET,YouTubeMusic,یوتیوب ▶️
+  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
+  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
+  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
+  - PROCESS-NAME,Twitter.exe,توییتر 🐦
+  - PROCESS-NAME,com.twitter.android,توییتر 🐦
+  - RULE-SET,Chotwitter,توییتر 🐦
+  - RULE-SET,mihTwitter,توییتر 🐦
+  - RULE-SET,Domtwitter,توییتر 🐦
+  - PROCESS-NAME,com.spotify.music,اسپاتیفای 🎵
+  - PROCESS-NAME,Spotify.exe,اسپاتیفای 🎵
+  - RULE-SET,DomainSpotify,اسپاتیفای 🎵
+  - RULE-SET,mihspotify,اسپاتیفای 🎵
   - PROCESS-NAME,com.instagram.android,اینستاگرام 📸 
   - RULE-SET,instagram,اینستاگرام 📸 
   - DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖 

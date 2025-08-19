@@ -2926,7 +2926,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Sweden:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fse%2Fmixed&target=clash&config=https%-A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini"
+    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fse%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Sweden.yaml"
     health-check:

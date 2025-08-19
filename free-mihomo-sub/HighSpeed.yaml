@@ -751,7 +751,7 @@ proxy-providers:
       https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ffree-config%2Frefs%2Fheads%2Fmain%2FHighSpeed.txt&target=clash&insert=false&config=https%3A%2F%2Fraw.githubusercontent.com%2FSleepyHeeead%2Fsubconverter-config%2Fmaster%2Fremote-config%2Fspecial%2Fbasic.ini&emoji=false&list=true&xudp=false&udp=true&tfo=false&expand=false&scv=false&fdn=true&clash.doh=true&new_name=true
     interval: 86400
     include-all: true
-    path: ./proxy.yaml
+    path: ./HighSpeed.yaml
     health-check:
       enable: true
       interval: 1800

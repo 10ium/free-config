@@ -844,7 +844,7 @@ proxy-providers:
     type: http
     url: "https://raw.githubusercontent.com/vpnclashfa-backup/subconverter/refs/heads/main/output_configs/clash/MahsaNetConfigTopic.yaml"
     interval: 3600
-    path: "./darkvpn.yaml"
+    path: "./MahsaNetConfigTopic.yaml"
     health-check:
       enable: true
       interval: 3600

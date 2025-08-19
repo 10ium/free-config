@@ -844,7 +844,7 @@ proxy-providers:
     type: http
     url: "https://raw.githubusercontent.com/vpnclashfa-backup/subconverter/refs/heads/main/output_configs/clash/itsyebekhe_reality.yaml"
     interval: 3600
-    path: "./itsyebekhe_xhttp.yaml"
+    path: "./itsyebekhe_reality.yaml"
     health-check:
       enable: true
       interval: 3600

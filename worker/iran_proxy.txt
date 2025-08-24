@@ -1,12 +1,12 @@
 // A list of sources to fetch proxies from.
 const PROXY_SOURCES = [
-  { url: 'https://raw.githubusercontent.com/proxifly/free-proxy-list/refs/heads/main/proxies/countries/IR/data.txt', type: 'text' },
-  { url: 'https://raw.githubusercontent.com/iplocate/free-proxy-list/refs/heads/main/countries/IR/proxies.txt', type: 'text' },
-  { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/http_proxies.json', type: 'json_sunny', protocol: 'http' },
-  { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/socks4_proxies.json', type: 'json_sunny', protocol: 'socks4' },
-  { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/socks5_proxies.json', type: 'json_sunny', protocol: 'socks5' },
-  { url: 'https://raw.githubusercontent.com/themiralay/Proxy-List-World/refs/heads/master/data-with-geolocation.json', type: 'json_themiralay' },
-  { url: 'https://raw.githubusercontent.com/vakhov/fresh-proxy-list/refs/heads/master/proxylist.json', type: 'json_vakhov' },
+  { url: 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/IR/data.txt', type: 'text' },
+  { url: 'https://raw.githubusercontent.com/iplocate/free-proxy-list/main/countries/IR/proxies.txt', type: 'text' },
+  { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/http_proxies.json', type: 'json_sunny', protocol: 'http' },
+  { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/socks4_proxies.json', type: 'json_sunny', protocol: 'socks4' },
+  { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/socks5_proxies.json', type: 'json_sunny', protocol: 'socks5' },
+  { url: 'https://raw.githubusercontent.com/themiralay/Proxy-List-World/master/data-with-geolocation.json', type: 'json_themiralay' },
+  { url: 'https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/proxylist.json', type: 'json_vakhov' },
 ];
 
 addEventListener('fetch', event => {
@@ -18,7 +18,8 @@ async function handleRequest(request) {
     return new Response('متد غیرمجاز. لطفاً فقط از متد GET استفاده کنید.', { status: 405 });
   }
 
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
+  const { pathname } = url;
   
   try {
     const { uniqueProxies, report } = await fetchAndProcessProxies();
@@ -39,7 +40,8 @@ async function handleRequest(request) {
         });
 
       case '/':
-        return new Response(createLandingPage(report, uniqueProxies), {
+        const baseUrl = `${url.protocol}//${url.host}`;
+        return new Response(createLandingPage(report, uniqueProxies, baseUrl), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
 
@@ -50,6 +52,22 @@ async function handleRequest(request) {
     console.error('خطای داخلی در ورکر:', error);
     return new Response('یک خطای داخلی در سرور رخ داد.', { status: 500 });
   }
+}
+
+function getFriendlySourceName(sourceUrl) {
+    try {
+        const url = new URL(sourceUrl);
+        const parts = url.pathname.split('/').filter(p => p);
+        if (url.hostname === 'raw.githubusercontent.com' && parts.length >= 3) {
+            // e.g., /user/repo/branch/path/to/file.txt -> user / repo / file.txt
+            return `${parts[0]} / ${parts[1]} / ${parts[parts.length - 1]}`;
+        }
+        // Generic fallback for other URLs
+        return `${url.hostname} / ... / ${parts[parts.length - 1]}`;
+    } catch (e) {
+        // If URL parsing fails for any reason, return the original URL
+        return sourceUrl;
+    }
 }
 
 async function fetchAndProcessProxies() {
@@ -69,12 +87,14 @@ async function fetchAndProcessProxies() {
       })
       .then(data => {
         const { proxies, stats } = parseProxies(data, source);
-        sourceReports.push({ منبع: source.url.split('/').slice(-3).join('/'), وضعیت: 'موفق', تعداد_دریافتی: proxies.length, تفکیک_پروتکل: stats.protocols, خطا: null });
+        const friendlyName = getFriendlySourceName(source.url);
+        sourceReports.push({ منبع: friendlyName, وضعیت: 'موفق', تعداد_دریافتی: proxies.length, تفکیک_پروتکل: stats.protocols, خطا: null });
         return proxies;
       })
       .catch(error => {
         console.warn(`[لاگ حرفه‌ای] خطا در پردازش منبع ${source.url}: ${error.message}`);
-        sourceReports.push({ منبع: source.url.split('/').slice(-3).join('/'), وضعیت: 'ناموفق', تعداد_دریافتی: 0, تفکیک_پروتکل: {}, خطا: error.message });
+        const friendlyName = getFriendlySourceName(source.url);
+        sourceReports.push({ منبع: friendlyName, وضعیت: 'ناموفق', تعداد_دریافتی: 0, تفکیک_پروتکل: {}, خطا: error.message });
         return [];
       })
   );
@@ -143,10 +163,8 @@ function formatForClash(proxies) {
       additionalFields += '    udp: true\n';
     }
 
-    // --- FIX: Exclude 'socks4' as it is not a valid type in Clash configuration. ---
     const supportedTypes = ['http', 'socks5'];
     if (!supportedTypes.includes(type)) return;
-    // --- END OF FIX ---
     
     const name = `IR - ${protocol.toUpperCase()} - ${server}:${port}`;
     clashProxies += `  - name: "${name}"\n`;
@@ -158,8 +176,8 @@ function formatForClash(proxies) {
   return clashProxies;
 }
 
-function createLandingPage(report, proxies) {
-  const summaryHtml = Object.entries(report.خلاصه_گزارش).map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`).join('');
+function createLandingPage(report, proxies, baseUrl) {
+  const summaryHtml = Object.entries(report.خلاصه_گزارش).map(([key, value]) => `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</li>`).join('');
   const detailsHtml = report.جزئیات_منابع.map(item => {
     const statusClass = item.وضعیت === 'موفق' ? 'status-success' : 'status-failure';
     const protocols = Object.entries(item.تفکیک_پروتکل).map(([p, c]) => `${p}: ${c}`).join(', ') || 'N/A';
@@ -167,42 +185,98 @@ function createLandingPage(report, proxies) {
   }).join('');
   
   const proxyListText = proxies.join('\n');
+  const xrayLink = `${baseUrl}/xray`;
+  const clashLink = `${baseUrl}/clash`;
 
   return `
   <!DOCTYPE html>
   <html lang="fa" dir="rtl">
   <head>
-      <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>گزارش و لیست پروکسی‌های ایران</title>
       <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; background-color: #f4f4f9; color: #333; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 950px; margin: auto; background-color: #f4f4f9; color: #333; }
           .container { background: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-          h1, h2 { color: #0056b3; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+          h1, h2 { color: #0056b3; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
+          h1 { font-size: 1.8em; }
+          h2 { font-size: 1.5em; }
           .report-summary ul { list-style: none; padding: 0; text-align: center; }
           .report-summary li { display: inline-block; margin: 0 15px; font-size: 1.1em; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-          th, td { padding: 12px; border: 1px solid #ddd; text-align: right; word-wrap: break-word; }
-          th { background-color: #007bff; color: white; }
+          
+          .subscription-links { text-align: center; }
+          .links-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 15px; }
+          .link-item { display: flex; align-items: center; background: #f8f9fa; border-radius: 5px; border: 1px solid #ddd; overflow: hidden; }
+          .link-item label { font-weight: bold; color: #555; padding: 10px 15px; background: #e9ecef; border-left: 1px solid #ddd;}
+          .link-item input[type="text"] { padding: 10px; border: none; flex-grow: 1; min-width: 250px; text-align: left; font-family: monospace; direction: ltr; background: transparent; }
+          .link-item button { background-color: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+          .link-item button:hover { background-color: #0056b3; }
+          .subscription-links p { font-size: 0.9em; color: #666; margin-top: 20px; }
+
+          .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { padding: 12px; border: 1px solid #ddd; text-align: right; word-wrap: break-word; vertical-align: middle; }
+          th { background-color: #007bff; color: white; white-space: nowrap; }
           .status-success { color: #28a745; font-weight: bold; }
           .status-failure { color: #dc3545; font-weight: bold; }
+          
           .proxy-list-container { position: relative; }
-          #proxy-list { width: 100%; min-height: 200px; font-family: "Courier New", Courier, monospace; direction: ltr; text-align: left; padding: 10px; border-radius: 5px; border: 1px solid #ced4da; background-color: #e9ecef; box-sizing: border-box; }
+          #proxy-list { width: 100%; min-height: 200px; font-family: "Courier New", Courier, monospace; direction: ltr; text-align: left; padding: 10px; border-radius: 5px; border: 1px solid #ced4da; background-color: #e9ecef; box-sizing: border-box; resize: vertical; }
           .controls { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
           .controls button { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
           .controls button:hover { background-color: #5a6268; }
           #copyBtn.copied { background-color: #28a745; }
+
+          @media (max-width: 768px) {
+              body { padding: 10px; }
+              .container { padding: 15px; }
+              h1 { font-size: 1.5em; }
+              h2 { font-size: 1.3em; }
+              .report-summary ul { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+              .report-summary li { margin: 0; }
+              .links-wrapper { flex-direction: column; gap: 15px; }
+              .link-item { flex-direction: column; }
+              .link-item label { width: 100%; box-sizing: border-box; text-align: center; border-left: none; border-bottom: 1px solid #ddd; }
+              .link-item input[type="text"] { width: 100%; box-sizing: border-box; text-align: center; }
+              .link-item button { width: 100%; box-sizing: border-box; }
+              .controls { flex-direction: column; align-items: stretch; }
+              .controls button { width: 100%; }
+          }
       </style>
   </head>
   <body>
       <div class="container">
           <h1>گزارش جمع‌آوری پروکسی</h1>
           <div class="report-summary"><ul>${summaryHtml}</ul></div>
-          <h2>جزئیات منابع</h2>
-          <table>
-              <thead><tr><th style="width: 25%;">منبع</th><th style="width: 10%;">وضعیت</th><th style="width: 15%;">تعداد دریافتی</th><th style="width: 20%;">تفکیک پروتکل</th><th>پیام خطا</th></tr></thead>
-              <tbody>${detailsHtml}</tbody>
-          </table>
       </div>
+      
+      <div class="container subscription-links">
+          <h2>لینک‌های اشتراک</h2>
+          <div class="links-wrapper">
+              <div class="link-item">
+                  <label for="xray-link">لینک عادی (Xray/V2Ray)</label>
+                  <input type="text" id="xray-link" value="${xrayLink}" readonly>
+                  <button class="copy-link-btn" data-target="xray-link">کپی</button>
+              </div>
+              <div class="link-item">
+                  <label for="clash-link">لینک Clash (Proxy Provider)</label>
+                  <input type="text" id="clash-link" value="${clashLink}" readonly>
+                  <button class="copy-link-btn" data-target="clash-link">کپی</button>
+              </div>
+          </div>
+          <p>برای استفاده، لینک کامل بالا را کپی کرده و در کلاینت خود وارد کنید.</p>
+      </div>
+
+      <div class="container">
+          <h2>جزئیات منابع</h2>
+          <div class="table-container">
+              <table>
+                  <thead><tr><th>منبع</th><th>وضعیت</th><th>تعداد دریافتی</th><th>تفکیک پروتکل</th><th>پیام خطا</th></tr></thead>
+                  <tbody>${detailsHtml}</tbody>
+              </table>
+          </div>
+      </div>
+      
       <div class="container">
           <h2>لیست پروکسی‌ها (فرمت Xray)</h2>
           <div class="proxy-list-container">
@@ -214,6 +288,7 @@ function createLandingPage(report, proxies) {
               <textarea id="proxy-list" readonly>${proxyListText}</textarea>
           </div>
       </div>
+      
       <script>
           const proxyList = document.getElementById('proxy-list');
           const selectAllBtn = document.getElementById('selectAllBtn');
@@ -222,7 +297,7 @@ function createLandingPage(report, proxies) {
 
           selectAllBtn.addEventListener('click', () => {
               proxyList.select();
-              proxyList.setSelectionRange(0, 99999); // For mobile devices
+              proxyList.setSelectionRange(0, 99999);
           });
 
           copyBtn.addEventListener('click', () => {
@@ -246,6 +321,22 @@ function createLandingPage(report, proxies) {
               a.click();
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
+          });
+          
+          document.querySelectorAll('.copy-link-btn').forEach(button => {
+              button.addEventListener('click', () => {
+                  const targetId = button.dataset.target;
+                  const input = document.getElementById(targetId);
+                  navigator.clipboard.writeText(input.value).then(() => {
+                      const originalText = button.textContent;
+                      button.textContent = 'کپی شد!';
+                      button.style.backgroundColor = '#28a745';
+                      setTimeout(() => {
+                          button.textContent = originalText;
+                          button.style.backgroundColor = '';
+                      }, 2000);
+                  });
+              });
           });
       </script>
   </body>

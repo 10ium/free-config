@@ -208,24 +208,6 @@ proxy-groups:
       - proxy
     hidden: true
 
-  - name: دانلود منیجر 📥
-    type: select
-    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg
-    proxies:
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - فیلترشکن 🤖
-      - اجازه ندادن 🚫
-
-  - name: تلگرام 💬
-    type: select
-    icon: https://www.svgrepo.com/show/354443/telegram.svg
-    proxies:
-      - فیلترشکن 🤖
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-
   - name: استیم 🖥️
     type: select
     icon: https://www.svgrepo.com/show/452107/steam.svg
@@ -251,6 +233,24 @@ proxy-groups:
       - بدون فیلترشکن 🛡️
       - نوع انتخاب پروکسی 🔀
       - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: دانلود منیجر 📥
+    type: select
+    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: تلگرام 💬
+    type: select
+    icon: https://www.svgrepo.com/show/354443/telegram.svg
+    proxies:
+      - فیلترشکن 🤖
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
       - اجازه ندادن 🚫
 
   - name: سایتای ایرانی 🇮🇷

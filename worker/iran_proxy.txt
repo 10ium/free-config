@@ -9,9 +9,11 @@ const PROXY_SOURCES = [
   { url: 'https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/proxylist.json', type: 'json_vakhov' },
 ];
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request);
+  },
+};
 
 async function handleRequest(request) {
   if (request.method !== 'GET') {
@@ -226,6 +228,11 @@ function createLandingPage(report, proxies, baseUrl) {
           .controls button { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
           .controls button:hover { background-color: #5a6268; }
           #copyBtn.copied { background-color: #28a745; }
+          
+          footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+          .social-links a { display: inline-block; margin: 0 10px; color: #555; transition: color 0.2s; }
+          .social-links a:hover { color: #007bff; }
+          .social-links svg { width: 28px; height: 28px; }
 
           @media (max-width: 768px) {
               body { padding: 10px; }
@@ -289,6 +296,17 @@ function createLandingPage(report, proxies, baseUrl) {
           </div>
       </div>
       
+      <footer>
+        <div class="social-links">
+            <a href="https://t.me/vpnclashfa" target="_blank" rel="noopener noreferrer" title="Telegram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m20.665 3.717-17.73 6.837c-1.21.486-1.201 2.16.012 2.636l4.228 1.538 1.56 4.92c.236.74.999 1.013 1.648.595l2.42-1.547 3.97 2.92c.792.51 1.834.19 2.06-.72l3.015-14.024c.224-.992-.61-1.93-1.588-1.706zM7.054 13.15l8.472-5.41-5.98 5.76-2.492-.35z"></path></svg>
+            </a>
+            <a href="https://x.com/coldwater_10" target="_blank" rel="noopener noreferrer" title="X (Twitter)">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" width="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+            </a>
+        </div>
+      </footer>
+
       <script>
           const proxyList = document.getElementById('proxy-list');
           const selectAllBtn = document.getElementById('selectAllBtn');

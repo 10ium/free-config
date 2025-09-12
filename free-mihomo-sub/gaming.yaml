@@ -1,0 +1,361 @@
+global-client-fingerprint: chrome
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+tcp-concurrent: true
+enable-process: true
+find-process-mode: strict
+ipv6: true
+log-level: debug
+geo-auto-update: true
+geo-update-interval: 168
+secret: ''
+bind-address: '*'
+unified-delay: false
+disable-keep-alive: false
+keep-alive-idle: 30
+keep-alive-interval: 30
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  ipv6: true
+  respect-rules: false
+  prefer-h3: true
+  cache-algorithm: arc   
+  use-system-hosts: true
+  use-host: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-filter-mode: blacklist
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'             
+    - '*.localdomain'     
+    - '*.invalid'         
+    - '*.localhost'       
+    - '*.test'            
+    - '*.local'           
+    - '*.home.arpa'
+    - 'time.*.com'
+    - 'ntp.*.com'
+    - '*.ir'
+ 
+  default-nameserver: 
+    - 8.8.8.8 
+    - 8.8.4.4 
+    - 1.0.0.1 
+    - 1.1.1.1 
+    - 9.9.9.9 
+    - 9.9.9.11 
+    - 9.9.9.10 
+    - 94.140.14.15 
+    - 94.140.15.15 
+    - 223.5.5.5 
+    - 77.88.8.8
+  nameserver:
+    - '78.157.42.100'
+    - '78.157.42.101'
+  direct-nameserver:
+    - '78.157.42.100'
+    - '78.157.42.101' 
+  proxy-server-nameserver: 
+    - '2606:4700:4700::1111' 
+    - '2606:4700:4700::1001' 
+    - '2001:4860:4860::8888' 
+    - '2001:4860:4860::8844' 
+    - '1.1.1.1' 
+    - '8.8.8.8' 
+    - '8.8.4.4' 
+    - '9.9.9.9' 
+    - '223.5.5.5' 
+    - '77.88.8.8' 
+    - '2400:3200::1' 
+    - '2a02:6b8::feed:0ff' 
+    - '2620:fe::fe' 
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080, 8880, 2052, 2082, 2086, 2095]
+    TLS:
+      ports: [443, 8443, 2053, 2083, 2087, 2096]
+
+tun:
+  enable: true
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  auto-redir: true
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+
+rule-providers:
+  local_ips:
+    type: http
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml
+    interval: 86400
+    path: ./ruleset/local_ips.yaml
+  private:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml
+    interval: 86400
+    path: ./ruleset/private.yaml
+  iran:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml
+    interval: 86400
+    path: ./ruleset/iran.yaml
+  DownloadManagers:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml
+    interval: 86400
+    path: ./ruleset/DownloadManagers.yaml
+  discord:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"
+    path: ./ruleset/discord.yaml
+    interval: 86400
+  windows:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"
+    path: ./ruleset/windows.yaml
+    interval: 86400
+  telegram:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml
+    interval: 86400
+    path: ./ruleset/telegram.yaml
+  steam:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml
+    interval: 86400
+    path: ./ruleset/steam.yaml
+  game:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml
+    interval: 86400
+    path: ./ruleset/game.yaml
+  category-games:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml
+    interval: 86400
+    path: ./ruleset/category-games.yaml
+  GameDownload:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml
+    interval: 86400
+    path: ./ruleset/GameDownload.yaml
+  SteamRegionCheck:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml
+    interval: 86400
+    path: ./ruleset/SteamRegionCheck.yaml
+  Xbox:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml
+    interval: 86400
+    path: ./ruleset/Xbox.yaml
+  Epic:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Epic.yaml
+    interval: 86400
+    path: ./ruleset/Epic.yaml
+  epicgames:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/epicgames.yaml
+    interval: 86400
+    path: ./ruleset/epicgames.yaml
+
+
+proxy-groups:
+  - name: نوع انتخاب پروکسی 🔀
+    icon: https://www.svgrepo.com/show/412721/choose.svg
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - فیلترشکن 🤖
+      - قطع اینترنت ⛔
+
+  - name:  فیلترشکن 🤖
+    type: select
+    icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
+    use:
+      - proxy
+    hidden: true
+
+  - name: دانلود منیجر 📥
+    type: select
+    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: تلگرام 💬
+    type: select
+    icon: https://www.svgrepo.com/show/354443/telegram.svg
+    proxies:
+      - فیلترشکن 🤖
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+
+  - name: استیم 🖥️
+    type: select
+    icon: https://www.svgrepo.com/show/452107/steam.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: اپیک گیمز 💻
+    type: select
+    icon: https://www.svgrepo.com/show/330377/epicgames.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: گیم 🎮
+    type: select
+    icon: https://www.svgrepo.com/show/167729/game-controller.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: سایتای ایرانی 🇮🇷
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: ویندوز 🧊
+    type: select
+    icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+
+
+  - name: دیسکورد 🗣️
+    type: select
+    icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg
+    proxies:
+      - فیلترشکن 🤖
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+
+  - name: انی‌دسک 🔴
+    type: select 
+    icon: https://www.svgrepo.com/show/331289/anydesk.svg 
+    proxies: 
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - فیلترشکن 🤖
+      - اجازه ندادن 🚫
+
+  - name: بدون فیلترشکن 🛡️
+    type: select
+    icon: https://www.svgrepo.com/show/6318/connection.svg
+    proxies:
+      - DIRECT
+    hidden: true
+
+  - name: قطع اینترنت ⛔
+    type: select
+    icon: https://www.svgrepo.com/show/305372/wifi-off.svg
+    proxies:
+      - REJECT
+    hidden: true
+
+  - name: اجازه ندادن 🚫
+    type: select
+    icon: https://www.svgrepo.com/show/444307/gui-ban.svg
+    proxies:
+      - REJECT
+    hidden: true
+
+
+proxy-providers:
+
+  proxy:
+    type: http
+    url: >-
+      https://raw.githubusercontent.com/vpnclashfa-backup/subconverter/refs/heads/main/output_configs/clash/ainita.yaml
+    interval: 86400
+    include-all: true
+    path: ./MihomoSaz65.yaml
+    health-check:
+      enable: true
+      interval: 1800
+      url: "https://www.gstatic.com/generate_204"
+
+rules:
+  - IP-CIDR,10.10.34.0/24,فیلترشکن 🤖
+  - RULE-SET,DownloadManagers,دانلود منیجر 📥
+  - RULE-SET,local_ips,بدون فیلترشکن 🛡️
+  - RULE-SET,private,بدون فیلترشکن 🛡️
+  - PROCESS-NAME,Telegram.exe,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬
+  - RULE-SET,telegram,تلگرام 💬
+  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
+  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
+  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
+  - RULE-SET,iran,سایتای ایرانی 🇮🇷
+  - RULE-SET,steam,استیم 🖥️
+  - RULE-SET,SteamRegionCheck,استیم 🖥️
+  - PROCESS-NAME,EpicGamesLauncher.exe,اپیک گیمز 💻
+  - PROCESS-NAME,EpicGamesUpdater.exe,اپیک گیمز 💻
+  - PROCESS-NAME,com.epicgames.portal,اپیک گیمز 💻
+  - RULE-SET,Epic,اپیک گیمز 💻
+  - RULE-SET,epicgames,اپیک گیمز 💻
+  - RULE-SET,game,گیم 🎮
+  - RULE-SET,GameDownload,گیم 🎮
+  - RULE-SET,category-games,گیم 🎮
+  - RULE-SET,Xbox,گیم 🎮
+  - RULE-SET,discord,دیسکورد 🗣️
+  - RULE-SET,windows,ویندوز 🧊
+  - MATCH,نوع انتخاب پروکسی 🔀
+
+ntp:
+  enable: true
+  server: "time.apple.com"
+  port: 123
+  interval: 30

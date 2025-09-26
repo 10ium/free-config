@@ -3,18 +3,51 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // 1. اگر کاربر به ریشه دامنه مراجعه کرد، صفحه راهنما را نمایش بده
+    // Route 1: Favicon request
+    if (path === "/favicon.ico") {
+      return serveFavicon();
+    }
+
+    // Route 2: Landing page request
     if (path === "/") {
       return serveLandingPage();
     }
 
-    // 2. در غیر این صورت، درخواست را به عنوان یک پراکسی 처리 کن
-    return handleProxyRequest(url);
+    // From here, we handle proxy requests.
+    const cleanPath = path.slice(1); // e.g., "github.com/user/..." or "user/repo/..."
+    const firstPart = cleanPath.split('/')[0];
+
+    // Route 3: Generic Proxy (if path looks like a domain, e.g., "github.com/...")
+    // This preserves the old behavior for full URLs.
+    if (firstPart.includes('.')) {
+      return handleProxyRequest(url);
+    }
+    
+    // Route 4: New GitHub-specific Proxy (if path is like "user/repo/branch/...")
+    // This is the new, cleaner URL format.
+    return handleGitHubProxyRequest(path);
   }
 };
 
 /**
- * یک صفحه راهنمای HTML با رابط کاربری فارسی، واکنش‌گرا و دارای تم روشن/تاریک ایجاد می‌کند
+ * An SVG favicon representing a link is created and served.
+ * (This function is unchanged)
+ */
+function serveFavicon() {
+  const faviconSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
+  </svg>
+  `.trim();
+  return new Response(faviconSvg, {
+    headers: { 'Content-Type': 'image/svg+xml' },
+  });
+}
+
+/**
+ * Creates and serves a responsive HTML guide page with light/dark theme.
+ * The embedded script is updated to generate cleaner GitHub URLs for both github.com and raw.githubusercontent.com.
  */
 function serveLandingPage() {
   const html = `
@@ -24,6 +57,7 @@ function serveLandingPage() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>پراکسی محتوای لینک</title>
+    <link rel="icon" href="/favicon.ico" type="image/svg+xml">
     <style>
       :root {
         --bg-color: #f4f7f9;
@@ -203,7 +237,7 @@ function serveLandingPage() {
         applyTheme(prefersDark ? 'dark' : 'light');
       }
 
-      // --- Link Generation ---
+      // --- Link Generation (Updated Logic) ---
       const generateBtn = document.getElementById('generateBtn');
       const sourceUrlInput = document.getElementById('sourceUrl');
       const resultUrlInput = document.getElementById('resultUrl');
@@ -211,14 +245,44 @@ function serveLandingPage() {
       const copyFeedback = document.getElementById('copy-feedback');
 
       generateBtn.addEventListener('click', () => {
-        const sourceUrl = sourceUrlInput.value;
+        const sourceUrl = sourceUrlInput.value.trim();
         if (!sourceUrl) {
           alert('لطفاً یک آدرس معتبر وارد کنید.');
           return;
         }
         
-        const proxyPath = sourceUrl.replace(/^https?:\\/\\//, '');
-        const workerUrl = window.location.origin + '/' + proxyPath;
+        let workerUrl;
+        
+        try {
+            const url = new URL(sourceUrl);
+            const pathParts = url.pathname.split('/').filter(p => p);
+
+            // Case 1: github.com URL
+            if (url.hostname === 'github.com' && pathParts.length >= 4 && pathParts[2] === 'blob') {
+                const owner = pathParts[0];
+                const repo = pathParts[1];
+                const branchAndFile = pathParts.slice(3).join('/');
+                workerUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${branchAndFile}\`;
+            }
+            // Case 2: raw.githubusercontent.com URL
+            else if (url.hostname === 'raw.githubusercontent.com' && pathParts.length >= 3) {
+                const owner = pathParts[0];
+                const repo = pathParts[1];
+                let restOfPath = pathParts.slice(2).join('/');
+                // Clean up "refs/heads/" which is sometimes present in raw links
+                restOfPath = restOfPath.replace(/^refs\\/heads\\//, '');
+                workerUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${restOfPath}\`;
+            }
+            // Case 3: Fallback for all other URLs
+            else {
+                const proxyPath = sourceUrl.replace(new RegExp("^https?://"), '');
+                workerUrl = \`\${window.location.origin}/\${proxyPath}\`;
+            }
+        } catch (e) {
+            // If URL parsing fails (e.g., non-URL string), use generic proxy method as fallback.
+            const proxyPath = sourceUrl.replace(new RegExp("^https?://"), '');
+            workerUrl = \`\${window.location.origin}/\${proxyPath}\`;
+        }
         
         resultUrlInput.value = workerUrl;
         copyBtn.style.display = 'inline-block';
@@ -245,9 +309,9 @@ function serveLandingPage() {
 }
 
 /**
- * درخواست‌های ورودی را به عنوان پراکسی مدیریت می‌کند
- * (این تابع بدون تغییر باقی می‌ماند)
- * @param {URL} url - آبجکت URL از درخواست ورودی
+ * Handles incoming requests as a generic proxy.
+ * (This function is unchanged)
+ * @param {URL} url - The URL object from the incoming request.
  */
 async function handleProxyRequest(url) {
   let targetUrlString = url.pathname.slice(1);
@@ -280,6 +344,52 @@ async function handleProxyRequest(url) {
     });
   } catch (error) {
     return new Response(`خطا در اتصال به سرور مقصد: ${error.message}`, {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+}
+
+/**
+ * Handles requests for GitHub raw content using the clean URL format /owner/repo/branch/file.
+ * (This function is unchanged)
+ * @param {string} path - The pathname from the incoming request.
+ */
+async function handleGitHubProxyRequest(path) {
+  const cleanPath = path.replace(/^\/+/, ""); // remove leading slash
+  const parts = cleanPath.split("/");
+
+  if (parts.length < 3) { // It should be at least owner/repo/branch
+    return new Response(
+      "Invalid GitHub path. Usage: /owner/repo/branch/path/to/file.ext",
+      { 
+        status: 400,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      }
+    );
+  }
+
+  const [owner, repo, ...restOfPathParts] = parts;
+  const restOfPath = restOfPathParts.join("/");
+  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${restOfPath}`;
+
+  try {
+    const response = await fetch(rawUrl);
+    if (!response.ok) {
+      return new Response(`Error fetching from GitHub: ${response.status} ${response.statusText}`, {
+        status: response.status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+    const headers = new Headers(response.headers);
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+    return new Response(response.body, {
+      status: response.status,
+      headers: headers,
+    });
+  } catch (error) {
+    return new Response(`Network error while fetching from GitHub: ${error.message}`, {
       status: 500,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });

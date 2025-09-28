@@ -1,0 +1,397 @@
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // Route 1: Favicon request
+    if (path === "/favicon.ico") {
+      return serveFavicon();
+    }
+
+    // Route 2: Landing page request
+    if (path === "/") {
+      return serveLandingPage();
+    }
+
+    // From here, we handle proxy requests.
+    const cleanPath = path.slice(1); // e.g., "github.com/user/..." or "user/repo/..."
+    const firstPart = cleanPath.split('/')[0];
+
+    // Route 3: Generic Proxy (if path looks like a domain, e.g., "github.com/...")
+    // This preserves the old behavior for full URLs.
+    if (firstPart.includes('.')) {
+      return handleProxyRequest(url);
+    }
+    
+    // Route 4: New GitHub-specific Proxy (if path is like "user/repo/branch/...")
+    // This is the new, cleaner URL format.
+    return handleGitHubProxyRequest(path);
+  }
+};
+
+/**
+ * An SVG favicon representing a link is created and served.
+ * (This function is unchanged)
+ */
+function serveFavicon() {
+  const faviconSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
+  </svg>
+  `.trim();
+  return new Response(faviconSvg, {
+    headers: { 'Content-Type': 'image/svg+xml' },
+  });
+}
+
+/**
+ * Creates and serves a responsive HTML guide page with light/dark theme.
+ * The embedded script is updated to generate cleaner GitHub URLs for both github.com and raw.githubusercontent.com.
+ */
+function serveLandingPage() {
+  const html = `
+  <!DOCTYPE html>
+  <html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پراکسی محتوای لینک</title>
+    <link rel="icon" href="/favicon.ico" type="image/svg+xml">
+    <style>
+      :root {
+        --bg-color: #f4f7f9;
+        --card-bg-color: #ffffff;
+        --text-color: #333333;
+        --secondary-text-color: #666666;
+        --border-color: #dddddd;
+        --primary-color: #007bff;
+        --primary-hover-color: #0056b3;
+        --success-color: #28a745;
+        --shadow-color: rgba(0,0,0,0.1);
+        --theme-toggle-icon: '☀️';
+      }
+      
+      [data-theme='dark'] {
+        --bg-color: #121212;
+        --card-bg-color: #1e1e1e;
+        --text-color: #e0e0e0;
+        --secondary-text-color: #a0a0a0;
+        --border-color: #444444;
+        --primary-color: #0d8eff;
+        --primary-hover-color: #007bff;
+        --success-color: #30c55a;
+        --shadow-color: rgba(0,0,0,0.4);
+        --theme-toggle-icon: '🌙';
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .container {
+        position: relative;
+        max-width: 600px;
+        width: 90%;
+        padding: 30px;
+        background-color: var(--card-bg-color);
+        border-radius: 10px;
+        box-shadow: 0 4px 15px var(--shadow-color);
+        text-align: center;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+      #theme-toggle {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: none;
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        font-size: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #theme-toggle::after {
+        content: var(--theme-toggle-icon);
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 15px;
+      }
+      p {
+        font-size: 16px;
+        color: var(--secondary-text-color);
+        margin-bottom: 25px;
+      }
+      input[type="url"], input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border-radius: 5px;
+        box-sizing: border-box;
+        margin-bottom: 15px;
+        text-align: left;
+        direction: ltr;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      button {
+        padding: 12px 25px;
+        font-size: 16px;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      #generateBtn {
+         background-color: var(--primary-color);
+      }
+      #generateBtn:hover {
+        background-color: var(--primary-hover-color);
+      }
+      .result-container {
+        position: relative;
+        margin-top: 20px;
+      }
+      #copy-btn {
+        position: absolute;
+        left: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: var(--success-color);
+      }
+      #copy-feedback {
+        color: var(--success-color);
+        font-weight: bold;
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.5s linear;
+        margin-top: 10px;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+          width: 95%;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        p {
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <button id="theme-toggle" title="تغییر تم"></button>
+      <h1>ابزار پراکسی محتوای لینک</h1>
+      <p>
+        آدرس یک فایل از گیت‌هاب (یا هر لینک مستقیم دیگری) را وارد کنید تا یک لینک جایگزین برای نمایش محتوای خام آن دریافت کنید.
+      </p>
+      <input type="url" id="sourceUrl" placeholder="https://github.com/user/repo/blob/main/file.js" required>
+      <button id="generateBtn">ایجاد لینک</button>
+      <div class="result-container">
+        <input type="text" id="resultUrl" readonly placeholder="لینک ساخته شده در اینجا نمایش داده می‌شود...">
+        <button id="copy-btn" style="display:none;">کپی</button>
+      </div>
+       <p id="copy-feedback">کپی شد!</p>
+    </div>
+
+    <script>
+      // --- Theme Management ---
+      const themeToggle = document.getElementById('theme-toggle');
+      const body = document.body;
+
+      const applyTheme = (theme) => {
+        body.dataset.theme = theme;
+        localStorage.setItem('theme', theme);
+      };
+
+      themeToggle.addEventListener('click', () => {
+        const newTheme = body.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme);
+      });
+
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        applyTheme(savedTheme);
+      } else {
+        applyTheme(prefersDark ? 'dark' : 'light');
+      }
+
+      // --- Link Generation (Updated Logic) ---
+      const generateBtn = document.getElementById('generateBtn');
+      const sourceUrlInput = document.getElementById('sourceUrl');
+      const resultUrlInput = document.getElementById('resultUrl');
+      const copyBtn = document.getElementById('copy-btn');
+      const copyFeedback = document.getElementById('copy-feedback');
+
+      generateBtn.addEventListener('click', () => {
+        const sourceUrl = sourceUrlInput.value.trim();
+        if (!sourceUrl) {
+          alert('لطفاً یک آدرس معتبر وارد کنید.');
+          return;
+        }
+        
+        let workerUrl;
+        
+        try {
+            const url = new URL(sourceUrl);
+            const pathParts = url.pathname.split('/').filter(p => p);
+
+            // Case 1: github.com URL
+            if (url.hostname === 'github.com' && pathParts.length >= 4 && pathParts[2] === 'blob') {
+                const owner = pathParts[0];
+                const repo = pathParts[1];
+                const branchAndFile = pathParts.slice(3).join('/');
+                workerUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${branchAndFile}\`;
+            }
+            // Case 2: raw.githubusercontent.com URL
+            else if (url.hostname === 'raw.githubusercontent.com' && pathParts.length >= 3) {
+                const owner = pathParts[0];
+                const repo = pathParts[1];
+                let restOfPath = pathParts.slice(2).join('/');
+                // Clean up "refs/heads/" which is sometimes present in raw links
+                restOfPath = restOfPath.replace(/^refs\\/heads\\//, '');
+                workerUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${restOfPath}\`;
+            }
+            // Case 3: Fallback for all other URLs
+            else {
+                const proxyPath = sourceUrl.replace(new RegExp("^https?://"), '');
+                workerUrl = \`\${window.location.origin}/\${proxyPath}\`;
+            }
+        } catch (e) {
+            // If URL parsing fails (e.g., non-URL string), use generic proxy method as fallback.
+            const proxyPath = sourceUrl.replace(new RegExp("^https?://"), '');
+            workerUrl = \`\${window.location.origin}/\${proxyPath}\`;
+        }
+        
+        resultUrlInput.value = workerUrl;
+        copyBtn.style.display = 'inline-block';
+      });
+
+      copyBtn.addEventListener('click', () => {
+        resultUrlInput.select();
+        navigator.clipboard.writeText(resultUrlInput.value).then(() => {
+          copyFeedback.style.visibility = 'visible';
+          copyFeedback.style.opacity = '1';
+          setTimeout(() => {
+            copyFeedback.style.visibility = 'hidden';
+            copyFeedback.style.opacity = '0';
+          }, 2000);
+        });
+      });
+    </script>
+  </body>
+  </html>
+  `;
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
+}
+
+/**
+ * Handles incoming requests as a generic proxy.
+ * (This function is unchanged)
+ * @param {URL} url - The URL object from the incoming request.
+ */
+async function handleProxyRequest(url) {
+  let targetUrlString = url.pathname.slice(1);
+  if (!targetUrlString.startsWith('http')) {
+    targetUrlString = 'https://' + targetUrlString;
+  }
+  if (targetUrlString.includes('github.com') && !targetUrlString.includes('raw.githubusercontent.com')) {
+    targetUrlString = targetUrlString.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+  }
+  try {
+    const response = await fetch(targetUrlString);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return new Response('محتوا در آدرس مقصد پیدا نشد. لطفاً لینک را بررسی کنید. (خطای 404)', {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      }
+      return new Response(`سرور مقصد با خطا پاسخ داد: ${response.status} ${response.statusText}`, {
+        status: response.status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+    const headers = new Headers(response.headers);
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+    return new Response(response.body, {
+      status: response.status,
+      headers: headers,
+    });
+  } catch (error) {
+    return new Response(`خطا در اتصال به سرور مقصد: ${error.message}`, {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+}
+
+/**
+ * Handles requests for GitHub raw content using the clean URL format /owner/repo/branch/file.
+ * (This function is unchanged)
+ * @param {string} path - The pathname from the incoming request.
+ */
+async function handleGitHubProxyRequest(path) {
+  const cleanPath = path.replace(/^\/+/, ""); // remove leading slash
+  const parts = cleanPath.split("/");
+
+  if (parts.length < 3) { // It should be at least owner/repo/branch
+    return new Response(
+      "Invalid GitHub path. Usage: /owner/repo/branch/path/to/file.ext",
+      { 
+        status: 400,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      }
+    );
+  }
+
+  const [owner, repo, ...restOfPathParts] = parts;
+  const restOfPath = restOfPathParts.join("/");
+  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${restOfPath}`;
+
+  try {
+    const response = await fetch(rawUrl);
+    if (!response.ok) {
+      return new Response(`Error fetching from GitHub: ${response.status} ${response.statusText}`, {
+        status: response.status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+    const headers = new Headers(response.headers);
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+    return new Response(response.body, {
+      status: response.status,
+      headers: headers,
+    });
+  } catch (error) {
+    return new Response(`Network error while fetching from GitHub: ${error.message}`, {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+}

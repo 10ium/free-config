@@ -3,52 +3,23 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Route 1: Favicon request
-    if (path === "/favicon.ico") {
-      return serveFavicon();
-    }
+    if (path === "/favicon.ico") return serveFavicon();
+    if (path === "/") return serveLandingPage();
 
-    // Route 2: Landing page request
-    if (path === "/") {
-      return serveLandingPage();
-    }
-
-    // From here, we handle proxy requests.
-    const cleanPath = path.slice(1); // e.g., "github.com/user/..." or "user/repo/..."
+    const cleanPath = path.slice(1);
     const firstPart = cleanPath.split('/')[0];
 
-    // Route 3: Generic Proxy (if path looks like a domain, e.g., "github.com/...")
-    // This preserves the old behavior for full URLs.
-    if (firstPart.includes('.')) {
-      return handleProxyRequest(url);
-    }
+    if (firstPart.includes('.')) return handleProxyRequest(request);
     
-    // Route 4: New GitHub-specific Proxy (if path is like "user/repo/branch/...")
-    // This is the new, cleaner URL format.
-    return handleGitHubProxyRequest(path);
+    return handleGitHubProxyRequest(request);
   }
 };
 
-/**
- * An SVG favicon representing a link is created and served.
- * (This function is unchanged)
- */
 function serveFavicon() {
-  const faviconSvg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
-    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
-  </svg>
-  `.trim();
-  return new Response(faviconSvg, {
-    headers: { 'Content-Type': 'image/svg+xml' },
-  });
+  const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>`.trim();
+  return new Response(faviconSvg, { headers: { 'Content-Type': 'image/svg+xml' } });
 }
 
-/**
- * Creates and serves a responsive HTML guide page with light/dark theme.
- * The embedded script is updated to generate cleaner GitHub URLs for both github.com and raw.githubusercontent.com.
- */
 function serveLandingPage() {
   const html = `
   <!DOCTYPE html>
@@ -56,318 +27,387 @@ function serveLandingPage() {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پراکسی محتوای لینک</title>
+    <title>ابزار پراکسی لینک</title>
     <link rel="icon" href="/favicon.ico" type="image/svg+xml">
     <style>
       :root {
-        --bg-color: #f4f7f9;
-        --card-bg-color: #ffffff;
-        --text-color: #333333;
-        --secondary-text-color: #666666;
-        --border-color: #dddddd;
-        --primary-color: #007bff;
-        --primary-hover-color: #0056b3;
-        --success-color: #28a745;
-        --shadow-color: rgba(0,0,0,0.1);
+        --bg-color: #f4f7f9; --card-bg-color: #ffffff; --text-color: #333333;
+        --secondary-text-color: #666666; --border-color: #dddddd; --primary-color: #007bff;
+        --primary-hover-color: #0056b3; --success-color: #28a745; --success-hover-color: #218838;
+        --info-color: #17a2b8; --info-hover-color: #138496; --shadow-color: rgba(0,0,0,0.1);
         --theme-toggle-icon: '☀️';
       }
-      
       [data-theme='dark'] {
-        --bg-color: #121212;
-        --card-bg-color: #1e1e1e;
-        --text-color: #e0e0e0;
-        --secondary-text-color: #a0a0a0;
-        --border-color: #444444;
-        --primary-color: #0d8eff;
-        --primary-hover-color: #007bff;
-        --success-color: #30c55a;
-        --shadow-color: rgba(0,0,0,0.4);
+        --bg-color: #121212; --card-bg-color: #1e1e1e; --text-color: #e0e0e0;
+        --secondary-text-color: #a0a0a0; --border-color: #444444; --primary-color: #0d8eff;
+        --primary-hover-color: #007bff; --success-color: #30c55a; --success-hover-color: #28a745;
+        --info-color: #21c6e1; --info-hover-color: #17a2b8; --shadow-color: rgba(0,0,0,0.4);
         --theme-toggle-icon: '🌙';
       }
-
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        transition: background-color 0.3s, color 0.3s;
+        display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        padding: 40px 20px; margin: 0; background-color: var(--bg-color); color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s; box-sizing: border-box;
       }
       .container {
-        position: relative;
-        max-width: 600px;
-        width: 90%;
-        padding: 30px;
-        background-color: var(--card-bg-color);
-        border-radius: 10px;
-        box-shadow: 0 4px 15px var(--shadow-color);
-        text-align: center;
+        position: relative; max-width: 800px; width: 100%; padding: 40px;
+        background-color: var(--card-bg-color); border-radius: 12px;
+        box-shadow: 0 6px 20px var(--shadow-color); text-align: center;
         transition: background-color 0.3s, box-shadow 0.3s;
       }
       #theme-toggle {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        background: none;
-        border: 1px solid var(--border-color);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        cursor: pointer;
-        font-size: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        position: absolute; top: 20px; left: 20px; background: none; border: 1px solid var(--border-color);
+        border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;
+        display: flex; justify-content: center; align-items: center;
       }
-      #theme-toggle::after {
-        content: var(--theme-toggle-icon);
+      #theme-toggle::after { content: var(--theme-toggle-icon); }
+      h1 { font-size: 28px; margin-bottom: 15px; }
+      p { font-size: 18px; color: var(--secondary-text-color); margin-bottom: 20px; }
+      .mode-toggle {
+        display: flex; justify-content: center; align-items: center; margin-bottom: 20px; font-size: 16px;
       }
-      h1 {
-        font-size: 24px;
-        margin-bottom: 15px;
-      }
-      p {
-        font-size: 16px;
-        color: var(--secondary-text-color);
-        margin-bottom: 25px;
-      }
-      input[type="url"], input[type="text"] {
-        width: 100%;
-        padding: 12px;
-        font-size: 16px;
-        border: 1px solid var(--border-color);
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        border-radius: 5px;
-        box-sizing: border-box;
-        margin-bottom: 15px;
-        text-align: left;
-        direction: ltr;
-        transition: background-color 0.3s, border-color 0.3s;
-      }
-      button {
-        padding: 12px 25px;
-        font-size: 16px;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s;
+      .mode-toggle label { margin-right: 10px; cursor: pointer; }
+      .mode-toggle input { cursor: pointer; }
+      textarea {
+        width: 100%; padding: 15px; font-size: 16px; font-family: 'Menlo', 'Consolas', monospace;
+        border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color);
+        border-radius: 8px; box-sizing: border-box; margin-bottom: 20px; text-align: left; direction: ltr;
+        transition: background-color 0.3s, border-color 0.3s; min-height: 200px; resize: vertical;
       }
       #generateBtn {
-         background-color: var(--primary-color);
+         background-color: var(--primary-color); width: 100%; padding: 15px; font-size: 18px;
+         font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white;
+         transition: background-color 0.3s;
       }
-      #generateBtn:hover {
-        background-color: var(--primary-hover-color);
+      #generateBtn:hover { background-color: var(--primary-hover-color); }
+      #results-area { margin-top: 30px; text-align: center; }
+      .result-item {
+        display: flex; align-items: center; background-color: var(--bg-color);
+        border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 15px; margin-bottom: 10px;
+        gap: 10px;
       }
-      .result-container {
-        position: relative;
-        margin-top: 20px;
+      .result-item input {
+        flex-grow: 1; background: transparent; border: none; color: var(--text-color);
+        font-size: 16px; direction: ltr; text-align: left; outline: none;
       }
-      #copy-btn {
-        position: absolute;
-        left: 5px;
-        top: 50%;
-        transform: translateY(-50%);
-        background-color: var(--success-color);
+      .result-item button, .result-item a {
+        padding: 8px 15px; font-size: 14px; font-weight: bold; color: white; border: none;
+        border-radius: 6px; cursor: pointer; transition: background-color 0.3s;
+        flex-shrink: 0; text-decoration: none; display: inline-block;
       }
+      .copy-single-btn { background-color: var(--success-color); }
+      .copy-single-btn:hover { background-color: var(--success-hover-color); }
+      .download-single-btn { background-color: var(--info-color); }
+      .download-single-btn:hover { background-color: var(--info-hover-color); }
+      #copy-all-btn {
+        background-color: var(--success-color); margin-top: 10px; display: none;
+        padding: 12px 25px; font-size: 16px; font-weight: bold; border: none;
+        border-radius: 8px; cursor: pointer; color: white;
+      }
+      #copy-all-btn:hover { background-color: var(--success-hover-color); }
       #copy-feedback {
-        color: var(--success-color);
-        font-weight: bold;
-        visibility: hidden;
-        opacity: 0;
-        transition: visibility 0s, opacity 0.5s linear;
-        margin-top: 10px;
+        color: var(--success-color); font-weight: bold; visibility: hidden; opacity: 0;
+        transition: visibility 0s, opacity 0.5s linear; margin-top: 15px; font-size: 16px;
       }
-
-      /* Responsive Design */
-      @media (max-width: 600px) {
-        .container {
-          padding: 20px;
-          width: 95%;
-        }
-        h1 {
-          font-size: 20px;
-        }
-        p {
-          font-size: 14px;
-        }
+      .social-links {
+        margin-top: 35px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: center;
+        gap: 25px;
+      }
+      .social-links a {
+        color: var(--secondary-text-color);
+        text-decoration: none;
+        transition: color 0.3s ease, transform 0.2s ease;
+        display: inline-block;
+      }
+      .social-links a:hover {
+        color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+      .social-links svg {
+        width: 28px;
+        height: 28px;
+        fill: currentColor;
       }
     </style>
   </head>
   <body>
     <div class="container">
       <button id="theme-toggle" title="تغییر تم"></button>
-      <h1>ابزار پراکسی محتوای لینک</h1>
-      <p>
-        آدرس یک فایل از گیت‌هاب (یا هر لینک مستقیم دیگری) را وارد کنید تا یک لینک جایگزین برای نمایش محتوای خام آن دریافت کنید.
-      </p>
-      <input type="url" id="sourceUrl" placeholder="https://github.com/user/repo/blob/main/file.js" required>
-      <button id="generateBtn">ایجاد لینک</button>
-      <div class="result-container">
-        <input type="text" id="resultUrl" readonly placeholder="لینک ساخته شده در اینجا نمایش داده می‌شود...">
-        <button id="copy-btn" style="display:none;">کپی</button>
+      <h1>ابزار پراکسی لینک</h1>
+      <p id="description">لینک‌های خود را برای میرور کردن وارد کنید (هر کدام در یک خط).</p>
+      <div class="mode-toggle">
+        <label for="clashModeCheckbox">پردازش محتوای داخلی لینک‌های Clash/YAML</label>
+        <input type="checkbox" id="clashModeCheckbox">
       </div>
-       <p id="copy-feedback">کپی شد!</p>
+      <textarea id="sourceContent" placeholder="https://example.com/my-config.yaml" required></textarea>
+      <button id="generateBtn">ایجاد لینک‌ها</button>
+      <div id="results-area">
+        <div id="results-container"></div>
+        <button id="copy-all-btn">کپی همه لینک‌ها</button>
+      </div>
+      <p id="copy-feedback">کپی شد!</p>
+      <div class="social-links">
+        <a href="https://t.me/vpnclashfa" target="_blank" rel="noopener noreferrer" title="Telegram">
+          <svg viewBox="0 0 24 24"><path d="M9.78 18.25l-.27-4.54l10.15-9.39C20.1 3.82 19.54 3.5 19 3.5c-.32 0-.5.1-.7.2L7.3 10.3l-3.95-1.22c-.58-.17-.58-.55-.1-.71l15.27-5.46c.46-.17.84.13.7.64l-2.45 11.46c-.14.65-.54.81-1.07.51l-4.44-3.26-2.13 2.05c-.23.23-.42.42-.85.42z"/></svg>
+        </a>
+        <a href="https://x.com/coldwater_10" target="_blank" rel="noopener noreferrer" title="X (Twitter)">
+          <svg viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+        </a>
+        <a href="https://10ium.github.io/free-sub-link" target="_blank" rel="noopener noreferrer" title="Free Subscriptions">
+          <svg viewBox="0 0 24 24"><path d="M10.59,13.41C11.41,14.23 11.41,15.5 10.59,16.32L8.47,18.44C7.65,19.26 6.38,19.26 5.56,18.44L4.15,17.03C3.33,16.21 3.33,14.94 4.15,14.12L6.27,12M17.85,4.15C18.67,3.33 19.94,3.33 20.76,4.15L22.17,5.56C22.99,6.38 22.99,7.65 22.17,8.47L20.05,10.59C19.23,11.41 17.96,11.41 17.14,10.59L15.73,9.18C14.91,8.36 14.91,7.09 15.73,6.27L17.85,4.15M9.18,15.73L13.41,11.5C14.23,10.68 15.5,10.68 16.32,11.5L17.73,12.91C18.55,13.73 18.55,15 17.73,15.82L13.5,20.05C12.68,20.87 11.41,20.87 10.59,20.05L9.18,18.64C8.36,17.82 8.36,16.55 9.18,15.73Z"/></svg>
+        </a>
+      </div>
     </div>
-
     <script>
-      // --- Theme Management ---
       const themeToggle = document.getElementById('theme-toggle');
       const body = document.body;
-
       const applyTheme = (theme) => {
         body.dataset.theme = theme;
         localStorage.setItem('theme', theme);
       };
-
       themeToggle.addEventListener('click', () => {
         const newTheme = body.dataset.theme === 'dark' ? 'light' : 'dark';
         applyTheme(newTheme);
       });
-
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) {
-        applyTheme(savedTheme);
-      } else {
-        applyTheme(prefersDark ? 'dark' : 'light');
-      }
+      applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
 
-      // --- Link Generation (Updated Logic) ---
       const generateBtn = document.getElementById('generateBtn');
-      const sourceUrlInput = document.getElementById('sourceUrl');
-      const resultUrlInput = document.getElementById('resultUrl');
-      const copyBtn = document.getElementById('copy-btn');
+      const sourceContentInput = document.getElementById('sourceContent');
+      const clashModeCheckbox = document.getElementById('clashModeCheckbox');
+      const resultsContainer = document.getElementById('results-container');
+      const copyAllBtn = document.getElementById('copy-all-btn');
       const copyFeedback = document.getElementById('copy-feedback');
 
-      generateBtn.addEventListener('click', () => {
-        const sourceUrl = sourceUrlInput.value.trim();
-        if (!sourceUrl) {
-          alert('لطفاً یک آدرس معتبر وارد کنید.');
-          return;
-        }
-        
-        let workerUrl;
-        
+      const getFilenameFromUrl = (url) => {
         try {
-            const url = new URL(sourceUrl);
-            const pathParts = url.pathname.split('/').filter(p => p);
-
-            // Case 1: github.com URL
-            if (url.hostname === 'github.com' && pathParts.length >= 4 && pathParts[2] === 'blob') {
-                const owner = pathParts[0];
-                const repo = pathParts[1];
-                const branchAndFile = pathParts.slice(3).join('/');
-                workerUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${branchAndFile}\`;
-            }
-            // Case 2: raw.githubusercontent.com URL
-            else if (url.hostname === 'raw.githubusercontent.com' && pathParts.length >= 3) {
-                const owner = pathParts[0];
-                const repo = pathParts[1];
-                let restOfPath = pathParts.slice(2).join('/');
-                // Clean up "refs/heads/" which is sometimes present in raw links
-                restOfPath = restOfPath.replace(/^refs\\/heads\\//, '');
-                workerUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${restOfPath}\`;
-            }
-            // Case 3: Fallback for all other URLs
-            else {
-                const proxyPath = sourceUrl.replace(new RegExp("^https?://"), '');
-                workerUrl = \`\${window.location.origin}/\${proxyPath}\`;
-            }
+          const path = new URL(url).pathname;
+          const filename = path.substring(path.lastIndexOf('/') + 1);
+          return filename || 'download';
         } catch (e) {
-            // If URL parsing fails (e.g., non-URL string), use generic proxy method as fallback.
-            const proxyPath = sourceUrl.replace(new RegExp("^https?://"), '');
-            workerUrl = \`\${window.location.origin}/\${proxyPath}\`;
+          return 'download';
+        }
+      };
+
+      const generateWorkerUrl = (sourceUrl, isClashProcessing = false) => {
+          if (!sourceUrl || typeof sourceUrl !== 'string') return '';
+          const trimmedUrl = sourceUrl.trim();
+          let finalUrl = '';
+          try {
+              const url = new URL(trimmedUrl);
+              const pathParts = url.pathname.split('/').filter(p => p);
+              if (url.hostname === 'github.com' && pathParts.length >= 4 && pathParts[2] === 'blob') {
+                  const [owner, repo, , ...rest] = pathParts;
+                  finalUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${rest.join('/')}\`;
+              } else if (url.hostname === 'raw.githubusercontent.com' && pathParts.length >= 3) {
+                  const [owner, repo, ...rest] = pathParts;
+                  let restOfPath = rest.join('/');
+                  restOfPath = restOfPath.replace(/^refs\\/heads\\//, '');
+                  finalUrl = \`\${window.location.origin}/\${owner}/\${repo}/\${restOfPath}\`;
+              } else {
+                  const proxyPath = trimmedUrl.replace(/^https?:\\/\\//, '');
+                  finalUrl = \`\${window.location.origin}/\${proxyPath}\`;
+              }
+          } catch (e) {
+              const proxyPath = trimmedUrl.replace(/^https?:\\/\\//, '');
+              finalUrl = \`\${window.location.origin}/\${proxyPath}\`;
+          }
+          if (isClashProcessing && (trimmedUrl.endsWith('.yaml') || trimmedUrl.endsWith('.yml'))) {
+              finalUrl += '?process=clash';
+          }
+          return finalUrl;
+      };
+      
+      const showCopyFeedback = () => {
+        copyFeedback.style.visibility = 'visible';
+        copyFeedback.style.opacity = '1';
+        setTimeout(() => {
+          copyFeedback.style.visibility = 'hidden';
+          copyFeedback.style.opacity = '0';
+        }, 2000);
+      };
+
+      generateBtn.addEventListener('click', () => {
+        resultsContainer.innerHTML = '';
+        const sourceContent = sourceContentInput.value.trim();
+        if (!sourceContent) {
+            alert('لطفاً حداقل یک لینک وارد کنید.');
+            return;
+        }
+
+        const isClashMode = clashModeCheckbox.checked;
+        const urls = sourceContent.split('\\n').filter(url => url.trim() !== '');
+        
+        if (urls.length === 0) {
+            alert('لطفاً حداقل یک لینک معتبر وارد کنید.');
+            copyAllBtn.style.display = 'none';
+            return;
         }
         
-        resultUrlInput.value = workerUrl;
-        copyBtn.style.display = 'inline-block';
-      });
-
-      copyBtn.addEventListener('click', () => {
-        resultUrlInput.select();
-        navigator.clipboard.writeText(resultUrlInput.value).then(() => {
-          copyFeedback.style.visibility = 'visible';
-          copyFeedback.style.opacity = '1';
-          setTimeout(() => {
-            copyFeedback.style.visibility = 'hidden';
-            copyFeedback.style.opacity = '0';
-          }, 2000);
+        urls.forEach(originalUrl => {
+            const workerUrl = generateWorkerUrl(originalUrl, isClashMode);
+            const filename = getFilenameFromUrl(originalUrl);
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            resultItem.innerHTML = \`
+                <input type="text" value="\${workerUrl}" readonly>
+                <button class="copy-single-btn">کپی</button>
+                <a href="\${workerUrl}" class="download-single-btn" download="\${filename}">دانلود</a>
+                <a href="\${workerUrl}" class="download-single-btn" target="_blank" rel="noopener noreferrer" title="باز کردن در تب جدید">باز کردن</a>
+            \`;
+            resultsContainer.appendChild(resultItem);
         });
+
+        copyAllBtn.style.display = urls.length > 1 ? 'inline-block' : 'none';
+      });
+      
+      resultsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('copy-single-btn')) {
+            const btn = e.target;
+            const input = btn.parentElement.querySelector('input');
+            input.select();
+            navigator.clipboard.writeText(input.value).then(() => {
+                const originalText = btn.textContent;
+                btn.textContent = 'کپی شد!';
+                setTimeout(() => { btn.textContent = originalText; }, 2000);
+            });
+        }
+      });
+      
+      copyAllBtn.addEventListener('click', () => {
+        const allUrls = Array.from(resultsContainer.querySelectorAll('.result-item input')).map(input => input.value).join('\\n');
+        navigator.clipboard.writeText(allUrls).then(showCopyFeedback);
       });
     </script>
   </body>
   </html>
   `;
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-  });
+  return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
-/**
- * Handles incoming requests as a generic proxy.
- * (This function is unchanged)
- * @param {URL} url - The URL object from the incoming request.
- */
-async function handleProxyRequest(url) {
-  let targetUrlString = url.pathname.slice(1);
-  if (!targetUrlString.startsWith('http')) {
-    targetUrlString = 'https://' + targetUrlString;
-  }
-  if (targetUrlString.includes('github.com') && !targetUrlString.includes('raw.githubusercontent.com')) {
-    targetUrlString = targetUrlString.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
-  }
-  try {
-    const response = await fetch(targetUrlString);
-    if (!response.ok) {
-      if (response.status === 404) {
-        return new Response('محتوا در آدرس مقصد پیدا نشد. لطفاً لینک را بررسی کنید. (خطای 404)', {
-          status: 404,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        });
-      }
-      return new Response(`سرور مقصد با خطا پاسخ داد: ${response.status} ${response.statusText}`, {
-        status: response.status,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      });
+async function processAndMirrorYamlContent(yamlText, requestUrl) {
+    const workerOrigin = new URL(requestUrl).origin;
+
+    const generateCleanWorkerUrl = (sourceUrl) => {
+        if (!sourceUrl || typeof sourceUrl !== 'string') return '';
+        const trimmedUrl = sourceUrl.trim();
+        try {
+            const url = new URL(trimmedUrl);
+            const pathParts = url.pathname.split('/').filter(p => p);
+            if (url.hostname === 'github.com' && pathParts.length >= 4 && pathParts[2] === 'blob') {
+                const [owner, repo, , ...rest] = pathParts;
+                return `${workerOrigin}/${owner}/${repo}/${rest.join('/')}`;
+            }
+            if (url.hostname === 'raw.githubusercontent.com' && pathParts.length >= 3) {
+                const [owner, repo, ...rest] = pathParts;
+                let restOfPath = rest.join('/');
+                restOfPath = restOfPath.replace(/^refs\/heads\//, '');
+                return `${workerOrigin}/${owner}/${repo}/${restOfPath}`;
+            }
+            const proxyPath = trimmedUrl.replace(/^https?:\/\//, '');
+            return `${workerOrigin}/${proxyPath}`;
+        } catch (e) {
+            const proxyPath = trimmedUrl.replace(/^https?:\/\//, '');
+            return `${workerOrigin}/${proxyPath}`;
+        }
+    };
+    
+    const mirrorableExtensions = ['.yaml', '.yml', '.txt', '.json'];
+    const newLines = [];
+    let processNextLineAsUrl = false;
+
+    for (const line of yamlText.split('\n')) {
+        const trimmedLine = line.trim();
+
+        const checkAndReplaceUrl = (originalUrl) => {
+            const isMirrorableExtension = mirrorableExtensions.some(ext => originalUrl.endsWith(ext));
+            const isSubconverterClashLink = originalUrl.includes('target=clash');
+            const shouldMirror = isMirrorableExtension || isSubconverterClashLink;
+
+            if (shouldMirror) {
+                const workerUrl = generateCleanWorkerUrl(originalUrl);
+                return line.replace(originalUrl, workerUrl);
+            }
+            return null;
+        };
+        
+        if (processNextLineAsUrl) {
+            processNextLineAsUrl = false;
+            const urlMatch = trimmedLine.match(/^(https?:[/]{2}[^"'\s]+)/);
+            if (urlMatch) {
+                const replacedLine = checkAndReplaceUrl(urlMatch[0]);
+                if (replacedLine) {
+                    newLines.push(replacedLine);
+                    continue;
+                }
+            }
+            newLines.push(line);
+            continue;
+        }
+
+        const singleLineUrlRegex = /(:\s*["']?)(https?:[/]{2}[^"'\s]+)(["']?)/;
+        const singleLineMatch = trimmedLine.match(singleLineUrlRegex);
+        if (singleLineMatch) {
+            const replacedLine = checkAndReplaceUrl(singleLineMatch[2]);
+            if (replacedLine) {
+                newLines.push(replacedLine);
+                continue;
+            }
+        }
+        
+        if (trimmedLine.match(/^url:\s*(?:>|\|)-?\s*$/)) {
+            processNextLineAsUrl = true;
+        }
+        
+        newLines.push(line);
     }
+
+    return newLines.join('\n');
+}
+
+async function handleProxyRequest(request) {
+  const url = new URL(request.url);
+  let targetUrlString = url.pathname.slice(1) + url.search;
+  if (!targetUrlString.startsWith('http')) targetUrlString = 'https://' + targetUrlString;
+  
+  try {
+    const originUrl = new URL(targetUrlString);
+    originUrl.searchParams.delete('process');
+    
+    const response = await fetch(originUrl.toString());
+    if (!response.ok) return new Response(`Error from origin server: ${response.status}`, { status: response.status });
+    
+    const isYaml = url.pathname.endsWith('.yaml') || url.pathname.endsWith('.yml');
+    const shouldProcess = url.searchParams.get('process') === 'clash';
+    
+    if (isYaml && shouldProcess) {
+      const originalYaml = await response.text();
+      const processedYaml = await processAndMirrorYamlContent(originalYaml, request.url);
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set('Access-Control-Allow-Origin', '*');
+      newHeaders.set('Content-Type', 'text/yaml; charset=utf-8');
+      return new Response(processedYaml, { status: 200, headers: newHeaders });
+    }
+    
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
-    return new Response(response.body, {
-      status: response.status,
-      headers: headers,
-    });
+    return new Response(response.body, { status: response.status, headers: headers });
   } catch (error) {
-    return new Response(`خطا در اتصال به سرور مقصد: ${error.message}`, {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+    return new Response(`Worker error: ${error.message}`, { status: 500 });
   }
 }
 
-/**
- * Handles requests for GitHub raw content using the clean URL format /owner/repo/branch/file.
- * (This function is unchanged)
- * @param {string} path - The pathname from the incoming request.
- */
-async function handleGitHubProxyRequest(path) {
-  const cleanPath = path.replace(/^\/+/, ""); // remove leading slash
+async function handleGitHubProxyRequest(request) {
+  const url = new URL(request.url);
+  const cleanPath = url.pathname.replace(/^\/+/, "");
   const parts = cleanPath.split("/");
-
-  if (parts.length < 3) { // It should be at least owner/repo/branch
-    return new Response(
-      "Invalid GitHub path. Usage: /owner/repo/branch/path/to/file.ext",
-      { 
-        status: 400,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      }
-    );
-  }
+  if (parts.length < 3) return new Response("Invalid GitHub path.", { status: 400 });
 
   const [owner, repo, ...restOfPathParts] = parts;
   const restOfPath = restOfPathParts.join("/");
@@ -375,23 +415,24 @@ async function handleGitHubProxyRequest(path) {
 
   try {
     const response = await fetch(rawUrl);
-    if (!response.ok) {
-      return new Response(`Error fetching from GitHub: ${response.status} ${response.statusText}`, {
-        status: response.status,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      });
+    if (!response.ok) return new Response(`Error fetching from GitHub: ${response.status}`, { status: response.status });
+
+    const isYaml = url.pathname.endsWith('.yaml') || url.pathname.endsWith('.yml');
+    const shouldProcess = url.searchParams.get('process') === 'clash';
+
+    if (isYaml && shouldProcess) {
+        const originalYaml = await response.text();
+        const processedYaml = await processAndMirrorYamlContent(originalYaml, request.url);
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Access-Control-Allow-Origin', '*');
+        newHeaders.set('Content-Type', 'text/yaml; charset=utf-8');
+        return new Response(processedYaml, { status: 200, headers: newHeaders });
     }
+    
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
-    return new Response(response.body, {
-      status: response.status,
-      headers: headers,
-    });
+    return new Response(response.body, { status: response.status, headers: headers });
   } catch (error) {
-    return new Response(`Network error while fetching from GitHub: ${error.message}`, {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+    return new Response(`Worker error: ${error.message}`, { status: 500 });
   }
 }

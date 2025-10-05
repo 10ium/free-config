@@ -1,0 +1,534 @@
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/releases/')) {
+      return this.handleApiRequest(url, env);
+    }
+    if (url.pathname.startsWith('/download/')) {
+      return this.handleDownloadProxy(url);
+    }
+    if (url.pathname === '/') {
+      return this.serveHtmlUi();
+    }
+    return new Response('Not Found', { status: 404 });
+  },
+
+  async handleDownloadProxy(url) {
+    const targetUrl = url.pathname.substring('/download/'.length);
+    const fullTargetUrl = `${targetUrl}${url.search}`;
+    try {
+      new URL(fullTargetUrl);
+    } catch (e) {
+      return new Response('Invalid URL for download proxy.', { status: 400 });
+    }
+    const response = await fetch(fullTargetUrl);
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set('Access-Control-Allow-Origin', '*');
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders
+    });
+  },
+  
+  async handleApiRequest(url, env) {
+    const parts = url.pathname.split('/');
+    const contentType = { headers: { 'Content-Type': 'application/json' } };
+    if (parts.length < 5) { return new Response(JSON.stringify({ error: 'Invalid API request' }), { ...contentType, status: 400 }); }
+    const user = parts[3];
+    const repo = parts[4];
+    const includePrerelease = url.searchParams.get('beta') === 'true';
+    const apiUrl = includePrerelease ? `https://api.github.com/repos/${user}/${repo}/releases?per_page=1` : `https://api.github.com/repos/${user}/${repo}/releases/latest`;
+    const headers = { 'User-Agent': 'Cloudflare-Worker-GitHub-Tool', 'Accept': 'application/vnd.github.v3+json' };
+    if (env.GITHUB_TOKEN) { headers.Authorization = `token ${env.GITHUB_TOKEN}`; }
+    try {
+      const response = await fetch(apiUrl, { headers });
+      if (!response.ok) { return new Response(JSON.stringify({ error: `Releases not found. Status: ${response.status}` }), { ...contentType, status: response.status }); }
+      let data = await response.json();
+      if (Array.isArray(data)) { data = data[0]; }
+      if (!data) { return new Response(JSON.stringify({ error: 'No releases found.' }), { ...contentType, status: 404 }); }
+      return new Response(JSON.stringify(data), contentType);
+    } catch (error) { return new Response(JSON.stringify({ error: error.message }), { ...contentType, status: 500 }); }
+  },
+
+  serveHtmlUi() {
+    const favicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50,3.5c-25.7,0-46.5,20.8-46.5,46.5S24.3,96.5,50,96.5,96.5,75.7,96.5,50,75.7,3.5,50,3.5z M66.5,62.8 c-1.5,0-2.9,0.3-4.2,0.8c-2.3-2.1-5.3-3.4-8.6-3.8V46.9l12.5-6.3c1.1-0.5,1.8-1.7,1.8-2.9c0-1.8-1.5-3.3-3.3-3.3 c-0.9,0-1.8,0.4-2.4,1L50,40.1L37.8,34.3c-0.6-0.7-1.5-1-2.4-1c-1.8,0-3.3,1.5-3.3,3.3c0,1.2,0.7,2.3,1.8,2.9l12.5,6.3v12.9 c-3.3,0.3-6.3,1.7-8.6,3.8c-1.3-0.5-2.7-0.8-4.2-0.8c-5.5,0-10,4.5-10,10c0,5.5,4.5,10,10,10s10-4.5,10-10c0-2-0.6-3.8-1.6-5.4 c1.6-1.4,3.6-2.3,5.8-2.6v-6.9c0.8,0.1,1.5,0.2,2.3,0.2s1.5-0.1,2.3-0.2v6.9c2.2,0.3,4.2,1.2,5.8,2.6c-1,1.5-1.6,3.4-1.6,5.4 c0,5.5,4.5,10,10,10s10-4.5,10-10C76.5,67.3,72,62.8,66.5,62.8z' fill='%23007acc'/%3E%3C/svg%3E";
+    const html = `
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مبدل لینک و نمایشگر ریلیز گیت‌هاب</title>
+    <link rel="icon" href="${favicon}">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { /* Dark Theme (Default) */
+            --bg: #1a1a1a; --text: #e0e0e0; --primary: #007acc; --sec: #2a2a2a; --border: #444; --success: #28a745;
+            --info: #17a2b8; --warn: #ffc107; --preferred-bg: #003355; --shadow-color: #00000080;
+        }
+        body.light-mode { /* Light Theme */
+            --bg: #f5f5f5; --text: #212121; --primary: #007acc; --sec: #ffffff; --border: #dcdcdc; --success: #28a745;
+            --info: #17a2b8; --warn: #f57c00; --preferred-bg: #e3f2fd; --shadow-color: #00000020;
+        }
+        body { font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; }
+        .container { max-width: 800px; margin: auto; background: var(--sec); padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px var(--shadow-color); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h1 { text-align: center; margin: 0; font-size: 28px; flex-grow: 1; }
+        .theme-toggle { background: none; border: 1px solid var(--border); border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); }
+        .theme-toggle svg { width: 20px; height: 20px; fill: currentColor; }
+        .theme-toggle .icon-sun { display: none; } .theme-toggle .icon-moon { display: block; }
+        body.light-mode .theme-toggle .icon-sun { display: block; } body.light-mode .theme-toggle .icon-moon { display: none; }
+        textarea { width: 100%; height: 120px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 10px; box-sizing: border-box; margin-bottom: 15px; }
+        .main-btn { width: 100%; padding: 12px; font-size: 18px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer; } .main-btn:disabled { background: #555; cursor: not-allowed; }
+        .result-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .output-field { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+        .output-field input { flex-grow: 1; padding: 8px; background: var(--sec); border: 1px solid var(--border); color: var(--text); border-radius: 4px; }
+        .act-btn { padding: 8px 12px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; color: white; text-decoration: none; font-family: 'Vazirmatn', sans-serif; }
+        .copy-btn { background: #6c757d; } .copy-btn.copied { background: var(--success); }
+        .dl-btn, .dl-raw-btn { background: var(--primary); }
+        .checksum-btn { background: #555; font-size: 11px; padding: 8px 10px; }
+        .open-btn { background: var(--info); }
+        .rel-sec { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
+        .rel-body { background: var(--sec); padding: 10px 15px; border-radius: 5px; max-height: 250px; overflow-y: auto; font-size: 14px; } .rel-body code { background: var(--bg); padding: 2px 4px; border-radius: 3px; }
+        .asset-list { list-style: none; padding: 0; }
+        .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 4px; margin-bottom: 5px; background: var(--sec); border: 1px solid transparent; }
+        .asset-item.preferred { background-color: var(--preferred-bg); border-color: var(--primary); box-shadow: 0 0 5px var(--primary); }
+        .asset-info { display: flex; flex-direction: column; flex-grow: 1; margin-left: 10px; }
+        .asset-actions { display: flex; gap: 5px; flex-shrink: 0; }
+        .asset-name { font-weight: bold; word-break: break-all; } .asset-meta { font-size: 12px; color: #aaa; }
+        .pref-badge { font-size: 11px; background: var(--success); color: white; padding: 2px 6px; border-radius: 10px; margin-right: 5px; display: none;}
+        .asset-item.preferred .pref-badge { display: inline-block; }
+        .os-separator { list-style: none; padding: 8px 0; margin-top: 15px; border-bottom: 1px solid var(--border); color: var(--primary); font-weight: bold; font-size: 14px; }
+        .os-separator:first-child { margin-top: 0; }
+        .cb-cont { display: flex; align-items: center; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; } .cb-cont label { cursor: pointer; margin-right: 8px; }
+        .beta-explainer { font-size: 12px; color: #aaa; margin-right: 5px; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .settings-grid label { display: block; margin-bottom: 5px; font-size: 14px; }
+        .settings-grid select { width: 100%; background-color: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 4px; }
+        select:disabled { opacity: 0.5; cursor: not-allowed; }
+        .help-section { margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; font-size: 14px; color: #aaa; }
+        .help-section h4 { margin-top: 0; color: var(--text); } .help-section ul { padding-right: 20px; margin-bottom: 0; }
+        .help-section li { margin-bottom: 8px; } .help-section strong { color: var(--primary); }
+        .social-links { text-align: center; margin-top: 20px; padding-top: 20px; display: flex; justify-content: center; gap: 25px; border-top: 1px solid var(--border); }
+        .social-links a { color: #aaa; transition: color 0.2s; } .social-links a:hover { color: var(--text); }
+        .social-links svg { width: 24px; height: 24px; fill: currentColor; }
+        @media (max-width: 600px) { body { padding: 10px; } .container { padding: 15px; } .header { margin-bottom: 20px; } h1 { font-size: 22px; } .settings-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>مبدل لینک و نمایشگر ریلیز</h1><button class="theme-toggle" id="themeToggle" title="تغییر تم"><svg class="icon-sun" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zm-9-8c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1v2c0 .55.45 1 1 1zm0 16c.55 0 1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1v2c0 .55.45 1 1 1zM5.64 6.36c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41l1.06 1.06c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41L5.64 6.36zm12.72 12.72c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41l1.06 1.06c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41l-1.06-1.06zM6.36 18.36c.39.39.39 1.02 0 1.41-.39.39-1.02.39-1.41 0l-1.06-1.06c-.39-.39-.39-1.02 0-1.41s1.02-.39 1.41 0l1.06 1.06zm12.72-12.72c.39.39.39 1.02 0 1.41-.39.39-1.02.39-1.41 0l-1.06-1.06c-.39-.39-.39-1.02 0-1.41 .39-.39 1.02-.39 1.41 0l1.06 1.06z"/></svg><svg class="icon-moon" viewBox="0 0 24 24"><path d="M9.37 5.51A7.35 7.35 0 0 0 9.1 7.5c0 4.08 3.32 7.4 7.4 7.4.68 0 1.35-.09 1.99-.27C17.45 17.19 14.93 19 12 19A7 7 0 0 1 5 12c0-2.93 1.81-5.45 4.37-6.49z"/></svg></button></div>
+        <textarea id="linksInput" placeholder="لینک‌های گیت‌هاب را اینجا وارد کنید..."></textarea>
+        <div class="settings-grid">
+            <div><label for="osSelect">سیستم عامل:</label><select id="osSelect"><option value="auto">تشخیص خودکار</option><option value="windows">ویندوز</option><option value="macos">مک</option><option value="linux">لینوکس</option><option value="android">اندروید</option><option value="ios">iOS</option><option value="bsd">BSD</option></select></div>
+            <div><label for="archSelect">معماری پردازنده:</label><select id="archSelect"></select></div>
+        </div>
+        <div class="cb-cont"><input type="checkbox" id="betaCheckbox"><label for="betaCheckbox">نمایش نسخه‌های بتا</label><span class="beta-explainer">(نسخه‌های آزمایشی و ناپایدار)</span></div>
+        <button id="convertBtn" class="main-btn">پردازش</button>
+        <div id="results"></div>
+        <div class="help-section">
+            <h4>راهنمای تشخیص معماری پردازنده:</h4>
+            <ul>
+                <li><strong>اندروید:</strong> اپلیکیشن <strong>CPU-Z</strong> را از گوگل پلی نصب کنید. در تب "SOC"، بخش "ABI" معماری شما را نشان می‌دهد (مثلاً arm64-v8a).</li>
+                <li><strong>ویندوز:</strong> به Task Manager بروید (Ctrl+Shift+Esc)، تب "Performance" را انتخاب و روی "CPU" کلیک کنید. معماری در سمت راست نمایش داده می‌شود.</li>
+                <li><strong>مک:</strong> روی لوگوی اپل کلیک کنید، "About This Mac" را انتخاب کنید. اگر پردازنده "Apple M1/M2/..." باشد، معماری ARM64 است. اگر "Intel" باشد، x64 است.</li>
+            </ul>
+        </div>
+        <div class="social-links">
+            <a href="https://t.me/vpnclashfa" target="_blank" rel="noopener noreferrer" title="Telegram"><svg viewBox="0 0 24 24"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.62 12c-.88-.27-.88-1.37.2-1.68l16.15-5.82c.72-.26 1.36.17 1.15.93l-2.66 12.58c-.22.99-1.21 1.22-1.87.73l-4.11-3.03-1.93 1.86c-.22.22-.4.38-.69.38z"/></svg></a>
+            <a href="https://x.com/coldwater_10" target="_blank" rel="noopener noreferrer" title="X (Twitter)"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            <a href="https://10ium.github.io/free-sub-link" target="_blank" rel="noopener noreferrer" title="Free Sub Link"><svg viewBox="0 0 24 24"><path d="M10.59 13.41c.41.39.41 1.02 0 1.41-.39.39-1.02.39-1.41 0-1.57-1.57-1.57-4.12 0-5.69l3.54-3.54a4.003 4.003 0 0 1 5.66 0c1.57 1.57 1.57 4.12 0 5.69l-1.41 1.41a1.001 1.001 0 1 1-1.42-1.42l1.42-1.42c.78-.78.78-2.05 0-2.83-.78-.78-2.05-.78-2.83 0l-3.53 3.54c-.78.78-.78 2.05 0 2.83zm-1.42-1.42a1.001 1.001 0 1 1-1.41-1.41l3.53-3.53a2.001 2.001 0 0 1 2.83 2.83l-3.53 3.53a1 1 0 0 1-1.42 0zM4.93 19.07c1.57-1.57 1.57-4.12 0-5.66l-1.42-1.42a1 1 0 0 1 1.42-1.42l1.41 1.42c.78.78.78 2.05 0 2.83.78.78 2.05.78 2.83 0l3.54-3.54c.78-.78.78-2.05 0-2.83a4.003 4.003 0 0 1 0-5.66c-1.57-1.57-4.12-1.57-5.66 0l-3.54 3.54c-1.57 1.57-1.57 4.12 0 5.69z"/></svg></a>
+        </div>
+    </div>
+    <script type="module">
+        import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
+
+        const OS_Matchers = {
+            android: { names: ['android'], exts: ['.apk', '.aab'] },
+            windows: { names: ['windows', 'win'], exts: ['.exe', '.msi', '.msix'] },
+            macos: { names: ['macos', 'osx', 'darwin'], exts: ['.dmg', '.pkg'] },
+            linux: { names: ['linux'], exts: ['.deb', '.rpm', '.appimage', '.tar.gz', '.snap', '.flatpak'] },
+            ios: { names: ['ios'], exts: ['.ipa'] },
+            bsd: { names: ['freebsd', 'openbsd'], exts: [] },
+        };
+
+        const archOptionsByOS = {
+            'auto': [],
+            'windows': [ {value: 'x64', text: 'x64 / AMD64'}, {value: 'arm64', text: 'ARM64'}, {value: 'x86', text: 'x86 (32-bit)'} ],
+            'macos': [ {value: 'arm64', text: 'Apple Silicon (M1/M2+)'}, {value: 'x64', text: 'Intel (x64)'}, {value: 'universal', text: 'Universal'} ],
+            'linux': [ {value: 'x64', text: 'x64 / AMD64'}, {value: 'arm64', text: 'ARM64'}, {value: 'x86', text: 'x86 (32-bit)'}, {value: 'armv7', text: 'ARMv7 (32-bit)'} ],
+            'android': [ {value: 'universal', text: 'Universal'}, {value: 'arm64-v8a', text: 'ARM 64-bit'}, {value: 'armeabi-v7a', text: 'ARM 32-bit'}, {value: 'x86_64', text: 'x86 64-bit'}, {value: 'x86', text: 'x86 32-bit'} ],
+            'ios': [ {value: 'arm64', text: 'ARM64'}, {value: 'arm64e', text: 'ARM64e'}, {value: 'universal', text: 'Universal'} ],
+            'bsd': [ {value: 'x64', text: 'x64 / AMD64'}, {value: 'arm64', text: 'ARM64'} ],
+        };
+
+        const DOM = {
+            body: document.body, convertBtn: document.getElementById('convertBtn'), linksInput: document.getElementById('linksInput'),
+            betaCheckbox: document.getElementById('betaCheckbox'), results: document.getElementById('results'), osSelect: document.getElementById('osSelect'),
+            archSelect: document.getElementById('archSelect'), themeToggle: document.getElementById('themeToggle'),
+        };
+        
+        DOM.convertBtn.addEventListener('click', processLinks);
+        DOM.osSelect.addEventListener('change', updateArchOptions);
+        DOM.archSelect.addEventListener('change', () => localStorage.setItem('user_arch', DOM.archSelect.value));
+        DOM.themeToggle.addEventListener('click', toggleTheme);
+
+        function initializeUI() {
+            loadUserPreferences();
+            initializeTheme();
+            updateArchOptions();
+        }
+        
+        function loadUserPreferences() {
+            const savedOs = localStorage.getItem('user_os');
+            if (savedOs) {
+                DOM.osSelect.value = savedOs;
+            }
+        }
+
+        function updateArchOptions() {
+            const selectedOs = DOM.osSelect.value;
+            const savedArch = localStorage.getItem('user_arch');
+            DOM.archSelect.innerHTML = '';
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'auto';
+            defaultOption.textContent = 'تشخیص خودکار';
+            DOM.archSelect.appendChild(defaultOption);
+            
+            if (selectedOs === 'auto') {
+                DOM.archSelect.disabled = true;
+                DOM.archSelect.value = 'auto';
+            } else {
+                DOM.archSelect.disabled = false;
+                const options = archOptionsByOS[selectedOs] || [];
+                options.forEach(opt => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = opt.value;
+                    optionEl.textContent = opt.text;
+                    DOM.archSelect.appendChild(optionEl);
+                });
+                if (savedArch && options.some(o => o.value === savedArch)) {
+                    DOM.archSelect.value = savedArch;
+                }
+            }
+            localStorage.setItem('user_os', selectedOs);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                DOM.body.classList.add('light-mode');
+            } else {
+                DOM.body.classList.remove('light-mode');
+            }
+            localStorage.setItem('user_theme', theme);
+        }
+
+        function toggleTheme() {
+            const newTheme = DOM.body.classList.contains('light-mode') ? 'dark' : 'light';
+            applyTheme(newTheme);
+        }
+
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('user_theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else {
+                try {
+                    const tehranTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Tehran' });
+                    const tehranHour = new Date(tehranTime).getHours();
+                    const isDayTime = tehranHour >= 6 && tehranHour < 19;
+                    applyTheme(isDayTime ? 'light' : 'dark');
+                } catch (e) {
+                    applyTheme('dark');
+                }
+            }
+        }
+        
+        async function processLinks() {
+            const links = DOM.linksInput.value.split('\\n').map(l => l.trim()).filter(Boolean);
+            DOM.results.innerHTML = '';
+            if (links.length === 0) {
+                return;
+            }
+            DOM.convertBtn.disabled = true;
+            DOM.convertBtn.textContent = 'در حال پردازش...';
+            const clientInfo = getClientInfo();
+            for (const link of links) {
+                const converted = convertGithubLink(link);
+                const repo = extractRepoInfo(link);
+                let release = null;
+                if (repo) {
+                    try {
+                        const res = await fetch(\`/api/releases/\${repo.user}/\${repo.repo}?beta=\${DOM.betaCheckbox.checked}\`);
+                        release = res.ok ? await res.json() : null;
+                    } catch (e) {
+                        console.error("API Fetch Error:", e);
+                    }
+                }
+                displayResult(link, converted, release, clientInfo, repo);
+            }
+            DOM.convertBtn.disabled = false;
+            DOM.convertBtn.textContent = 'پردازش';
+        }
+
+        function displayResult(originalLink, convertedData, releaseData, clientInfo, repoInfo) {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = renderConvertedLinks(originalLink, convertedData) + renderReleaseSection(releaseData, clientInfo, repoInfo);
+            DOM.results.appendChild(card);
+            setupActionButtons(card);
+        }
+        
+        function renderConvertedLinks(originalLink, convertedData) {
+            let html = \`<p><strong>لینک اصلی:</strong> \${originalLink}</p>\`;
+            if (convertedData) {
+                html += createOutputGroup('لینک فایل:', convertedData.output1, true);
+                html += createOutputGroup('پروفایل کاربر:', convertedData.output2, false);
+            } else {
+                html += \`<p style="color:var(--warn)">لینک وارد شده قابل تبدیل نیست.</p>\`;
+            }
+            return html;
+        }
+
+        function renderReleaseSection(releaseData, clientInfo, repoInfo) {
+            if (!releaseData || !releaseData.assets || releaseData.assets.length === 0) {
+                return '';
+            }
+            const primaryAssets = releaseData.assets.filter(asset => !asset.name.endsWith('.sha256'));
+            const checksumAssets = releaseData.assets.filter(asset => asset.name.endsWith('.sha256'));
+            const checksumMap = new Map(checksumAssets.map(asset => [asset.name.replace('.sha256', ''), asset]));
+
+            const bestAsset = findBestAsset(primaryAssets, clientInfo);
+            const sortedAssets = sortAssets(primaryAssets, clientInfo, bestAsset);
+            
+            if (bestAsset && repoInfo) {
+                localStorage.setItem(\`pref-\${repoInfo.user}-\${repoInfo.repo}\`, bestAsset.browser_download_url);
+            }
+            const bodyHtml = releaseData.body ? marked.parse(releaseData.body) : '<p>بدون توضیحات.</p>';
+            let assetsHtml = '';
+            let lastOsGroup = null;
+            const osDisplayNames = { android: 'اندروید', windows: 'ویندوز', macos: 'مک', linux: 'لینوکس', ios: 'iOS', bsd: 'BSD', other: 'سایر فایل‌ها' };
+            
+            sortedAssets.forEach(asset => {
+                const currentOsGroup = getAssetOs(asset);
+                if (currentOsGroup !== lastOsGroup) {
+                    assetsHtml += \`<li class="os-separator">\${osDisplayNames[currentOsGroup] || 'سایر'}</li>\`;
+                    lastOsGroup = currentOsGroup;
+                }
+                const isPref = bestAsset && asset.id === bestAsset.id;
+                const size = (asset.size / 1048576).toFixed(2) + ' MB';
+                const checksumAsset = checksumMap.get(asset.name);
+                checksumMap.delete(asset.name); // Mark as used
+
+                assetsHtml += \`<li class="asset-item \${isPref ? 'preferred' : ''}">
+                    <div class="asset-info">
+                        <div><span class="pref-badge">پیشنهادی</span><span class="asset-name">\${asset.name}</span></div>
+                        <span class="asset-meta">📅 \${new Date(asset.updated_at).toLocaleDateString('fa-IR')} | 💾 \${size}</span>
+                    </div>
+                    <div class="asset-actions">
+                        <a href="\${asset.browser_download_url}" class="act-btn dl-btn">دانلود</a>
+                        \${checksumAsset ? \`<a href="\${checksumAsset.browser_download_url}" class="act-btn checksum-btn" title="دانلود checksum">SHA256</a>\` : ''}
+                    </div>
+                </li>\`;
+            });
+
+            if (checksumMap.size > 0) {
+                assetsHtml += \`<li class="os-separator">فایل‌های Checksum باقی‌مانده</li>\`;
+                checksumMap.forEach(asset => {
+                    const size = (asset.size / 1024).toFixed(2) + ' KB';
+                     assetsHtml += \`<li class="asset-item"><div class="asset-info"><span class="asset-name">\${asset.name}</span><span class="asset-meta">💾 \${size}</span></div><div class="asset-actions"><a href="\${asset.browser_download_url}" class="act-btn checksum-btn">دانلود</a></div></li>\`;
+                });
+            }
+
+            return \`<div class="rel-sec"><h3>📦 \${releaseData.name || releaseData.tag_name}</h3><div class="rel-body">\${bodyHtml}</div><h4>فایل‌ها:</h4><ul class="asset-list">\${assetsHtml}</ul></div>\`;
+        }
+
+        function getAssetOs(asset) {
+            const name = asset.name.toLowerCase();
+            for (const os in OS_Matchers) {
+                const matcher = OS_Matchers[os];
+                if (matcher.names.some(n => name.includes(n)) || (matcher.exts.length > 0 && matcher.exts.some(e => name.endsWith(e)))) {
+                    return os;
+                }
+            }
+            return 'other';
+        }
+
+        function sortAssets(assets, clientInfo, bestAsset) {
+            const defaultOsPriority = ['android', 'windows', 'macos', 'linux', 'ios', 'bsd', 'other'];
+            return [...assets].sort((a, b) => {
+                if (bestAsset) {
+                    if (a.id === bestAsset.id) return -1;
+                    if (b.id === bestAsset.id) return 1;
+                }
+                const osA = getAssetOs(a);
+                const osB = getAssetOs(b);
+                const aIsMatch = osA === clientInfo.os;
+                const bIsMatch = osB === clientInfo.os;
+                if (aIsMatch && !bIsMatch) return -1;
+                if (!aIsMatch && bIsMatch) return 1;
+                const priorityA = defaultOsPriority.indexOf(osA);
+                const priorityB = defaultOsPriority.indexOf(osB);
+                if (priorityA !== priorityB) return priorityA - priorityB;
+                return a.name.localeCompare(b.name);
+            });
+        }
+        
+        function findBestAsset(assets, clientInfo) {
+            const scores = assets.map(asset => ({ asset, score: calculateAssetScore(asset, clientInfo) }));
+            if (scores.length === 0) {
+                return null;
+            }
+            const best = scores.reduce((a, b) => a.score > b.score ? a : b);
+            return best.score > 0 ? best.asset : null;
+        }
+        
+        function calculateAssetScore(asset, clientInfo) {
+            const name = asset.name.toLowerCase();
+            const unwanted = ['.sha256', '.asc', '.dSYM.zip', '.plist', '.mobileprovision'];
+            if (unwanted.some(term => name.endsWith(term))) {
+                return -1;
+            }
+            let score = 0;
+            const archMatchers = {
+                x64: ['x64', 'amd64', 'x86_64'], arm64: ['arm64', 'aarch64'], arm64e: ['arm64e'],
+                'arm64-v8a': ['arm64-v8a'], 'armeabi-v7a': ['armeabi-v7a', 'armv7'],
+                x86: ['x86', '386', 'i686'], universal: ['universal', 'universal2'],
+                ppc64le: ['ppc64le'], s390x: ['s390x'], riscv64: ['riscv64'], wasm: ['wasm'],
+            };
+            const assetOs = getAssetOs(asset);
+            const osMatches = assetOs === clientInfo.os;
+            if (osMatches) {
+                score += 10;
+            }
+            if (osMatches && clientInfo.os === 'android' && name.includes('universal')) {
+                score += 50;
+            }
+            const selectedArchKeywords = archMatchers[clientInfo.arch];
+            const archMatches = selectedArchKeywords && selectedArchKeywords.some(keyword => name.includes(keyword));
+            if (archMatches) {
+                score += 5;
+            }
+            if (osMatches && archMatches) {
+                score += 2;
+            }
+            return score;
+        }
+
+        function createOutputGroup(label, value, showDl) {
+            const dlBtn = showDl ? \`<button class="act-btn dl-raw-btn" data-url="\${value}">دانلود</button>\` : '';
+            return \`<div style="margin-top:10px;"><label>\${label}</label><div class="output-field"><input type="text" value="\${value}" readonly><button class="act-btn copy-btn">کپی</button><a href="\${value}" target="_blank" class="act-btn open-btn">باز کردن</a>\${dlBtn}</div></div>\`;
+        }
+
+        async function downloadRawContent(button, url) {
+            const originalText = button.textContent;
+            button.textContent = 'در حال دریافت...';
+            button.disabled = true;
+            try {
+                const response = await fetch('/download/' + url);
+                if (!response.ok) {
+                    throw new Error(\`HTTP error! status: \${response.status}\`);
+                }
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = url.substring(url.lastIndexOf('/') + 1) || 'download';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                console.error('Download failed:', error);
+                alert('دانلود با خطا مواجه شد. لطفاً از دکمه "باز کردن" استفاده کنید.');
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function setupActionButtons(card) {
+            card.addEventListener('click', function(event) {
+                const target = event.target;
+                if (target.classList.contains('copy-btn')) {
+                    const input = target.parentElement.querySelector('input');
+                    if (input) {
+                        navigator.clipboard.writeText(input.value);
+                        target.textContent = '✔';
+                        target.classList.add('copied');
+                        setTimeout(() => {
+                            target.textContent = 'کپی';
+                            target.classList.remove('copied');
+                        }, 2000);
+                    }
+                } else if (target.classList.contains('dl-raw-btn')) {
+                    const url = target.dataset.url;
+                    if (url) {
+                        downloadRawContent(target, url);
+                    }
+                }
+            });
+        }
+        
+        function getClientInfo() {
+            const selectedOs = DOM.osSelect.value;
+            let selectedArch = DOM.archSelect.value;
+            let os = selectedOs;
+            let arch = selectedArch;
+            if (os === 'auto') {
+                const ua = navigator.userAgent.toLowerCase();
+                if (/win/.test(ua)) { os = 'windows'; }
+                else if (/mac|darwin/.test(ua)) { os = 'macos'; }
+                else if (/android/.test(ua)) { os = 'android'; }
+                else if (/linux/.test(ua)) { os = 'linux'; }
+                else { os = 'unknown'; }
+            }
+            if (arch === 'auto') {
+                const ua = navigator.userAgent.toLowerCase();
+                if (/arm64|aarch64/.test(ua)) { arch = 'arm64-v8a'; }
+                else if (/x86_64|x64|amd64/.test(ua)) { arch = 'x64'; }
+                else if (/x86(?!_64)|i686|i386/.test(ua)) { arch = 'x86'; }
+                else { arch = 'unknown'; }
+            }
+            return { os, arch };
+        }
+        
+        function extractRepoInfo(url) {
+            try {
+                const match = url.match(/github(?:usercontent)?\\.com\\/([^/]+)\\/([^/]+)/);
+                return match ? { user: match[1], repo: match[2].replace('.git', '') } : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function convertGithubLink(url) {
+            try {
+                const u = new URL(url);
+                const parts = u.pathname.split('/').filter(Boolean);
+                if (u.hostname === 'github.com' && parts[2] === 'blob') {
+                    const [user, repo, , branch, ...path] = parts;
+                    return { output1: \`https://github.com/\${user}/\${repo}/raw/refs/heads/\${branch}/\${path.join('/')}\`, output2: \`https://github.com/\${user}\` };
+                }
+                if (u.hostname === 'github.com' && parts[2] === 'raw' && parts[3] === 'refs') {
+                    const [user, repo, ,,,, branch, ...path] = parts;
+                    return { output1: \`https://github.com/\${user}/\${repo}/blob/\${branch}/\${path.join('/')}\`, output2: \`https://github.com/\${user}\` };
+                }
+                if (u.hostname === 'raw.githubusercontent.com') {
+                    const [user, repo, branch, ...path] = parts;
+                    return { output1: \`https://github.com/\${user}/\${repo}/blob/\${branch}/\${path.join('/')}\`, output2: \`https://github.com/\${user}\` };
+                }
+            } catch (e) {
+                /* Ignore */
+            }
+            return null;
+        }
+        
+        initializeUI();
+    </script>
+</body>
+</html>`;
+    return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  }
+};

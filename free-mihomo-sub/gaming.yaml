@@ -350,6 +350,8 @@ rules:
   - RULE-SET,GameDownload,گیم 🎮
   - RULE-SET,category-games,گیم 🎮
   - RULE-SET,Xbox,گیم 🎮
+  - PROCESS-NAME,com.discord,دیسکورد 🗣️
+  - PROCESS-NAME,Discord.exe,دیسکورد 🗣️
   - RULE-SET,discord,دیسکورد 🗣️
   - RULE-SET,windows,ویندوز 🧊
   - MATCH,نوع انتخاب پروکسی 🔀

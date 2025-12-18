@@ -25,8 +25,9 @@ dns:
   use-system-hosts: true
   use-host: true
   nameserver:
-    - 199.85.127.10
-    - 199.85.126.10
+    - 'tls://dns.vanillapp.ir'
+    - '10.139.177.21'
+    - '10.139.177.22'
 
 tun:
   enable: true

@@ -50,8 +50,25 @@ proxy-groups:
     proxies:
       - DIRECT
       - Fake Proxy
+    hidden: true
+
+  - name: Windows 🧊
+    type: select
+    icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg
+    proxies:
+      - DIRECT
+      - REJECT
+
+rule-providers:
+  windows: 
+    type: http 
+    behavior: classical 
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml" 
+    path: ./ruleset/windows.yaml 
+    interval: 86400
 
 rules:
+  - RULE-SET,windows,Windows 🧊 
   - MATCH,🔀 DIRECT
 
 ntp:

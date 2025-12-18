@@ -25,8 +25,8 @@ dns:
   use-system-hosts: true
   use-host: true
   nameserver:
-    - 199.85.127.10
-    - 199.85.126.10
+    - '37.32.5.60'
+    - '37.32.5.61'
 
 tun:
   enable: true

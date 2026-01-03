@@ -1,0 +1,1714 @@
+global-client-fingerprint: chrome
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+tcp-concurrent: true
+enable-process: true
+find-process-mode: strict
+ipv6: true
+log-level: debug
+geo-auto-update: true
+geo-update-interval: 168
+secret: ""
+bind-address: "*"
+unified-delay: false
+disable-keep-alive: false
+keep-alive-idle: 30
+keep-alive-interval: 30
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  ipv6: true
+  respect-rules: false
+  prefer-h3: true
+  cache-algorithm: arc
+  use-system-hosts: true
+  use-host: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-filter-mode: blacklist
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.localdomain"
+    - "*.invalid"
+    - "*.localhost"
+    - "*.test"
+    - "*.local"
+    - "*.home.arpa"
+    - time.*.com
+    - ntp.*.com
+    - "*.ir"
+  default-nameserver:
+    - 223.5.5.5
+    - 9.9.9.9
+    - 8.26.56.26
+    - 8.8.8.8
+    - 8.8.4.4
+    - 1.0.0.1
+    - 1.1.1.1
+    - 9.9.9.11
+    - 9.9.9.10
+    - 94.140.14.15
+    - 94.140.15.15
+    - 77.88.8.8
+  nameserver:
+    - https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI
+    - tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com
+  direct-nameserver:
+    - 78.157.42.100
+    - 78.157.42.101
+  proxy-server-nameserver:
+    - 2606:4700:4700::1111
+    - 2606:4700:4700::1001
+    - 2001:4860:4860::8888
+    - 2001:4860:4860::8844
+    - 1.1.1.1
+    - 8.8.8.8
+    - 8.8.4.4
+    - 9.9.9.9
+    - 223.5.5.5
+    - 77.88.8.8
+    - 2400:3200::1
+    - 2a02:6b8::feed:0ff
+    - 2620:fe::fe
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080, 8880, 2052, 2082, 2086, 2095]
+    TLS:
+      ports: [443, 8443, 2053, 2083, 2087, 2096]
+tun:
+  enable: true
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  auto-redir: true
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+rule-providers:
+  category_public_tracker:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml
+    interval: 86400
+    path: ./ruleset/category_public_tracker.yaml
+  iran_ads:
+    type: http
+    behavior: domain
+    url: https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml
+    interval: 86400
+    path: ./ruleset/iran_ads.yaml
+  PersianBlocker:
+    type: http
+    behavior: domain
+    url: https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml
+    path: ./ruleset/PersianBlocker.yaml
+    interval: 86400
+  youtube:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml
+    interval: 86400
+    path: ./ruleset/youtube.yaml
+  telegram:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml
+    interval: 86400
+    path: ./ruleset/telegram.yaml
+  twitch:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml
+    interval: 86400
+    path: ./ruleset/twitch.yaml
+  censor:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml
+    interval: 86400
+    path: ./ruleset/tahrim.yaml
+  local_ips:
+    type: http
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml
+    interval: 86400
+    path: ./ruleset/local_ips.yaml
+  private:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml
+    interval: 86400
+    path: ./ruleset/private.yaml
+  category_ir:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml
+    interval: 86400
+    path: ./ruleset/category_ir.yaml
+  iran:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml
+    interval: 86400
+    path: ./ruleset/iran.yaml
+  steam:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml
+    interval: 86400
+    path: ./ruleset/steam.yaml
+  game:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml
+    interval: 86400
+    path: ./ruleset/game.yaml
+  category-games:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml
+    interval: 86400
+    path: ./ruleset/category-games.yaml
+  ir:
+    type: http
+    format: yaml
+    behavior: domain
+    url: https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml
+    path: ./ruleset/ir.yaml
+    interval: 86400
+  apps:
+    type: http
+    format: yaml
+    behavior: classical
+    url: https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml
+    path: ./ruleset/apps.yaml
+    interval: 86400
+  ircidr:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml
+    path: ./ruleset/ircidr.yaml
+    interval: 86400
+  irasn:
+    type: http
+    format: yaml
+    behavior: classical
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml
+    path: ./ruleset/irasn.yaml
+    interval: 86400
+  arvancloud:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml
+    path: ./ruleset/arvancloud.yaml
+    interval: 86400
+  derakcloud:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml
+    path: ./ruleset/derakcloud.yaml
+    interval: 86400
+  iranserver:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml
+    path: ./ruleset/iranserver.yaml
+    interval: 86400
+  parspack:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml
+    path: ./ruleset/parspack.yaml
+    interval: 86400
+  malware:
+    type: http
+    format: yaml
+    behavior: domain
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml
+    path: ./ruleset/malware.yaml
+    interval: 86400
+  phishing:
+    type: http
+    format: yaml
+    behavior: domain
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml
+    path: ./ruleset/phishing.yaml
+    interval: 86400
+  cryptominers:
+    type: http
+    format: yaml
+    behavior: domain
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml
+    path: ./ruleset/cryptominers.yaml
+    interval: 86400
+  ads:
+    type: http
+    format: yaml
+    behavior: domain
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.yaml
+    path: ./ruleset/ads.yaml
+    interval: 86400
+  DownloadManagers:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml
+    interval: 86400
+    path: ./ruleset/DownloadManagers.yaml
+  BanProgramAD:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml
+    interval: 86400
+    path: ./ruleset/BanProgramAD.yaml
+  BanAD:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml
+    interval: 86400
+    path: ./ruleset/BanAD.yaml
+  PrivateTracker:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml
+    interval: 86400
+    path: ./ruleset/PrivateTracker.yaml
+  BanEasyList:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml
+    interval: 86400
+    path: ./ruleset/BanEasyList.yaml
+  Download:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml
+    interval: 86400
+    path: ./ruleset/Download.yaml
+  GameDownload:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml
+    interval: 86400
+    path: ./ruleset/GameDownload.yaml
+  SteamRegionCheck:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml
+    interval: 86400
+    path: ./ruleset/SteamRegionCheck.yaml
+  Xbox:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml
+    interval: 86400
+    path: ./ruleset/Xbox.yaml
+  YouTubeMusic:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml
+    interval: 86400
+    path: ./ruleset/YouTubeMusic.yaml
+  YouTube:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml
+    interval: 86400
+    path: ./ruleset/YouTube.yaml
+  Ponzi:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml
+    interval: 86400
+    path: ./ruleset/Ponzi.yaml
+  warninglist:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml
+    interval: 86400
+    path: ./ruleset/warninglist.yaml
+  google:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml
+    interval: 86400
+    path: ./ruleset/google.yaml
+  google-play:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml
+    interval: 86400
+    path: ./ruleset/google-play.yaml
+  xiaomi-ads:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/xiaomi-ads.yaml
+    interval: 86400
+    path: ./ruleset/xiaomi-ads.yaml
+  xiaomi_block_list:
+    type: http
+    format: yaml
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml
+    path: ./ruleset/xiaomi_block_list.yaml
+    interval: 86400
+  xiaomi_white_list:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml
+    path: ./ruleset/xiaomi_white_list.yaml
+    interval: 86400
+  cloudflare:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml
+    interval: 86400
+    path: ./ruleset/cloudflare.yaml
+  github:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml
+    interval: 86400
+    path: ./ruleset/xgithub.yaml
+  whatsapp:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml
+    interval: 86400
+    path: ./ruleset/whatsapp.yaml
+  LiteAds:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml
+    path: ./ruleset/LiteAds.yaml
+    interval: 86400
+  discord:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml
+    path: ./ruleset/discord.yaml
+    interval: 86400
+  instagram:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml
+    interval: 86400
+    path: ./ruleset/instagram.yaml
+  category-ai:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml
+    interval: 86400
+    path: ./ruleset/category-ai.yaml
+  stremio:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml
+    path: ./ruleset/stremio.yaml
+    interval: 86400
+  windows:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml
+    path: ./ruleset/windows.yaml
+    interval: 86400
+  Chotwitter:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml
+    path: ./ruleset/Chotwitter.yaml
+    interval: 86400
+  mihTwitter:
+    type: http
+    behavior: classical
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml
+    path: ./ruleset/mihTwitter.yaml
+    interval: 86400
+  Domtwitter:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml
+    interval: 86400
+    path: ./ruleset/Domtwitter.yaml
+  spotifyads:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify-ads.yaml
+    interval: 86400
+    path: ./ruleset/spotifyads.yaml
+  DomainSpotify:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml
+    interval: 86400
+    path: ./ruleset/DomainSpotify.yaml
+  mihspotify:
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml
+    interval: 86400
+    path: ./ruleset/mihSpotify.yaml
+proxies:
+  - {name: 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh), server: promo19v.bystrivpn.ru, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: SwTShXYSQd404FISs8NFeJ, udp: true, tfo: false}
+  - {name: 069-🏴‍☠️-@GheychiAmoozesh, server: 217.30.10.18, port: 9032, type: ss, cipher: aes-256-cfb, password: UWZQeLRWnkqgkseq, udp: true, tfo: false}
+  - {name: 093-🏴‍☠️-@GheychiAmoozesh, server: 217.30.10.70, port: 9011, type: ss, cipher: aes-256-cfb, password: M3t2ZEQcMGRWBjRa, udp: true, tfo: false}
+  - {name: 315 - VN - SS/STREAM - 38388, server: 103.186.154.176, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 316 - VN - SS/STREAM - 38388, server: 103.186.154.177, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 317 - VN - SS/STREAM - 38388, server: 103.186.154.178, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 329 - VN - SS/STREAM - 38388, server: 103.186.154.195, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 331 - VN - SS/STREAM - 38388, server: 103.186.154.197, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 333 - VN - SS/STREAM - 38388, server: 103.186.154.201, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 344 - VN - SS/STREAM - 38388, server: 103.186.154.218, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 353 - VN - SS/STREAM - 38388, server: 103.186.154.228, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 364 - VN - SS/STREAM - 38388, server: 103.186.154.247, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 366 - VN - SS/STREAM - 38388, server: 103.186.154.24, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 383 - VN - SS/STREAM - 38388, server: 103.186.154.60, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 388 - VN - SS/STREAM - 38388, server: 103.186.155.101, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 396 - VN - SS/STREAM - 38388, server: 103.186.155.109, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 406 - VN - SS/STREAM - 38388, server: 103.186.155.122, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 407 - VN - SS/STREAM - 38388, server: 103.186.155.123, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 415 - VN - SS/STREAM - 38388, server: 103.186.155.132, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 417 - VN - SS/STREAM - 38388, server: 103.186.155.135, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 418 - VN - SS/STREAM - 38388, server: 103.186.155.136, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 422 - VN - SS/STREAM - 38388, server: 103.186.155.141, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 429 - VN - SS/STREAM - 38388, server: 103.186.155.149, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 436 - VN - SS/STREAM - 38388, server: 103.186.155.203, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 439 - VN - SS/STREAM - 38388, server: 103.186.155.209, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 442 - VN - SS/STREAM - 38388, server: 103.186.155.218, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 449 - VN - SS/STREAM - 38388, server: 103.186.155.235, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 452 - VN - SS/STREAM - 38388, server: 103.186.155.239, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 457 - VN - SS/STREAM - 38388, server: 103.186.155.37, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 461 - VN - SS/STREAM - 38388, server: 103.186.155.41, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 464 - VN - SS/STREAM - 38388, server: 103.186.155.4, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: "@Filter_breaker", server: www.calmlunch.com, port: 443, type: trojan, password: humanity, sni: www.calmlunch.com, skip-cert-verify: false, network: ws, ws-opts: {path: /assignment, headers: {Host: www.calmlunch.com}}, udp: true, tfo: false}
+  - {name: "@Rayan_Config-82.38.31.210-@beepassvpn_bot", server: 82.38.31.210, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: "@VPN1371 آیدی تلگرام", server: 94.131.104.147, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: 6VAcll4P8xPTUVVtHeST3onRmLoVIBSU, udp: true, tfo: false}
+  - {name: "@v2FreeHub 🇬🇧", server: 78.129.140.11, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: iMSL3r5AG5SeHZBNPf9a8d, udp: true, tfo: false}
+  - {name: AE-147.78.0.182-0347, server: 147.78.0.182, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: AE-151.242.251.137-0290, server: 151.242.251.137, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: o5osZg269v5zHpYjr1xY9s, udp: true, tfo: false}
+  - {name: AE-151.242.251.142-0288, server: 151.242.251.142, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: AE-95.174.68.33-5000, server: 95.174.68.33, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: YzH4id7ZEyKpfy39F2YcOmzCsBklGwh8, udp: true, tfo: false}
+  - {name: ALL-@V2rayAlpha--37, server: 46.183.185.37, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT, server: 185.47.254.87, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT 2, server: 90.156.203.62, port: 5112, type: ss, cipher: chacha20-ietf-poly1305, password: VVlAff77CnAU43Aoc5j15Y, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT 3, server: 151.242.251.142, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT 4, server: 82.38.31.179, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT 5, server: 192.71.244.150, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT 6, server: 92.112.126.90, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: RFK38Cg7APneSB5cWDcpbm, udp: true, tfo: false}
+  - {name: BESTIIVPNBOT 7, server: 194.87.216.218, port: 52571, type: ss, cipher: chacha20-ietf-poly1305, password: l8u2nFLk0Rh1fJty0nMj6C, udp: true, tfo: false}
+  - {name: BG-95.164.10.228-0334, server: 95.164.10.228, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: SDaFISr3Gfm6YkBSSrFIEwwWjEEU7Xbo, udp: true, tfo: false}
+  - {name: BG-95.164.116.33-0403, server: 95.164.116.33, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: pQmnC03JObbPhdh5FBJHgD6jnTLchsRA, udp: true, tfo: false}
+  - {name: BO-185.93.173.60-4920, server: 185.93.173.60, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: BR-185.192.124.188-0314, server: 185.192.124.188, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: CY-45.12.136.170-0365, server: 45.12.136.170, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: l668XHPejoSNNuD66BYzyehaCpZexiF7, udp: true, tfo: false}
+  - {name: "Channel id: @ShadowProxy66", server: 45.87.175.92, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: "Channel id: @ShadowProxy66 2", server: 45.87.175.92, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: "Channel id: @ShadowProxy66 🇨🇾", server: 134.255.210.49, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: Dr-Anv 🇫🇷, server: 109.201.152.181, port: 443, type: ss, cipher: aes-128-cfb, password: shadowsocks, udp: true, tfo: false}
+  - {name: Dr-Anv 🇳🇱, server: 45.87.175.197, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: Dr-Anv 🇳🇱 2, server: 82.38.31.210, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: Dr-Anv 🇳🇱 3, server: 109.201.152.181, port: 443, type: ss, cipher: aes-128-cfb, password: shadowsocks, udp: true, tfo: false}
+  - {name: Dr-Anv 🇸🇮, server: 192.71.244.150, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: KZ-103.106.3.82-0439, server: 103.106.3.82, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: 4SaCIazlgumYkM8FkPzlmwjpyWBDZFBk, udp: true, tfo: false}
+  - {name: KZ-45.159.250.190-0426, server: 45.159.250.190, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: LT-45.87.175.154-0285, server: 45.87.175.154, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: cvII85TrW6n0OGyfpHVS1u, udp: true, tfo: false}
+  - {name: LT-45.87.175.164-0432, server: 45.87.175.164, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: 1RWwXhwfAB5gAEozU4G2Pg, udp: true, tfo: false}
+  - {name: LT-45.87.175.183-0295, server: 45.87.175.183, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: cvII85TrW6n0OGyfpHVS1u, udp: true, tfo: false}
+  - {name: LT-45.87.175.22-0416, server: 45.87.175.22, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: LT-45.87.175.35-0434, server: 45.87.175.35, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: LT-45.87.175.65-0435, server: 45.87.175.65, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: LT-45.87.175.69-0430, server: 45.87.175.69, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: LT-45.87.175.92-0282, server: 45.87.175.92, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+  - {name: LV-46.183.217.204-0363, server: 46.183.217.204, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: MD-213.159.66.206-0340, server: 213.159.66.206, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: pl2XtR0pzwknQOGwewbwXtPYDw1zn9Vu, udp: true, tfo: false}
+  - {name: MD-213.159.76.21-0351, server: 213.159.76.21, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: pNqnYf3kHesOpCchRvUZxfwTafRsOj7g, udp: true, tfo: false}
+  - {name: PA-138.186.142.80-0409, server: 138.186.142.80, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: PR-185.47.255.22-0862, server: 185.47.255.22, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: PT-185.113.143.186-0312, server: 185.113.143.186, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: PT-185.231.233.112-4980, server: 185.231.233.112, port: 989, type: ss, cipher: aes-256-cfb, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: RO(AzadNet.t.me) (10), server: 185.193.49.88, port: 989, type: ss, cipher: aes-256-cfb, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: RO-185.126.237.38-0344, server: 185.126.237.38, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: SI-192.71.244.150-4817, server: 192.71.244.150, port: 989, type: ss, cipher: aes-256-cfb, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: VN-103.163.218.2-0374, server: 103.163.218.2, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: XX(AzadNet.t.me) (161), server: 103.186.154.30, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: XX(AzadNet.t.me) (271), server: 103.186.155.17, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: "[openproxylist.com] trojan-", server: 160.16.144.208, port: 3901, type: trojan, password: f36f4495b4b26cc2fe346cfa23e05b1b, sni: www.nintendogames.net, skip-cert-verify: false, udp: true, tfo: false}
+  - {name: "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋", server: 23.95.76.147, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-18, server: 5.188.36.93, port: 31348, type: ss, cipher: chacha20-ietf-poly1305, password: nYRhTCZdQLExK6ewVHgHS2mlv4FCysKyeyTTfhRdEgdeeRN0, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-2, server: 109.201.152.181, port: 443, type: ss, cipher: aes-128-cfb, password: shadowsocks, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-21, server: 136.244.100.113, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: yODLXVLz2FWNTFeSSng3Fm, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-23, server: 216.250.97.82, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-29, server: 134.209.147.198, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-30, server: 45.154.204.7, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-33, server: 134.209.147.198, port: 989, type: ss, cipher: aes-256-cfb, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-36, server: 107.151.182.253, port: 8080, type: ss, cipher: rc4-md5, password: 14fFPrbezE3HDZzsMOr6, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-38, server: 82.38.31.179, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-40, server: 103.186.154.73, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-42, server: 103.186.154.44, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-43, server: 45.159.250.190, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-48, server: 103.186.155.63, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-50, server: 103.186.154.30, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-51, server: 154.90.62.168, port: 989, type: ss, cipher: aes-256-cfb, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: ✂️ @GheychiAmoozesh-52, server: 138.186.142.80, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: 🇨🇦 CA-142.4.216.225-0338, server: 142.4.216.225, port: 80, type: ss, cipher: chacha20-ietf-poly1305, password: JIhN6rBKkaEboLNXVSv5rq, udp: true, tfo: false}
+  - {name: 🇨🇦 CA-45.154.204.7-0406, server: 45.154.204.7, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: 🇨🇳 TW-154.223.20.79-4821, server: 154.223.20.79, port: 989, type: ss, cipher: aes-256-cfb, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: 🇩🇪 Germany🇩🇪, server: 37.221.125.38, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: JQcc2rIZtXamatRYAINIddMom3MBu7zF, udp: true, tfo: false}
+  - {name: 🇬🇧 GB-5.181.21.246-0317, server: 5.181.21.246, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: gKYygTcRYhc3skc2x6tZ073lYz0DnieX, udp: true, tfo: false}
+  - {name: 🇬🇧 GB-82.38.31.176-0296, server: 82.38.31.176, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: 🇬🇧 GB-82.38.31.210-0287, server: 82.38.31.210, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: "🇬🇧 [openproxylist.com] ss-GB", server: 144.217.164.29, port: 12000, type: ss, cipher: aes-256-gcm, password: 8JCsPssfgS8tiRwiMlhARg==, udp: true, tfo: false}
+  - {name: "🇬🇧 [openproxylist.com] ss-GB 2", server: 144.217.164.29, port: 12000, type: ss, cipher: aes-256-gcm, password: 8JCsPssfgS8tiRwiMlhARg==, udp: true, tfo: false}
+  - {name: 🇭🇰 HK-216.250.97.82-0308, server: 216.250.97.82, port: 38388, type: ss, cipher: aes-256-cfb, password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV, udp: true, tfo: false}
+  - {name: 🇮🇳 IN-134.209.147.198-0451, server: 134.209.147.198, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: f8f7aCzcPKbsF8p3, udp: true, tfo: false}
+  - {name: 🇯🇵 JP-103.106.228.247-1806, server: 103.106.228.247, port: 990, type: ss, cipher: chacha20-ietf-poly1305, password: ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=, udp: true, tfo: false}
+  - {name: 🇯🇵 JP-160.16.144.208-5056, server: 160.16.144.208, port: 3901, type: trojan, password: f36f4495b4b26cc2fe346cfa23e05b1b, sni: www.nintendogames.net, skip-cert-verify: false, udp: true, tfo: false}
+  - {name: 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh), server: 151.242.251.147, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: o5osZg269v5zHpYjr1xY9s, udp: true, tfo: false}
+  - {name: 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh), server: 178.173.250.47, port: 56033, type: ss, cipher: chacha20-ietf-poly1305, password: 5LD874oS39jQ26cT97NaAo, udp: true, tfo: false}
+  - {name: 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh), server: 212.34.140.184, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: 0NeN5ta7FLa5B9DLytU0um, udp: true, tfo: false}
+  - {name: 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh), server: 109.201.152.181, port: 443, type: ss, cipher: aes-128-cfb, password: shadowsocks, udp: true, tfo: false}
+  - {name: 🇳🇱 NL-109.201.152.181-0289, server: 109.201.152.181, port: 443, type: ss, cipher: aes-128-cfb, password: shadowsocks, udp: true, tfo: false}
+  - {name: 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms, server: 82.38.31.176, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms, server: 82.38.31.210, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: k1dBOmOB4oqi7Ump37a1bQ, udp: true, tfo: false}
+  - {name: 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.70, port: 9088, type: ss, cipher: aes-256-cfb, password: f8npKgNzdkss2ytn, udp: true, tfo: false}
+  - {name: 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.18, port: 9045, type: ss, cipher: aes-256-cfb, password: Lp27rqyJq72bZsqX, udp: true, tfo: false}
+  - {name: 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.18, port: 9064, type: ss, cipher: aes-256-cfb, password: cp8pRSUAyLhTfVWH, udp: true, tfo: false}
+  - {name: 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.18, port: 9010, type: ss, cipher: aes-256-cfb, password: f63gg8EruDnUrmz4, udp: true, tfo: false}
+  - {name: 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.70, port: 9014, type: ss, cipher: aes-256-cfb, password: KnJGad3FqTvjqbaX, udp: true, tfo: false}
+  - {name: 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.18, port: 9026, type: ss, cipher: aes-256-cfb, password: QWDDvVE9npNurQfA, udp: true, tfo: false}
+  - {name: 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.18, port: 9041, type: ss, cipher: aes-256-cfb, password: U6qnYRhfyDmn8sgn, udp: true, tfo: false}
+  - {name: 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh), server: 217.30.10.18, port: 9006, type: ss, cipher: aes-256-cfb, password: FAdUvMJUq5vDgKEq, udp: true, tfo: false}
+  - {name: 🇵🇱 PL-89.223.93.176-0333, server: 89.223.93.176, port: 41348, type: ss, cipher: chacha20-ietf-poly1305, password: Vmsf06YTMqtAYdhwMqdSuGqgdVkm0yddi4kYaAEVQWYj9iHA, udp: true, tfo: false}
+  - {name: 🇷🇺 RU-45.89.55.173-0341, server: 45.89.55.173, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: ixPymFma6P7U41wk9MNP7znPnvax3mjd, udp: true, tfo: false}
+  - {name: 🇸🇬 SG-68.183.227.4-0318, server: 68.183.227.4, port: 8080, type: ss, cipher: rc4-md5, password: 14fFPrbezE3HDZzsMOr6, udp: true, tfo: false}
+  - {name: 🇺🇸 US-107.151.182.253-0874, server: 107.151.182.253, port: 8080, type: ss, cipher: rc4-md5, password: 14fFPrbezE3HDZzsMOr6, udp: true, tfo: false}
+  - {name: 🇺🇸 US-23.95.75.146-0326, server: 23.95.75.146, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: NDRySIABARbErNIVsCNVkyYAHiBzhveT, udp: true, tfo: false}
+  - {name: 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms, server: 45.87.175.65, port: 8080, type: ss, cipher: chacha20-ietf-poly1305, password: oZIoA69Q8yhcQV8ka3Pa3A, udp: true, tfo: false}
+proxy-groups:
+  - name: نوع انتخاب پروکسی 🔀
+    type: select
+    proxies:
+      - اتصال پایدار 🔗
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+      - توزیع بار (پایدار) 🧲
+      - توزیع بار (موقت) ⏳
+      - توزیع بار (گردشی) 🔁
+      - قطع اینترنت ⛔
+      - بدون فیلترشکن 🛡️
+  - name: دستی 🤏🏻
+    type: select
+    proxies:
+      - 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh)
+      - 069-🏴‍☠️-@GheychiAmoozesh
+      - 093-🏴‍☠️-@GheychiAmoozesh
+      - 315 - VN - SS/STREAM - 38388
+      - 316 - VN - SS/STREAM - 38388
+      - 317 - VN - SS/STREAM - 38388
+      - 329 - VN - SS/STREAM - 38388
+      - 331 - VN - SS/STREAM - 38388
+      - 333 - VN - SS/STREAM - 38388
+      - 344 - VN - SS/STREAM - 38388
+      - 353 - VN - SS/STREAM - 38388
+      - 364 - VN - SS/STREAM - 38388
+      - 366 - VN - SS/STREAM - 38388
+      - 383 - VN - SS/STREAM - 38388
+      - 388 - VN - SS/STREAM - 38388
+      - 396 - VN - SS/STREAM - 38388
+      - 406 - VN - SS/STREAM - 38388
+      - 407 - VN - SS/STREAM - 38388
+      - 415 - VN - SS/STREAM - 38388
+      - 417 - VN - SS/STREAM - 38388
+      - 418 - VN - SS/STREAM - 38388
+      - 422 - VN - SS/STREAM - 38388
+      - 429 - VN - SS/STREAM - 38388
+      - 436 - VN - SS/STREAM - 38388
+      - 439 - VN - SS/STREAM - 38388
+      - 442 - VN - SS/STREAM - 38388
+      - 449 - VN - SS/STREAM - 38388
+      - 452 - VN - SS/STREAM - 38388
+      - 457 - VN - SS/STREAM - 38388
+      - 461 - VN - SS/STREAM - 38388
+      - 464 - VN - SS/STREAM - 38388
+      - "@Filter_breaker"
+      - "@Rayan_Config-82.38.31.210-@beepassvpn_bot"
+      - "@VPN1371 آیدی تلگرام"
+      - "@v2FreeHub 🇬🇧"
+      - AE-147.78.0.182-0347
+      - AE-151.242.251.137-0290
+      - AE-151.242.251.142-0288
+      - AE-95.174.68.33-5000
+      - ALL-@V2rayAlpha--37
+      - BESTIIVPNBOT
+      - BESTIIVPNBOT 2
+      - BESTIIVPNBOT 3
+      - BESTIIVPNBOT 4
+      - BESTIIVPNBOT 5
+      - BESTIIVPNBOT 6
+      - BESTIIVPNBOT 7
+      - BG-95.164.10.228-0334
+      - BG-95.164.116.33-0403
+      - BO-185.93.173.60-4920
+      - BR-185.192.124.188-0314
+      - CY-45.12.136.170-0365
+      - "Channel id: @ShadowProxy66"
+      - "Channel id: @ShadowProxy66 2"
+      - "Channel id: @ShadowProxy66 🇨🇾"
+      - Dr-Anv 🇫🇷
+      - Dr-Anv 🇳🇱
+      - Dr-Anv 🇳🇱 2
+      - Dr-Anv 🇳🇱 3
+      - Dr-Anv 🇸🇮
+      - KZ-103.106.3.82-0439
+      - KZ-45.159.250.190-0426
+      - LT-45.87.175.154-0285
+      - LT-45.87.175.164-0432
+      - LT-45.87.175.183-0295
+      - LT-45.87.175.22-0416
+      - LT-45.87.175.35-0434
+      - LT-45.87.175.65-0435
+      - LT-45.87.175.69-0430
+      - LT-45.87.175.92-0282
+      - LV-46.183.217.204-0363
+      - MD-213.159.66.206-0340
+      - MD-213.159.76.21-0351
+      - PA-138.186.142.80-0409
+      - PR-185.47.255.22-0862
+      - PT-185.113.143.186-0312
+      - PT-185.231.233.112-4980
+      - RO(AzadNet.t.me) (10)
+      - RO-185.126.237.38-0344
+      - SI-192.71.244.150-4817
+      - VN-103.163.218.2-0374
+      - XX(AzadNet.t.me) (161)
+      - XX(AzadNet.t.me) (271)
+      - "[openproxylist.com] trojan-"
+      - "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋"
+      - ✂️ @GheychiAmoozesh-18
+      - ✂️ @GheychiAmoozesh-2
+      - ✂️ @GheychiAmoozesh-21
+      - ✂️ @GheychiAmoozesh-23
+      - ✂️ @GheychiAmoozesh-29
+      - ✂️ @GheychiAmoozesh-30
+      - ✂️ @GheychiAmoozesh-33
+      - ✂️ @GheychiAmoozesh-36
+      - ✂️ @GheychiAmoozesh-38
+      - ✂️ @GheychiAmoozesh-40
+      - ✂️ @GheychiAmoozesh-42
+      - ✂️ @GheychiAmoozesh-43
+      - ✂️ @GheychiAmoozesh-48
+      - ✂️ @GheychiAmoozesh-50
+      - ✂️ @GheychiAmoozesh-51
+      - ✂️ @GheychiAmoozesh-52
+      - 🇨🇦 CA-142.4.216.225-0338
+      - 🇨🇦 CA-45.154.204.7-0406
+      - 🇨🇳 TW-154.223.20.79-4821
+      - 🇩🇪 Germany🇩🇪
+      - 🇬🇧 GB-5.181.21.246-0317
+      - 🇬🇧 GB-82.38.31.176-0296
+      - 🇬🇧 GB-82.38.31.210-0287
+      - 🇬🇧 [openproxylist.com] ss-GB
+      - 🇬🇧 [openproxylist.com] ss-GB 2
+      - 🇭🇰 HK-216.250.97.82-0308
+      - 🇮🇳 IN-134.209.147.198-0451
+      - 🇯🇵 JP-103.106.228.247-1806
+      - 🇯🇵 JP-160.16.144.208-5056
+      - 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 NL-109.201.152.181-0289
+      - 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 PL-89.223.93.176-0333
+      - 🇷🇺 RU-45.89.55.173-0341
+      - 🇸🇬 SG-68.183.227.4-0318
+      - 🇺🇸 US-107.151.182.253-0874
+      - 🇺🇸 US-23.95.75.146-0326
+      - 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms
+  - name: خودکار (بهترین پینگ) 🤖
+    type: url-test
+    url: https://api.v2fly.org/checkConnection.svgz
+    interval: 600
+    tolerance: 300
+    timeout: 10000
+    max-failed-times: 8
+    lazy: true 
+    proxies:
+      - 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh)
+      - 069-🏴‍☠️-@GheychiAmoozesh
+      - 093-🏴‍☠️-@GheychiAmoozesh
+      - 315 - VN - SS/STREAM - 38388
+      - 316 - VN - SS/STREAM - 38388
+      - 317 - VN - SS/STREAM - 38388
+      - 329 - VN - SS/STREAM - 38388
+      - 331 - VN - SS/STREAM - 38388
+      - 333 - VN - SS/STREAM - 38388
+      - 344 - VN - SS/STREAM - 38388
+      - 353 - VN - SS/STREAM - 38388
+      - 364 - VN - SS/STREAM - 38388
+      - 366 - VN - SS/STREAM - 38388
+      - 383 - VN - SS/STREAM - 38388
+      - 388 - VN - SS/STREAM - 38388
+      - 396 - VN - SS/STREAM - 38388
+      - 406 - VN - SS/STREAM - 38388
+      - 407 - VN - SS/STREAM - 38388
+      - 415 - VN - SS/STREAM - 38388
+      - 417 - VN - SS/STREAM - 38388
+      - 418 - VN - SS/STREAM - 38388
+      - 422 - VN - SS/STREAM - 38388
+      - 429 - VN - SS/STREAM - 38388
+      - 436 - VN - SS/STREAM - 38388
+      - 439 - VN - SS/STREAM - 38388
+      - 442 - VN - SS/STREAM - 38388
+      - 449 - VN - SS/STREAM - 38388
+      - 452 - VN - SS/STREAM - 38388
+      - 457 - VN - SS/STREAM - 38388
+      - 461 - VN - SS/STREAM - 38388
+      - 464 - VN - SS/STREAM - 38388
+      - "@Filter_breaker"
+      - "@Rayan_Config-82.38.31.210-@beepassvpn_bot"
+      - "@VPN1371 آیدی تلگرام"
+      - "@v2FreeHub 🇬🇧"
+      - AE-147.78.0.182-0347
+      - AE-151.242.251.137-0290
+      - AE-151.242.251.142-0288
+      - AE-95.174.68.33-5000
+      - ALL-@V2rayAlpha--37
+      - BESTIIVPNBOT
+      - BESTIIVPNBOT 2
+      - BESTIIVPNBOT 3
+      - BESTIIVPNBOT 4
+      - BESTIIVPNBOT 5
+      - BESTIIVPNBOT 6
+      - BESTIIVPNBOT 7
+      - BG-95.164.10.228-0334
+      - BG-95.164.116.33-0403
+      - BO-185.93.173.60-4920
+      - BR-185.192.124.188-0314
+      - CY-45.12.136.170-0365
+      - "Channel id: @ShadowProxy66"
+      - "Channel id: @ShadowProxy66 2"
+      - "Channel id: @ShadowProxy66 🇨🇾"
+      - Dr-Anv 🇫🇷
+      - Dr-Anv 🇳🇱
+      - Dr-Anv 🇳🇱 2
+      - Dr-Anv 🇳🇱 3
+      - Dr-Anv 🇸🇮
+      - KZ-103.106.3.82-0439
+      - KZ-45.159.250.190-0426
+      - LT-45.87.175.154-0285
+      - LT-45.87.175.164-0432
+      - LT-45.87.175.183-0295
+      - LT-45.87.175.22-0416
+      - LT-45.87.175.35-0434
+      - LT-45.87.175.65-0435
+      - LT-45.87.175.69-0430
+      - LT-45.87.175.92-0282
+      - LV-46.183.217.204-0363
+      - MD-213.159.66.206-0340
+      - MD-213.159.76.21-0351
+      - PA-138.186.142.80-0409
+      - PR-185.47.255.22-0862
+      - PT-185.113.143.186-0312
+      - PT-185.231.233.112-4980
+      - RO(AzadNet.t.me) (10)
+      - RO-185.126.237.38-0344
+      - SI-192.71.244.150-4817
+      - VN-103.163.218.2-0374
+      - XX(AzadNet.t.me) (161)
+      - XX(AzadNet.t.me) (271)
+      - "[openproxylist.com] trojan-"
+      - "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋"
+      - ✂️ @GheychiAmoozesh-18
+      - ✂️ @GheychiAmoozesh-2
+      - ✂️ @GheychiAmoozesh-21
+      - ✂️ @GheychiAmoozesh-23
+      - ✂️ @GheychiAmoozesh-29
+      - ✂️ @GheychiAmoozesh-30
+      - ✂️ @GheychiAmoozesh-33
+      - ✂️ @GheychiAmoozesh-36
+      - ✂️ @GheychiAmoozesh-38
+      - ✂️ @GheychiAmoozesh-40
+      - ✂️ @GheychiAmoozesh-42
+      - ✂️ @GheychiAmoozesh-43
+      - ✂️ @GheychiAmoozesh-48
+      - ✂️ @GheychiAmoozesh-50
+      - ✂️ @GheychiAmoozesh-51
+      - ✂️ @GheychiAmoozesh-52
+      - 🇨🇦 CA-142.4.216.225-0338
+      - 🇨🇦 CA-45.154.204.7-0406
+      - 🇨🇳 TW-154.223.20.79-4821
+      - 🇩🇪 Germany🇩🇪
+      - 🇬🇧 GB-5.181.21.246-0317
+      - 🇬🇧 GB-82.38.31.176-0296
+      - 🇬🇧 GB-82.38.31.210-0287
+      - 🇬🇧 [openproxylist.com] ss-GB
+      - 🇬🇧 [openproxylist.com] ss-GB 2
+      - 🇭🇰 HK-216.250.97.82-0308
+      - 🇮🇳 IN-134.209.147.198-0451
+      - 🇯🇵 JP-103.106.228.247-1806
+      - 🇯🇵 JP-160.16.144.208-5056
+      - 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 NL-109.201.152.181-0289
+      - 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 PL-89.223.93.176-0333
+      - 🇷🇺 RU-45.89.55.173-0341
+      - 🇸🇬 SG-68.183.227.4-0318
+      - 🇺🇸 US-107.151.182.253-0874
+      - 🇺🇸 US-23.95.75.146-0326
+      - 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms
+  - name: پشتیبان (در صورت قطعی) 🧯
+    type: fallback
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    timeout: 10000
+    max-failed-times: 6
+    lazy: true
+    proxies:
+      - 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh)
+      - 069-🏴‍☠️-@GheychiAmoozesh
+      - 093-🏴‍☠️-@GheychiAmoozesh
+      - 315 - VN - SS/STREAM - 38388
+      - 316 - VN - SS/STREAM - 38388
+      - 317 - VN - SS/STREAM - 38388
+      - 329 - VN - SS/STREAM - 38388
+      - 331 - VN - SS/STREAM - 38388
+      - 333 - VN - SS/STREAM - 38388
+      - 344 - VN - SS/STREAM - 38388
+      - 353 - VN - SS/STREAM - 38388
+      - 364 - VN - SS/STREAM - 38388
+      - 366 - VN - SS/STREAM - 38388
+      - 383 - VN - SS/STREAM - 38388
+      - 388 - VN - SS/STREAM - 38388
+      - 396 - VN - SS/STREAM - 38388
+      - 406 - VN - SS/STREAM - 38388
+      - 407 - VN - SS/STREAM - 38388
+      - 415 - VN - SS/STREAM - 38388
+      - 417 - VN - SS/STREAM - 38388
+      - 418 - VN - SS/STREAM - 38388
+      - 422 - VN - SS/STREAM - 38388
+      - 429 - VN - SS/STREAM - 38388
+      - 436 - VN - SS/STREAM - 38388
+      - 439 - VN - SS/STREAM - 38388
+      - 442 - VN - SS/STREAM - 38388
+      - 449 - VN - SS/STREAM - 38388
+      - 452 - VN - SS/STREAM - 38388
+      - 457 - VN - SS/STREAM - 38388
+      - 461 - VN - SS/STREAM - 38388
+      - 464 - VN - SS/STREAM - 38388
+      - "@Filter_breaker"
+      - "@Rayan_Config-82.38.31.210-@beepassvpn_bot"
+      - "@VPN1371 آیدی تلگرام"
+      - "@v2FreeHub 🇬🇧"
+      - AE-147.78.0.182-0347
+      - AE-151.242.251.137-0290
+      - AE-151.242.251.142-0288
+      - AE-95.174.68.33-5000
+      - ALL-@V2rayAlpha--37
+      - BESTIIVPNBOT
+      - BESTIIVPNBOT 2
+      - BESTIIVPNBOT 3
+      - BESTIIVPNBOT 4
+      - BESTIIVPNBOT 5
+      - BESTIIVPNBOT 6
+      - BESTIIVPNBOT 7
+      - BG-95.164.10.228-0334
+      - BG-95.164.116.33-0403
+      - BO-185.93.173.60-4920
+      - BR-185.192.124.188-0314
+      - CY-45.12.136.170-0365
+      - "Channel id: @ShadowProxy66"
+      - "Channel id: @ShadowProxy66 2"
+      - "Channel id: @ShadowProxy66 🇨🇾"
+      - Dr-Anv 🇫🇷
+      - Dr-Anv 🇳🇱
+      - Dr-Anv 🇳🇱 2
+      - Dr-Anv 🇳🇱 3
+      - Dr-Anv 🇸🇮
+      - KZ-103.106.3.82-0439
+      - KZ-45.159.250.190-0426
+      - LT-45.87.175.154-0285
+      - LT-45.87.175.164-0432
+      - LT-45.87.175.183-0295
+      - LT-45.87.175.22-0416
+      - LT-45.87.175.35-0434
+      - LT-45.87.175.65-0435
+      - LT-45.87.175.69-0430
+      - LT-45.87.175.92-0282
+      - LV-46.183.217.204-0363
+      - MD-213.159.66.206-0340
+      - MD-213.159.76.21-0351
+      - PA-138.186.142.80-0409
+      - PR-185.47.255.22-0862
+      - PT-185.113.143.186-0312
+      - PT-185.231.233.112-4980
+      - RO(AzadNet.t.me) (10)
+      - RO-185.126.237.38-0344
+      - SI-192.71.244.150-4817
+      - VN-103.163.218.2-0374
+      - XX(AzadNet.t.me) (161)
+      - XX(AzadNet.t.me) (271)
+      - "[openproxylist.com] trojan-"
+      - "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋"
+      - ✂️ @GheychiAmoozesh-18
+      - ✂️ @GheychiAmoozesh-2
+      - ✂️ @GheychiAmoozesh-21
+      - ✂️ @GheychiAmoozesh-23
+      - ✂️ @GheychiAmoozesh-29
+      - ✂️ @GheychiAmoozesh-30
+      - ✂️ @GheychiAmoozesh-33
+      - ✂️ @GheychiAmoozesh-36
+      - ✂️ @GheychiAmoozesh-38
+      - ✂️ @GheychiAmoozesh-40
+      - ✂️ @GheychiAmoozesh-42
+      - ✂️ @GheychiAmoozesh-43
+      - ✂️ @GheychiAmoozesh-48
+      - ✂️ @GheychiAmoozesh-50
+      - ✂️ @GheychiAmoozesh-51
+      - ✂️ @GheychiAmoozesh-52
+      - 🇨🇦 CA-142.4.216.225-0338
+      - 🇨🇦 CA-45.154.204.7-0406
+      - 🇨🇳 TW-154.223.20.79-4821
+      - 🇩🇪 Germany🇩🇪
+      - 🇬🇧 GB-5.181.21.246-0317
+      - 🇬🇧 GB-82.38.31.176-0296
+      - 🇬🇧 GB-82.38.31.210-0287
+      - 🇬🇧 [openproxylist.com] ss-GB
+      - 🇬🇧 [openproxylist.com] ss-GB 2
+      - 🇭🇰 HK-216.250.97.82-0308
+      - 🇮🇳 IN-134.209.147.198-0451
+      - 🇯🇵 JP-103.106.228.247-1806
+      - 🇯🇵 JP-160.16.144.208-5056
+      - 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 NL-109.201.152.181-0289
+      - 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 PL-89.223.93.176-0333
+      - 🇷🇺 RU-45.89.55.173-0341
+      - 🇸🇬 SG-68.183.227.4-0318
+      - 🇺🇸 US-107.151.182.253-0874
+      - 🇺🇸 US-23.95.75.146-0326
+      - 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms
+  - name: اتصال پایدار 🔗
+    type: url-test
+    url: https://cp.cloudflare.com/generate_204
+    interval: 30
+    tolerance: 50
+    lazy: true
+    proxies:
+      - خودکار (بهترین پینگ) 🤖
+      - پشتیبان (در صورت قطعی) 🧯
+      - دستی 🤏🏻
+  - name: توزیع بار (پایدار) 🧲
+    type: load-balance
+    strategy: consistent-hashing
+    url: https://api.v2fly.org/checkConnection.svgz
+    interval: 600
+    lazy: true
+    proxies:
+      - 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh)
+      - 069-🏴‍☠️-@GheychiAmoozesh
+      - 093-🏴‍☠️-@GheychiAmoozesh
+      - 315 - VN - SS/STREAM - 38388
+      - 316 - VN - SS/STREAM - 38388
+      - 317 - VN - SS/STREAM - 38388
+      - 329 - VN - SS/STREAM - 38388
+      - 331 - VN - SS/STREAM - 38388
+      - 333 - VN - SS/STREAM - 38388
+      - 344 - VN - SS/STREAM - 38388
+      - 353 - VN - SS/STREAM - 38388
+      - 364 - VN - SS/STREAM - 38388
+      - 366 - VN - SS/STREAM - 38388
+      - 383 - VN - SS/STREAM - 38388
+      - 388 - VN - SS/STREAM - 38388
+      - 396 - VN - SS/STREAM - 38388
+      - 406 - VN - SS/STREAM - 38388
+      - 407 - VN - SS/STREAM - 38388
+      - 415 - VN - SS/STREAM - 38388
+      - 417 - VN - SS/STREAM - 38388
+      - 418 - VN - SS/STREAM - 38388
+      - 422 - VN - SS/STREAM - 38388
+      - 429 - VN - SS/STREAM - 38388
+      - 436 - VN - SS/STREAM - 38388
+      - 439 - VN - SS/STREAM - 38388
+      - 442 - VN - SS/STREAM - 38388
+      - 449 - VN - SS/STREAM - 38388
+      - 452 - VN - SS/STREAM - 38388
+      - 457 - VN - SS/STREAM - 38388
+      - 461 - VN - SS/STREAM - 38388
+      - 464 - VN - SS/STREAM - 38388
+      - "@Filter_breaker"
+      - "@Rayan_Config-82.38.31.210-@beepassvpn_bot"
+      - "@VPN1371 آیدی تلگرام"
+      - "@v2FreeHub 🇬🇧"
+      - AE-147.78.0.182-0347
+      - AE-151.242.251.137-0290
+      - AE-151.242.251.142-0288
+      - AE-95.174.68.33-5000
+      - ALL-@V2rayAlpha--37
+      - BESTIIVPNBOT
+      - BESTIIVPNBOT 2
+      - BESTIIVPNBOT 3
+      - BESTIIVPNBOT 4
+      - BESTIIVPNBOT 5
+      - BESTIIVPNBOT 6
+      - BESTIIVPNBOT 7
+      - BG-95.164.10.228-0334
+      - BG-95.164.116.33-0403
+      - BO-185.93.173.60-4920
+      - BR-185.192.124.188-0314
+      - CY-45.12.136.170-0365
+      - "Channel id: @ShadowProxy66"
+      - "Channel id: @ShadowProxy66 2"
+      - "Channel id: @ShadowProxy66 🇨🇾"
+      - Dr-Anv 🇫🇷
+      - Dr-Anv 🇳🇱
+      - Dr-Anv 🇳🇱 2
+      - Dr-Anv 🇳🇱 3
+      - Dr-Anv 🇸🇮
+      - KZ-103.106.3.82-0439
+      - KZ-45.159.250.190-0426
+      - LT-45.87.175.154-0285
+      - LT-45.87.175.164-0432
+      - LT-45.87.175.183-0295
+      - LT-45.87.175.22-0416
+      - LT-45.87.175.35-0434
+      - LT-45.87.175.65-0435
+      - LT-45.87.175.69-0430
+      - LT-45.87.175.92-0282
+      - LV-46.183.217.204-0363
+      - MD-213.159.66.206-0340
+      - MD-213.159.76.21-0351
+      - PA-138.186.142.80-0409
+      - PR-185.47.255.22-0862
+      - PT-185.113.143.186-0312
+      - PT-185.231.233.112-4980
+      - RO(AzadNet.t.me) (10)
+      - RO-185.126.237.38-0344
+      - SI-192.71.244.150-4817
+      - VN-103.163.218.2-0374
+      - XX(AzadNet.t.me) (161)
+      - XX(AzadNet.t.me) (271)
+      - "[openproxylist.com] trojan-"
+      - "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋"
+      - ✂️ @GheychiAmoozesh-18
+      - ✂️ @GheychiAmoozesh-2
+      - ✂️ @GheychiAmoozesh-21
+      - ✂️ @GheychiAmoozesh-23
+      - ✂️ @GheychiAmoozesh-29
+      - ✂️ @GheychiAmoozesh-30
+      - ✂️ @GheychiAmoozesh-33
+      - ✂️ @GheychiAmoozesh-36
+      - ✂️ @GheychiAmoozesh-38
+      - ✂️ @GheychiAmoozesh-40
+      - ✂️ @GheychiAmoozesh-42
+      - ✂️ @GheychiAmoozesh-43
+      - ✂️ @GheychiAmoozesh-48
+      - ✂️ @GheychiAmoozesh-50
+      - ✂️ @GheychiAmoozesh-51
+      - ✂️ @GheychiAmoozesh-52
+      - 🇨🇦 CA-142.4.216.225-0338
+      - 🇨🇦 CA-45.154.204.7-0406
+      - 🇨🇳 TW-154.223.20.79-4821
+      - 🇩🇪 Germany🇩🇪
+      - 🇬🇧 GB-5.181.21.246-0317
+      - 🇬🇧 GB-82.38.31.176-0296
+      - 🇬🇧 GB-82.38.31.210-0287
+      - 🇬🇧 [openproxylist.com] ss-GB
+      - 🇬🇧 [openproxylist.com] ss-GB 2
+      - 🇭🇰 HK-216.250.97.82-0308
+      - 🇮🇳 IN-134.209.147.198-0451
+      - 🇯🇵 JP-103.106.228.247-1806
+      - 🇯🇵 JP-160.16.144.208-5056
+      - 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 NL-109.201.152.181-0289
+      - 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 PL-89.223.93.176-0333
+      - 🇷🇺 RU-45.89.55.173-0341
+      - 🇸🇬 SG-68.183.227.4-0318
+      - 🇺🇸 US-107.151.182.253-0874
+      - 🇺🇸 US-23.95.75.146-0326
+      - 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms
+  - name: توزیع بار (گردشی) 🔁
+    type: load-balance
+    strategy: consistent-hashing
+    url: https://api.v2fly.org/checkConnection.svgz
+    interval: 600
+    lazy: true
+    proxies:
+      - 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh)
+      - 069-🏴‍☠️-@GheychiAmoozesh
+      - 093-🏴‍☠️-@GheychiAmoozesh
+      - 315 - VN - SS/STREAM - 38388
+      - 316 - VN - SS/STREAM - 38388
+      - 317 - VN - SS/STREAM - 38388
+      - 329 - VN - SS/STREAM - 38388
+      - 331 - VN - SS/STREAM - 38388
+      - 333 - VN - SS/STREAM - 38388
+      - 344 - VN - SS/STREAM - 38388
+      - 353 - VN - SS/STREAM - 38388
+      - 364 - VN - SS/STREAM - 38388
+      - 366 - VN - SS/STREAM - 38388
+      - 383 - VN - SS/STREAM - 38388
+      - 388 - VN - SS/STREAM - 38388
+      - 396 - VN - SS/STREAM - 38388
+      - 406 - VN - SS/STREAM - 38388
+      - 407 - VN - SS/STREAM - 38388
+      - 415 - VN - SS/STREAM - 38388
+      - 417 - VN - SS/STREAM - 38388
+      - 418 - VN - SS/STREAM - 38388
+      - 422 - VN - SS/STREAM - 38388
+      - 429 - VN - SS/STREAM - 38388
+      - 436 - VN - SS/STREAM - 38388
+      - 439 - VN - SS/STREAM - 38388
+      - 442 - VN - SS/STREAM - 38388
+      - 449 - VN - SS/STREAM - 38388
+      - 452 - VN - SS/STREAM - 38388
+      - 457 - VN - SS/STREAM - 38388
+      - 461 - VN - SS/STREAM - 38388
+      - 464 - VN - SS/STREAM - 38388
+      - "@Filter_breaker"
+      - "@Rayan_Config-82.38.31.210-@beepassvpn_bot"
+      - "@VPN1371 آیدی تلگرام"
+      - "@v2FreeHub 🇬🇧"
+      - AE-147.78.0.182-0347
+      - AE-151.242.251.137-0290
+      - AE-151.242.251.142-0288
+      - AE-95.174.68.33-5000
+      - ALL-@V2rayAlpha--37
+      - BESTIIVPNBOT
+      - BESTIIVPNBOT 2
+      - BESTIIVPNBOT 3
+      - BESTIIVPNBOT 4
+      - BESTIIVPNBOT 5
+      - BESTIIVPNBOT 6
+      - BESTIIVPNBOT 7
+      - BG-95.164.10.228-0334
+      - BG-95.164.116.33-0403
+      - BO-185.93.173.60-4920
+      - BR-185.192.124.188-0314
+      - CY-45.12.136.170-0365
+      - "Channel id: @ShadowProxy66"
+      - "Channel id: @ShadowProxy66 2"
+      - "Channel id: @ShadowProxy66 🇨🇾"
+      - Dr-Anv 🇫🇷
+      - Dr-Anv 🇳🇱
+      - Dr-Anv 🇳🇱 2
+      - Dr-Anv 🇳🇱 3
+      - Dr-Anv 🇸🇮
+      - KZ-103.106.3.82-0439
+      - KZ-45.159.250.190-0426
+      - LT-45.87.175.154-0285
+      - LT-45.87.175.164-0432
+      - LT-45.87.175.183-0295
+      - LT-45.87.175.22-0416
+      - LT-45.87.175.35-0434
+      - LT-45.87.175.65-0435
+      - LT-45.87.175.69-0430
+      - LT-45.87.175.92-0282
+      - LV-46.183.217.204-0363
+      - MD-213.159.66.206-0340
+      - MD-213.159.76.21-0351
+      - PA-138.186.142.80-0409
+      - PR-185.47.255.22-0862
+      - PT-185.113.143.186-0312
+      - PT-185.231.233.112-4980
+      - RO(AzadNet.t.me) (10)
+      - RO-185.126.237.38-0344
+      - SI-192.71.244.150-4817
+      - VN-103.163.218.2-0374
+      - XX(AzadNet.t.me) (161)
+      - XX(AzadNet.t.me) (271)
+      - "[openproxylist.com] trojan-"
+      - "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋"
+      - ✂️ @GheychiAmoozesh-18
+      - ✂️ @GheychiAmoozesh-2
+      - ✂️ @GheychiAmoozesh-21
+      - ✂️ @GheychiAmoozesh-23
+      - ✂️ @GheychiAmoozesh-29
+      - ✂️ @GheychiAmoozesh-30
+      - ✂️ @GheychiAmoozesh-33
+      - ✂️ @GheychiAmoozesh-36
+      - ✂️ @GheychiAmoozesh-38
+      - ✂️ @GheychiAmoozesh-40
+      - ✂️ @GheychiAmoozesh-42
+      - ✂️ @GheychiAmoozesh-43
+      - ✂️ @GheychiAmoozesh-48
+      - ✂️ @GheychiAmoozesh-50
+      - ✂️ @GheychiAmoozesh-51
+      - ✂️ @GheychiAmoozesh-52
+      - 🇨🇦 CA-142.4.216.225-0338
+      - 🇨🇦 CA-45.154.204.7-0406
+      - 🇨🇳 TW-154.223.20.79-4821
+      - 🇩🇪 Germany🇩🇪
+      - 🇬🇧 GB-5.181.21.246-0317
+      - 🇬🇧 GB-82.38.31.176-0296
+      - 🇬🇧 GB-82.38.31.210-0287
+      - 🇬🇧 [openproxylist.com] ss-GB
+      - 🇬🇧 [openproxylist.com] ss-GB 2
+      - 🇭🇰 HK-216.250.97.82-0308
+      - 🇮🇳 IN-134.209.147.198-0451
+      - 🇯🇵 JP-103.106.228.247-1806
+      - 🇯🇵 JP-160.16.144.208-5056
+      - 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 NL-109.201.152.181-0289
+      - 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 PL-89.223.93.176-0333
+      - 🇷🇺 RU-45.89.55.173-0341
+      - 🇸🇬 SG-68.183.227.4-0318
+      - 🇺🇸 US-107.151.182.253-0874
+      - 🇺🇸 US-23.95.75.146-0326
+      - 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms
+  - name: توزیع بار (موقت) ⏳
+    type: load-balance
+    strategy: consistent-hashing
+    url: https://api.v2fly.org/checkConnection.svgz
+    interval: 600
+    lazy: true
+    proxies:
+      - 016 ✂️-🇮🇹IT-last 14(@GheychiAmoozesh)
+      - 069-🏴‍☠️-@GheychiAmoozesh
+      - 093-🏴‍☠️-@GheychiAmoozesh
+      - 315 - VN - SS/STREAM - 38388
+      - 316 - VN - SS/STREAM - 38388
+      - 317 - VN - SS/STREAM - 38388
+      - 329 - VN - SS/STREAM - 38388
+      - 331 - VN - SS/STREAM - 38388
+      - 333 - VN - SS/STREAM - 38388
+      - 344 - VN - SS/STREAM - 38388
+      - 353 - VN - SS/STREAM - 38388
+      - 364 - VN - SS/STREAM - 38388
+      - 366 - VN - SS/STREAM - 38388
+      - 383 - VN - SS/STREAM - 38388
+      - 388 - VN - SS/STREAM - 38388
+      - 396 - VN - SS/STREAM - 38388
+      - 406 - VN - SS/STREAM - 38388
+      - 407 - VN - SS/STREAM - 38388
+      - 415 - VN - SS/STREAM - 38388
+      - 417 - VN - SS/STREAM - 38388
+      - 418 - VN - SS/STREAM - 38388
+      - 422 - VN - SS/STREAM - 38388
+      - 429 - VN - SS/STREAM - 38388
+      - 436 - VN - SS/STREAM - 38388
+      - 439 - VN - SS/STREAM - 38388
+      - 442 - VN - SS/STREAM - 38388
+      - 449 - VN - SS/STREAM - 38388
+      - 452 - VN - SS/STREAM - 38388
+      - 457 - VN - SS/STREAM - 38388
+      - 461 - VN - SS/STREAM - 38388
+      - 464 - VN - SS/STREAM - 38388
+      - "@Filter_breaker"
+      - "@Rayan_Config-82.38.31.210-@beepassvpn_bot"
+      - "@VPN1371 آیدی تلگرام"
+      - "@v2FreeHub 🇬🇧"
+      - AE-147.78.0.182-0347
+      - AE-151.242.251.137-0290
+      - AE-151.242.251.142-0288
+      - AE-95.174.68.33-5000
+      - ALL-@V2rayAlpha--37
+      - BESTIIVPNBOT
+      - BESTIIVPNBOT 2
+      - BESTIIVPNBOT 3
+      - BESTIIVPNBOT 4
+      - BESTIIVPNBOT 5
+      - BESTIIVPNBOT 6
+      - BESTIIVPNBOT 7
+      - BG-95.164.10.228-0334
+      - BG-95.164.116.33-0403
+      - BO-185.93.173.60-4920
+      - BR-185.192.124.188-0314
+      - CY-45.12.136.170-0365
+      - "Channel id: @ShadowProxy66"
+      - "Channel id: @ShadowProxy66 2"
+      - "Channel id: @ShadowProxy66 🇨🇾"
+      - Dr-Anv 🇫🇷
+      - Dr-Anv 🇳🇱
+      - Dr-Anv 🇳🇱 2
+      - Dr-Anv 🇳🇱 3
+      - Dr-Anv 🇸🇮
+      - KZ-103.106.3.82-0439
+      - KZ-45.159.250.190-0426
+      - LT-45.87.175.154-0285
+      - LT-45.87.175.164-0432
+      - LT-45.87.175.183-0295
+      - LT-45.87.175.22-0416
+      - LT-45.87.175.35-0434
+      - LT-45.87.175.65-0435
+      - LT-45.87.175.69-0430
+      - LT-45.87.175.92-0282
+      - LV-46.183.217.204-0363
+      - MD-213.159.66.206-0340
+      - MD-213.159.76.21-0351
+      - PA-138.186.142.80-0409
+      - PR-185.47.255.22-0862
+      - PT-185.113.143.186-0312
+      - PT-185.231.233.112-4980
+      - RO(AzadNet.t.me) (10)
+      - RO-185.126.237.38-0344
+      - SI-192.71.244.150-4817
+      - VN-103.163.218.2-0374
+      - XX(AzadNet.t.me) (161)
+      - XX(AzadNet.t.me) (271)
+      - "[openproxylist.com] trojan-"
+      - "تلگرام سرچ کن: یام‌یام پروکسی | YamYamProxy 🐋"
+      - ✂️ @GheychiAmoozesh-18
+      - ✂️ @GheychiAmoozesh-2
+      - ✂️ @GheychiAmoozesh-21
+      - ✂️ @GheychiAmoozesh-23
+      - ✂️ @GheychiAmoozesh-29
+      - ✂️ @GheychiAmoozesh-30
+      - ✂️ @GheychiAmoozesh-33
+      - ✂️ @GheychiAmoozesh-36
+      - ✂️ @GheychiAmoozesh-38
+      - ✂️ @GheychiAmoozesh-40
+      - ✂️ @GheychiAmoozesh-42
+      - ✂️ @GheychiAmoozesh-43
+      - ✂️ @GheychiAmoozesh-48
+      - ✂️ @GheychiAmoozesh-50
+      - ✂️ @GheychiAmoozesh-51
+      - ✂️ @GheychiAmoozesh-52
+      - 🇨🇦 CA-142.4.216.225-0338
+      - 🇨🇦 CA-45.154.204.7-0406
+      - 🇨🇳 TW-154.223.20.79-4821
+      - 🇩🇪 Germany🇩🇪
+      - 🇬🇧 GB-5.181.21.246-0317
+      - 🇬🇧 GB-82.38.31.176-0296
+      - 🇬🇧 GB-82.38.31.210-0287
+      - 🇬🇧 [openproxylist.com] ss-GB
+      - 🇬🇧 [openproxylist.com] ss-GB 2
+      - 🇭🇰 HK-216.250.97.82-0308
+      - 🇮🇳 IN-134.209.147.198-0451
+      - 🇯🇵 JP-103.106.228.247-1806
+      - 🇯🇵 JP-160.16.144.208-5056
+      - 🇳🇱 031 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 058 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 087 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 096 ✂️-🇳🇱NL-last 14(@GheychiAmoozesh)
+      - 🇳🇱 NL-109.201.152.181-0289
+      - 🇳🇱 configfa 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇳🇱 soskeynet 🔒 SS-TCP-TLS 🇳🇱 NL 97ms
+      - 🇵🇱 002 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 014 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 056 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 070 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 079 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 103 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 110 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 114 ✂️-🇵🇱PL-last 14(@GheychiAmoozesh)
+      - 🇵🇱 PL-89.223.93.176-0333
+      - 🇷🇺 RU-45.89.55.173-0341
+      - 🇸🇬 SG-68.183.227.4-0318
+      - 🇺🇸 US-107.151.182.253-0874
+      - 🇺🇸 US-23.95.75.146-0326
+      - 🇺🇸 vpn4everyone 🔒 SS-TCP-TLS 🇺🇸 US 97ms
+  - name: دانلود منیجر 📥
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اجازه ندادن 🚫
+  - name: تلگرام 💬
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: یوتیوب ▶️
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: گوگل 🌍
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+  - name: واتس آپ 🟢
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: هوش مصنوعی 🤖
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: توییتر 🐦
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: اسپاتیفای 🎵
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: اینستاگرام 📸
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: تبلیغات 🆎
+    type: select
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+  - name: تبلیغات اپ ها 🍃
+    type: select
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+  - name: رهگیری جهانی 🛑
+    type: select
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+  - name: سایتای مخرب ⚠️
+    type: select
+    proxies:
+      - اجازه ندادن 🚫
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+  - name: استیم 🖥️
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+  - name: گیم 🎮
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: توییچ 📡
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: سایتای ایرانی 🇮🇷
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+  - name: ویندوز 🧊
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+  - name: کلودفلر ☁️
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+  - name: گیتهاب 🐙
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+  - name: دیسکورد 🗣️
+    type: select
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+  - name: انی‌دسک 🔴
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اجازه ندادن 🚫
+  - name: استریمیو 🎬
+    type: select
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - نوع انتخاب پروکسی 🔀
+      - اجازه ندادن 🚫
+  - name: سایتای سانسوری 🤬
+    type: select
+    proxies:
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+  - name: بدون فیلترشکن 🛡️
+    type: select
+    proxies:
+      - DIRECT
+  - name: قطع اینترنت ⛔
+    type: select
+    proxies:
+      - REJECT
+  - name: اجازه ندادن 🚫
+    type: select
+    proxies:
+      - REJECT
+rules:
+  - RULE-SET,DownloadManagers,دانلود منیجر 📥
+  - RULE-SET,Download,دانلود منیجر 📥
+  - RULE-SET,stremio,استریمیو 🎬
+  - RULE-SET,BanProgramAD,تبلیغات اپ ها 🍃
+  - RULE-SET,BanAD,رهگیری جهانی 🛑
+  - RULE-SET,PrivateTracker,رهگیری جهانی 🛑
+  - RULE-SET,category_public_tracker,رهگیری جهانی 🛑
+  - RULE-SET,malware,سایتای مخرب ⚠️
+  - RULE-SET,phishing,سایتای مخرب ⚠️
+  - RULE-SET,cryptominers,سایتای مخرب ⚠️
+  - RULE-SET,warninglist,سایتای مخرب ⚠️
+  - RULE-SET,Ponzi,سایتای مخرب ⚠️
+  - RULE-SET,LiteAds,تبلیغات 🆎
+  - RULE-SET,iran_ads,تبلیغات 🆎
+  - RULE-SET,PersianBlocker,تبلیغات 🆎
+  - RULE-SET,ads,تبلیغات 🆎
+  - RULE-SET,BanEasyList,تبلیغات 🆎
+  - RULE-SET,twitch,توییچ 📡
+  - PROCESS-NAME,Telegram.exe,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger,تلگرام 💬
+  - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬
+  - RULE-SET,telegram,تلگرام 💬
+  - RULE-SET,YouTube,یوتیوب ▶️
+  - RULE-SET,youtube,یوتیوب ▶️
+  - RULE-SET,YouTubeMusic,یوتیوب ▶️
+  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
+  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
+  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
+  - PROCESS-NAME,Twitter.exe,توییتر 🐦
+  - PROCESS-NAME,com.twitter.android,توییتر 🐦
+  - RULE-SET,Chotwitter,توییتر 🐦
+  - RULE-SET,mihTwitter,توییتر 🐦
+  - RULE-SET,Domtwitter,توییتر 🐦
+  - PROCESS-NAME,com.spotify.music,اسپاتیفای 🎵
+  - PROCESS-NAME,Spotify.exe,اسپاتیفای 🎵
+  - RULE-SET,DomainSpotify,اسپاتیفای 🎵
+  - RULE-SET,mihspotify,اسپاتیفای 🎵
+  - PROCESS-NAME,com.instagram.android,اینستاگرام 📸
+  - RULE-SET,instagram,اینستاگرام 📸
+  - DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖
+  - DOMAIN-SUFFIX,qwen.ai,هوش مصنوعی 🤖
+  - RULE-SET,category-ai,هوش مصنوعی 🤖
+  - RULE-SET,censor,سایتای سانسوری 🤬
+  - RULE-SET,apps,سایتای ایرانی 🇮🇷
+  - RULE-SET,iran,سایتای ایرانی 🇮🇷
+  - RULE-SET,arvancloud,سایتای ایرانی 🇮🇷
+  - RULE-SET,derakcloud,سایتای ایرانی 🇮🇷
+  - RULE-SET,iranserver,سایتای ایرانی 🇮🇷
+  - RULE-SET,parspack,سایتای ایرانی 🇮🇷
+  - RULE-SET,irasn,سایتای ایرانی 🇮🇷
+  - RULE-SET,ircidr,سایتای ایرانی 🇮🇷
+  - RULE-SET,ir,سایتای ایرانی 🇮🇷
+  - RULE-SET,category_ir,سایتای ایرانی 🇮🇷
+  - RULE-SET,whatsapp,واتس آپ 🟢
+  - RULE-SET,steam,استیم 🖥️
+  - RULE-SET,SteamRegionCheck,استیم 🖥️
+  - RULE-SET,game,گیم 🎮
+  - RULE-SET,GameDownload,گیم 🎮
+  - RULE-SET,category-games,گیم 🎮
+  - RULE-SET,Xbox,گیم 🎮
+  - RULE-SET,discord,دیسکورد 🗣️
+  - RULE-SET,xiaomi_white_list,نوع انتخاب پروکسی 🔀
+  - RULE-SET,xiaomi-ads,تبلیغات اپ ها 🍃
+  - RULE-SET,xiaomi_block_list,تبلیغات اپ ها 🍃
+  - RULE-SET,windows,ویندوز 🧊
+  - RULE-SET,cloudflare,کلودفلر ☁️
+  - RULE-SET,github,گیتهاب 🐙
+  - PROCESS-NAME,com.android.vending,نوع انتخاب پروکسی 🔀
+  - PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀
+  - RULE-SET,google-play,نوع انتخاب پروکسی 🔀
+  - RULE-SET,google,گوگل 🌍
+  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀
+  - RULE-SET,local_ips,بدون فیلترشکن 🛡️
+  - RULE-SET,private,بدون فیلترشکن 🛡️
+  - MATCH,نوع انتخاب پروکسی 🔀
+ntp:
+  enable: true
+  server: time.apple.com
+  port: 123
+  interval: 30

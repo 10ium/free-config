@@ -1409,7 +1409,7 @@ proxy-groups:
 proxy-providers:
   Armenia:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fam%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fam%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Armenia.yaml"
     health-check:
@@ -1418,7 +1418,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Turkey:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Ftr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Ftr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Turkey.yaml"
     health-check:
@@ -1427,7 +1427,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Iraq:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fiq%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fiq%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Iraq.yaml"
     health-check:
@@ -1436,7 +1436,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Bahrain:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbh%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbh%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Bahrain.yaml"
     health-check:
@@ -1445,7 +1445,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   UAE:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fae%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fae%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./UAE.yaml"
     health-check:
@@ -1454,7 +1454,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Jordan:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fjo%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fjo%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Jordan.yaml"
     health-check:
@@ -1463,7 +1463,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Oman:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fom%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fom%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Oman.yaml"
     health-check:
@@ -1472,7 +1472,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Uzbekistan:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fuz%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fuz%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Uzbekistan.yaml"
     health-check:
@@ -1481,7 +1481,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Iran:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fir%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fir%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Iran.yaml"
     health-check:
@@ -1490,7 +1490,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Israel:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fil%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fil%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Israel.yaml"
     health-check:
@@ -1499,7 +1499,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Cyprus:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fcy%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fcy%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Cyprus.yaml"
     health-check:
@@ -1508,7 +1508,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Pakistan:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fpk%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fpk%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Pakistan.yaml"
     health-check:
@@ -1517,7 +1517,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Greece:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fgr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fgr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Greece.yaml"
     health-check:
@@ -1526,7 +1526,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Bulgaria:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbg%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbg%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Bulgaria.yaml"
     health-check:
@@ -1535,7 +1535,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Ukraine:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fua%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fua%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Ukraine.yaml"
     health-check:
@@ -1544,7 +1544,7 @@ proxy-providers:
       url: "https://www.gstatic.com/generate_204"
   Romania:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fro%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fro%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./Romania.yaml"
     health-check:

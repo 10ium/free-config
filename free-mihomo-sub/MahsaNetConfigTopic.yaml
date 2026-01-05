@@ -842,7 +842,7 @@ proxy-groups:
 proxy-providers:
   proxy:
     type: http
-    url: "https://url.v1.mk/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvpnclashfa-backup%2FSubConfigShuffler%2Fmain%2Fshuffled_outputs%2FMahsaNetConfigTopic.txt&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&list=true&udp=true&tfo=true&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
+    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvpnclashfa-backup%2FSubConfigShuffler%2Fmain%2Fshuffled_outputs%2FMahsaNetConfigTopic.txt&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&list=true&udp=true&tfo=true&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
     interval: 3600
     path: "./MahsaNetConfigTopic.yaml"
     health-check:

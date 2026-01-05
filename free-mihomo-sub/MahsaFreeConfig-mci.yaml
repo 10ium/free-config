@@ -864,7 +864,7 @@ proxy-providers:
   mci1:
     type: http
     url: >-
-      https://url.v1.mk/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_1.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
+      https://sub.xeton.dev/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_1.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
     interval: 86400
     include-all: true
     path: ./mci1.yaml
@@ -877,7 +877,7 @@ proxy-providers:
   mci2:
     type: http
     url: >-
-      https://url.v1.mk/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_2.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
+      https://sub.xeton.dev/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_2.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
     interval: 86400
     include-all: true
     path: ./mci2.yaml
@@ -890,7 +890,7 @@ proxy-providers:
   mci3:
     type: http
     url: >-
-      https://url.v1.mk/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_3.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
+      https://sub.xeton.dev/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_3.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
     interval: 86400
     include-all: true
     path: ./mci3.yaml
@@ -903,7 +903,7 @@ proxy-providers:
   mci4:
     type: http
     url: >-
-      https://url.v1.mk/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_4.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
+      https://sub.xeton.dev/sub?&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmahsanet%2FMahsaFreeConfig%2Frefs%2Fheads%2Fmain%2Fmci%2Fsub_4.txt&target=clash&config=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FSleepyHeeead%2Fsubconverter-config%40master%2Fremote-config%2Funiversal%2Furltest.ini&emoji=false&append_type=true&append_info=true&scv=true&udp=true&list=true&sort=false&fdn=true&insert=false
     interval: 86400
     include-all: true
     path: ./mci4.yaml

@@ -18,7 +18,7 @@ dns:
   enable: false
 
 hosts:
-  # گوگل و تمام زیرمجموعه‌ها (Meet, Drive, Gmail, Play Store, etc.)
+  # --- Google & YouTube Services (IP: 216.239.38.120) ---
   '*.google.com': 216.239.38.120
   'google.com': 216.239.38.120
   '*.gstatic.com': 216.239.38.120
@@ -36,28 +36,45 @@ hosts:
   '*.android.com': 216.239.38.120
   '*.gvt1.com': 216.239.38.120
   '*.appspot.com': 216.239.38.120
+  '*.googleblog.com': 216.239.38.120
+  '*.googlesource.com': 216.239.38.120
 
-  # دیسکورد، ایکس و چت‌جی‌پی‌تی (آی‌پی تمیز کلودفلر)
+  # --- Discord, X (Twitter) & OpenAI (IP: 104.18.32.47) ---
   '*.discord.com': 104.18.32.47
   'discord.com': 104.18.32.47
   '*.discordapp.com': 104.18.32.47
   '*.discordapp.net': 104.18.32.47
   '*.discord.gg': 104.18.32.47
-  
   '*.x.com': 104.18.32.47
   'x.com': 104.18.32.47
   '*.twitter.com': 104.18.32.47
   'twitter.com': 104.18.32.47
   '*.twimg.com': 104.18.32.47
   't.co': 104.18.32.47
-  
   '*.chatgpt.com': 104.18.32.47
   'chatgpt.com': 104.18.32.47
   '*.openai.com': 104.18.32.47
   '*.oaistatic.com': 104.18.32.47
   '*.oaiusercontent.com': 104.18.32.47
 
-  # ابزارها و دیپ‌سیک
+  # --- Cloudflare, Workers & CDN (IP: 104.18.32.47) ---
+  '*.cloudflare.com': 104.18.32.47
+  'cloudflare.com': 104.18.32.47
+  '*.workers.dev': 104.18.32.47
+  '*.pages.dev': 104.18.32.47
+  'cdn.jsdelivr.net': 104.18.32.47
+  'cdn.tailwindcss.com': 104.18.32.47
+  '*.website-files.com': 104.18.32.47
+
+  # --- Professional & Others (IP: 104.18.32.47) ---
+  '*.linkedin.com': 104.18.32.47
+  'linkedin.com': 104.18.32.47
+  '*.licdn.com': 104.18.32.47
+  'browser.events.data.microsoft.com': 104.18.32.47
+  'filtershekan.sbs': 104.18.32.47
+  'searching-2ud.pages.dev': 104.18.32.47
+
+  # --- AI & Tools (IP: 3.160.196.89) ---
   '*.deepseek.com': 3.160.196.89
   'deepseek.com': 3.160.196.89
   '*.mxtoolbox.com': 3.160.196.89

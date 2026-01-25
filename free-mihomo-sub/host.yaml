@@ -18,50 +18,285 @@ dns:
   enable: false
 
 hosts:
-  # گوگل و تمام زیرمجموعه‌ها (Meet, Drive, Gmail, Play Store, etc.)
-  '*.google.com': 216.239.38.120
-  'google.com': 216.239.38.120
-  '*.gstatic.com': 216.239.38.120
-  'gstatic.com': 216.239.38.120
-  '*.googleapis.com': 216.239.38.120
-  '*.googleusercontent.com': 216.239.38.120
-  '*.gmail.com': 216.239.38.120
-  'gmail.com': 216.239.38.120
-  '*.googlemail.com': 216.239.38.120
+  # ==========================================================
+  # ۱. سرویس‌های گوگل و یوتیوب (IP: 216.239.38.120)
+  # ==========================================================
+  # --- بخش Google Play ---
+  '*.googleplay.com': 216.239.38.120
+  '*.play-fe.googleapis.com': 216.239.38.120
+  '*.play.googleapis.com': 216.239.38.120
+  '*.xn--ngstr-lra8j.com': 216.239.38.120
+  # --- بخش YouTube & YouTube Services ---
+  '*.youtubei.googleapis.com': 216.239.38.120
+  '*.youtubeembeddedplayer.googleapis.com': 216.239.38.120
+  '*.yt3.ggpht.com': 216.239.38.120
   '*.googlevideo.com': 216.239.38.120
+  '*.gvt2.com': 216.239.38.120
+  '*.withyoutube.com': 216.239.38.120
+  '*.youtu.be': 216.239.38.120
+  '*.youtube': 216.239.38.120
+  '*.youtube-nocookie.com': 216.239.38.120
   '*.youtube.com': 216.239.38.120
   'youtube.com': 216.239.38.120
+  '*.youtubeeducation.com': 216.239.38.120
+  '*.youtubegaming.com': 216.239.38.120
+  '*.youtubekids.com': 216.239.38.120
+  '*.youtubefanfest.com': 216.239.38.120
+  '*.youtubemobilesupport.com': 216.239.38.120
+  '*.yt.be': 216.239.38.120
   '*.ytimg.com': 216.239.38.120
   '*.ggpht.com': 216.239.38.120
+  '*.ggpht.cn': 216.239.38.120
+  # --- بخش YouTube Regional (کشوری) ---
+  '*.youtube.ae': 216.239.38.120
+  '*.youtube.al': 216.239.38.120
+  '*.youtube.am': 216.239.38.120
+  '*.youtube.at': 216.239.38.120
+  '*.youtube.az': 216.239.38.120
+  '*.youtube.ba': 216.239.38.120
+  '*.youtube.be': 216.239.38.120
+  '*.youtube.bg': 216.239.38.120
+  '*.youtube.bh': 216.239.38.120
+  '*.youtube.bo': 216.239.38.120
+  '*.youtube.by': 216.239.38.120
+  '*.youtube.ca': 216.239.38.120
+  '*.youtube.cat': 216.239.38.120
+  '*.youtube.ch': 216.239.38.120
+  '*.youtube.cl': 216.239.38.120
+  '*.youtube.co': 216.239.38.120
+  '*.youtube.co.ae': 216.239.38.120
+  '*.youtube.co.at': 216.239.38.120
+  '*.youtube.co.cr': 216.239.38.120
+  '*.youtube.co.hu': 216.239.38.120
+  '*.youtube.co.id': 216.239.38.120
+  '*.youtube.co.il': 216.239.38.120
+  '*.youtube.co.in': 216.239.38.120
+  '*.youtube.co.jp': 216.239.38.120
+  '*.youtube.co.ke': 216.239.38.120
+  '*.youtube.co.kr': 216.239.38.120
+  '*.youtube.co.ma': 216.239.38.120
+  '*.youtube.co.nz': 216.239.38.120
+  '*.youtube.co.th': 216.239.38.120
+  '*.youtube.co.tz': 216.239.38.120
+  '*.youtube.co.ug': 216.239.38.120
+  '*.youtube.co.uk': 216.239.38.120
+  '*.youtube.co.ve': 216.239.38.120
+  '*.youtube.co.za': 216.239.38.120
+  '*.youtube.co.zw': 216.239.38.120
+  '*.youtube.com.ar': 216.239.38.120
+  '*.youtube.com.au': 216.239.38.120
+  '*.youtube.com.br': 216.239.38.120
+  '*.youtube.com.co': 216.239.38.120
+  '*.youtube.com.mx': 216.239.38.120
+  '*.youtube.com.tr': 216.239.38.120
+  '*.youtube.cz': 216.239.38.120
+  '*.youtube.de': 216.239.38.120
+  '*.youtube.dk': 216.239.38.120
+  '*.youtube.es': 216.239.38.120
+  '*.youtube.fi': 216.239.38.120
+  '*.youtube.fr': 216.239.38.120
+  '*.youtube.hu': 216.239.38.120
+  '*.youtube.ie': 216.239.38.120
+  '*.youtube.in': 216.239.38.120
+  '*.youtube.it': 216.239.38.120
+  '*.youtube.jp': 216.239.38.120
+  '*.youtube.kr': 216.239.38.120
+  '*.youtube.nl': 216.239.38.120
+  '*.youtube.no': 216.239.38.120
+  '*.youtube.pl': 216.239.38.120
+  '*.youtube.pt': 216.239.38.120
+  '*.youtube.ro': 216.239.38.120
+  '*.youtube.ru': 216.239.38.120
+  '*.youtube.se': 216.239.38.120
+  '*.youtube.sg': 216.239.38.120
+  '*.youtube.tv': 216.239.38.120
+  '*.youtube.vn': 216.239.38.120
+  # --- بخش Google Core Services (دامنه‌های عمومی) ---
+  '*.0emm.com': 216.239.38.120
+  '*.1e100.net': 216.239.38.120
+  '*.abc.xyz': 216.239.38.120
+  '*.admob.com': 216.239.38.120
+  '*.adsense.com': 216.239.38.120
+  '*.adwords.com': 216.239.38.120
+  '*.ai.studio': 216.239.38.120
   '*.android.com': 216.239.38.120
-  '*.gvt1.com': 216.239.38.120
+  '*.api.ai': 216.239.38.120
+  '*.apigee.com': 216.239.38.120
   '*.appspot.com': 216.239.38.120
-
-  # دیسکورد، ایکس و چت‌جی‌پی‌تی (آی‌پی تمیز کلودفلر)
-  '*.discord.com': 104.18.32.47
-  'discord.com': 104.18.32.47
-  '*.discordapp.com': 104.18.32.47
-  '*.discordapp.net': 104.18.32.47
-  '*.discord.gg': 104.18.32.47
-  
+  '*.blogger.com': 216.239.38.120
+  '*.blogspot.com': 216.239.38.120
+  '*.chrome.com': 216.239.38.120
+  '*.chromium.org': 216.239.38.120
+  '*.dart.dev': 216.239.38.120
+  '*.deepmind.com': 216.239.38.120
+  '*.dialogflow.com': 216.239.38.120
+  '*.doubleclick.net': 216.239.38.120
+  '*.firebase.io': 216.239.38.120
+  '*.firebaseapp.com': 216.239.38.120
+  '*.flutter.dev': 216.239.38.120
+  '*.g.co': 216.239.38.120
+  '*.g.dev': 216.239.38.120
+  '*.gmail.com': 216.239.38.120
+  '*.golang.org': 216.239.38.120
+  '*.goo.gl': 216.239.38.120
+  '*.google.com': 216.239.38.120
+  'google.com': 216.239.38.120
+  '*.google-analytics.com': 216.239.38.120
+  '*.googleapis.com': 216.239.38.120
+  '*.googleapis.cn': 216.239.38.120
+  '*.googleblog.com': 216.239.38.120
+  '*.googlecode.com': 216.239.38.120
+  '*.googledrive.com': 216.239.38.120
+  '*.googlemail.com': 216.239.38.120
+  '*.googlesource.com': 216.239.38.120
+  '*.googleusercontent.com': 216.239.38.120
+  '*.gstatic.com': 216.239.38.120
+  '*.gstatic.cn': 216.239.38.120
+  '*.gvt1.com': 216.239.38.120
+  '*.kaggle.com': 216.239.38.120
+  '*.material.io': 216.239.38.120
+  '*.recaptcha.net': 216.239.38.120
+  '*.tensorflow.org': 216.239.38.120
+  '*.waze.com': 216.239.38.120
+  '*.265.com': 216.239.38.120
+  '*.google.dev': 216.239.38.120
+  '*.apps5.oingo.com': 216.239.38.120
+  '*.clickserve.cc-dt.com': 216.239.38.120
+  '*.clickserve.dartsearch.net': 216.239.38.120
+  '*.gongyichuangyi.net': 216.239.38.120
+  '*.qiao-cn.com': 216.239.38.120
+  '*.service.urchin.com': 216.239.38.120
+  '*.destinationurl.com': 216.239.38.120
+  '*.pxcc.com': 216.239.38.120
+  '*.1ucrs.com': 216.239.38.120
+  '*.2mdn.net': 216.239.38.120
+  '*.466453.com': 216.239.38.120
+  '*.apture.com': 216.239.38.120
+  '*.area120.com': 216.239.38.120
+  '*.autodraw.com': 216.239.38.120
+  '*.bandpage.com': 216.239.38.120
+  '*.bazel.build': 216.239.38.120
+  '*.bdn.dev': 216.239.38.120
+  '*.brotli.org': 216.239.38.120
+  '*.chromebook.com': 216.239.38.120
+  '*.chromecast.com': 216.239.38.120
+  '*.cloudfunctions.net': 216.239.38.120
+  '*.fastlane.tools': 216.239.38.120
+  '*.feedburner.com': 216.239.38.120
+  '*.firebase.com': 216.239.38.120
+  '*.firebaseio.com': 216.239.38.120
+  '*.fitbit.com': 216.239.38.120
+  '*.g.page': 216.239.38.120
+  '*.gcr.io': 216.239.38.120
+  '*.googleapps.com': 216.239.38.120
+  '*.googlephotos.com': 216.239.38.120
+  '*.googletagmanager.com': 216.239.38.120
+  '*.gsuite.com': 216.239.38.120
+  '*.gv.com': 216.239.38.120
+  '*.html5rocks.com': 216.239.38.120
+  '*.igoogle.com': 216.239.38.120
+  '*.itasoftware.com': 216.239.38.120
+  '*.keyhole.com': 216.239.38.120
+  '*.nest.com': 216.239.38.120
+  '*.panoramio.com': 216.239.38.120
+  '*.picasa.com': 216.239.38.120
+  '*.pki.goog': 216.239.38.120
+  '*.polymer-project.org': 216.239.38.120
+  '*.postini.com': 216.239.38.120
+  '*.pub.dev': 216.239.38.120
+  '*.quickoffice.com': 216.239.38.120
+  '*.snapseed.com': 216.239.38.120
+  '*.tfhub.dev': 216.239.38.120
+  '*.tiltbrush.com': 216.239.38.120
+  '*.urchin.com': 216.239.38.120
+  '*.v8.dev': 216.239.38.120
+  '*.verily.com': 216.239.38.120
+  '*.wallet.com': 216.239.38.120
+  '*.waymo.com': 216.239.38.120
+  '*.web.app': 216.239.38.120
+  '*.web.dev': 216.239.38.120
+  '*.webmproject.org': 216.239.38.120
+  '*.webrtc.org': 216.239.38.120
+  '*.widevine.com': 216.239.38.120
+  '*.withgoogle.com': 216.239.38.120
+  # ==========================================================
+  # ۲. کلودفلر، شبکه‌های اجتماعی و هوش مصنوعی (IP: 104.18.32.47)
+  # ==========================================================
+  # --- بخش Twitter & X ---
   '*.x.com': 104.18.32.47
   'x.com': 104.18.32.47
   '*.twitter.com': 104.18.32.47
   'twitter.com': 104.18.32.47
-  '*.twimg.com': 104.18.32.47
+  '*.t.co': 104.18.32.47
   't.co': 104.18.32.47
-  
+  '*.twimg.com': 104.18.32.47
+  '*.twimg.co': 104.18.32.47
+  '*.twimg.org': 104.18.32.47
+  '*.periscope.tv': 104.18.32.47
+  '*.pscp.tv': 104.18.32.47
+  '*.vine.co': 104.18.32.47
+  '*.tweetdeck.com': 104.18.32.47
+  '*.twitpic.com': 104.18.32.47
+  '*.twttr.com': 104.18.32.47
+  '*.twttr.net': 104.18.32.47
+  '*.twtrdns.net': 104.18.32.47
+  '*.twvid.com': 104.18.32.47
+  '*.twitter.biz': 104.18.32.47
+  '*.twitter.jp': 104.18.32.47
+  '*.twitterstat.us': 104.18.32.47
+  '*.twittercommunity.com': 104.18.32.47
+  '*.twitteroauth.com': 104.18.32.47
+  '*.cms-twdigitalassets.com': 104.18.32.47
+  '*.tellapart.com': 104.18.32.47
+  # --- بخش Cloudflare Base & CDN ---
+  '*.cloudflare.com': 104.18.32.47
+  'cloudflare.com': 104.18.32.47
+  '*.cloudflare.net': 104.18.32.47
+  '*.cloudflare.dev': 104.18.32.47
+  '*.workers.dev': 104.18.32.47
+  '*.pages.dev': 104.18.32.47
+  '*.cloudflare-dns.com': 104.18.32.47
+  '*.cloudflare-gateway.com': 104.18.32.47
+  '*.cloudflareclient.com': 104.18.32.47
+  '*.cloudflareinsights.com': 104.18.32.47
+  '*.cloudflarestatus.com': 104.18.32.47
+  '*.cloudflarestream.com': 104.18.32.47
+  '*.cloudflarewarp.com': 104.18.32.47
+  '*.one.one.one': 104.18.32.47
+  '*.warp.plus': 104.18.32.47
+  '*.website-files.com': 104.18.32.47
+  # --- بخش AI & Tools ---
   '*.chatgpt.com': 104.18.32.47
-  'chatgpt.com': 104.18.32.47
   '*.openai.com': 104.18.32.47
   '*.oaistatic.com': 104.18.32.47
   '*.oaiusercontent.com': 104.18.32.47
-
-  # ابزارها و دیپ‌سیک
+  '*.claude.ai': 104.18.32.47
+  '*.anthropic.com': 104.18.32.47
+  '*.perplexity.ai': 104.18.32.47
+  '*.discord.com': 104.18.32.47
+  '*.discordapp.com': 104.18.32.47
+  '*.discordapp.net': 104.18.32.47
+  '*.discord.gg': 104.18.32.47
+  '*.linkedin.com': 104.18.32.47
+  '*.licdn.com': 104.18.32.47
+  '*.figma.com': 104.18.32.47
+  '*.gitlab.com': 104.18.32.47
+  '*.medium.com': 104.18.32.47
+  '*.tradingview.com': 104.18.32.47
+  '*.npmjs.com': 104.18.32.47
+  '*.proton.me': 104.18.32.47
+  '*.cdn.jsdelivr.net': 104.18.32.47
+  '*.cdn.tailwindcss.com': 104.18.32.47
+  # ==========================================================
+  # ۳. ابزارهای دیگر (IP: 3.160.196.89)
+  # ==========================================================
   '*.deepseek.com': 3.160.196.89
   'deepseek.com': 3.160.196.89
   '*.mxtoolbox.com': 3.160.196.89
   'mxtoolbox.com': 3.160.196.89
+  '*.filtershekan.sbs': 104.18.32.47
+  '*.browser.events.data.microsoft.com': 104.18.32.47
+  '*.69shuba.com': 104.18.32.47
 
 tun:
   enable: true

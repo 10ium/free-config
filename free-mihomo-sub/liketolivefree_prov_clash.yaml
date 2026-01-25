@@ -1,0 +1,194 @@
+Global-client-fingerprint: chrome
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+tcp-concurrent: true
+enable-process: true
+find-process-mode: strict
+ipv6: false
+log-level: info
+geo-auto-update: true
+geo-update-interval: 168
+secret: ''
+bind-address: '*'
+unified-delay: true
+disable-keep-alive: false
+keep-alive-idle: 15
+keep-alive-interval: 10
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  ipv6: false
+  respect-rules: false
+  prefer-h3: true
+  cache-algorithm: arc
+  use-system-hosts: true
+  use-host: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-filter-mode: blacklist
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '*.localdomain'
+    - '*.invalid'
+    - '*.localhost'
+    - '*.test'
+    - '*.local'
+    - '*.home.arpa'
+    - 'time.*.com'
+    - 'ntp.*.com'
+    - '*.ir'
+    - 'localhost.ptlogin2.qq.com'
+  default-nameserver: 
+    - 1.1.1.1
+    - 8.8.8.8
+    - 1.2.4.8
+    - 223.5.5.5
+  nameserver:
+    - 'https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI'
+    - 'tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com'
+  direct-nameserver:
+    - '78.157.42.100'
+    - '78.157.42.101' 
+  proxy-server-nameserver: 
+    - https://dns.google/dns-query
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+    - quic://dns.adguard.com:784
+    - tls://1.0.0.1:853
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports: [80, 8080, 8880, 2052, 2082, 2086, 2095]
+      override-destination: true
+    TLS:
+      ports: [443, 8443, 2053, 2083, 2087, 2096]
+    QUIC:
+      ports: [443, 8443]
+tun:
+  enable: true
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  auto-redir: true
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  strict-route: true
+  mtu: 1400
+
+proxy-groups:
+  - name: نوع انتخاب پروکسی 🔀
+    icon: https://www.svgrepo.com/show/412721/choose.svg
+    type: select
+    proxies:
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+      - بدون فیلترشکن 🛡️
+  - name: دستی 🤏🏻
+    type: select
+    icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
+    use:
+      - proxy
+  - name: خودکار (بهترین پینگ) 🤖
+    type: url-test
+    icon: https://www.svgrepo.com/show/7876/speedometer.svg
+    url: https://api.v2fly.org/checkConnection.svgz
+    interval: 300
+    timeout: 20000
+    tolerance: 50
+    lazy: true
+    udp: true
+    use:
+      - proxy
+  - name: پشتیبان (در صورت قطعی) 🧯
+    type: fallback
+    icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    timeout: 20000
+    lazy: true
+    udp: true
+    use:
+      - proxy
+  - name: تلگرام 💬
+    type: select
+    icon: https://www.svgrepo.com/show/354443/telegram.svg
+    proxies:
+      - نوع انتخاب پروکسی 🔀
+      - بدون فیلترشکن 🛡️
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+      - اجازه ندادن 🚫
+  - name: سایتای ایرانی 🇮🇷
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg
+    proxies:
+      - بدون فیلترشکن 🛡️
+      - اجازه ندادن 🚫
+      - نوع انتخاب پروکسی 🔀
+      - خودکار (بهترین پینگ) 🤖
+      - دستی 🤏🏻
+      - پشتیبان (در صورت قطعی) 🧯
+  - name: بدون فیلترشکن 🛡️
+    type: select
+    icon: https://www.svgrepo.com/show/6318/connection.svg
+    proxies:
+      - DIRECT
+    hidden: true
+  - name: اجازه ندادن 🚫
+    type: select
+    icon: https://www.svgrepo.com/show/444307/gui-ban.svg
+    proxies:
+      - REJECT
+    hidden: true
+
+rule-providers:
+  apps:
+    type: http
+    format: yaml
+    behavior: classical
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"
+    path: ./ruleset/apps.yaml
+    interval: 86400
+
+proxy-providers:
+  proxy:
+    type: http
+    url: "https://raw.githubusercontent.com/liketolivefree/kobabi/refs/heads/main/prov_clash.yaml"
+    interval: 1800
+    path: "./providers/liketolivefree-prov-clash.txt"
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 120
+      timeout: 20000
+    override:
+      udp: true
+
+rules:
+  - PROCESS-NAME,Telegram.exe,تلگرام 💬 
+  - PROCESS-NAME,org.telegram.messenger,تلگرام 💬 
+  - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬
+  - DOMAIN-SUFFIX,ir,سایتای ایرانی 🇮🇷
+  - GEOIP,ir,سایتای ایرانی 🇮🇷
+  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀
+  - RULE-SET,apps,سایتای ایرانی 🇮🇷
+  - MATCH,نوع انتخاب پروکسی 🔀 
+ntp:
+  enable: true
+  server: "time.apple.com"
+  port: 123
+  interval: 30

@@ -533,7 +533,6 @@ hosts:
   '*.redirector.gvt1.com': 216.239.38.120
   '*.redirector.offline-maps.gvt1.com': 216.239.38.120
   '*.redirector.snap.gvt1.com': 216.239.38.120
-  '*.redirector.xn--ngstr-lra8j.com': 216.239.38.120
   '*.registry.google': 216.239.38.120
   '*.revolv.com': 216.239.38.120
   '*.ridepenguin.com': 216.239.38.120
@@ -605,7 +604,6 @@ hosts:
   '*.whatbrowser.org': 216.239.38.120
   '*.whats.new': 216.239.38.120
   '*.wide-youtube.l.google.com': 216.239.38.120
-  '*.withyoutube.com': 216.239.38.120
   '*.womenwill.com': 216.239.38.120
   '*.womenwill.com.br': 216.239.38.120
   '*.womenwill.id': 216.239.38.120
@@ -621,7 +619,6 @@ hosts:
   '*.xn--ggle-55da.com': 216.239.38.120
   '*.xn--gogl-0nd52e.com': 216.239.38.120
   '*.xn--gogl-1nd42e.com': 216.239.38.120
-  '*.xn--ngstr-lra8j.com': 216.239.38.120
   '*.xn--p8j9a0d9c9a.xn--q9jyb4c': 216.239.38.120
   '*.xplr.co': 216.239.38.120
   '*.youtube-ui.l.google.com': 216.239.38.120

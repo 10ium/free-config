@@ -1,0 +1,867 @@
+// =====================================================
+// wrangler.toml:
+// [[kv_namespaces]]
+// binding = "CACHE"
+// id = "YOUR_KV_NAMESPACE_ID"
+// =====================================================
+
+const CACHE_TTL = 1800     // 30 دقیقه KV cache
+const FETCH_TIMEOUT = 7000 // 7 ثانیه timeout هر subscription
+const MAX_PER_PROTOCOL = 500
+
+export default {
+  async fetch(request, env) {
+    try {
+      const reqUrl = new URL(request.url)
+      const mode = reqUrl.searchParams.get("mode") || "all"
+
+      // پاک‌سازی cache با ?purge=1
+      if (reqUrl.searchParams.get("purge") === "1") {
+        if (env.CACHE) {
+          await Promise.allSettled([
+            env.CACHE.delete("proxies_all"),
+            env.CACHE.delete("proxies_v2ray"),
+            env.CACHE.delete("proxies_others"),
+          ])
+        }
+        return new Response("Cache cleared.", { status: 200 })
+      }
+
+      const cacheKey = `proxies_${mode}`
+
+      // ── مرحله ۱: خواندن از KV cache ──
+      if (env.CACHE) {
+        try {
+          const cached = await env.CACHE.get(cacheKey)
+          if (cached) {
+            return new Response(cached, {
+              headers: {
+                "content-type": "text/yaml; charset=utf-8",
+                "Cache-Control": "public, max-age=1800",
+                "x-cache": "HIT"
+              }
+            })
+          }
+        } catch {}
+      }
+
+      // ── مرحله ۲: fetch و پردازش ──
+      const SUBS = [...new Set(`
+      https://raw.githubusercontent.com/liketolivefree/kobabi/main/sub_all.txt
+      https://raw.githubusercontent.com/xtoolkit/TVC/main/subscriptions/meta/mix
+      https://raw.githubusercontent.com/10ium/ClashFactory/main/providers/hamedvpns-Ali-Anv1-HP71.txt
+      https://raw.githubusercontent.com/10ium/ClashFactory/main/providers/10ium-configs-collector-ws.txt
+      https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/free-mihomo-sub/WARP%20%2B%20Ainita_%5BMulti-Profile%5D_%5BFull%5D.yaml
+      https://raw.githubusercontent.com/liketolivefree/kobabi/main/prov_clash.yaml
+      https://raw.githubusercontent.com/10ium/VpnClashFaCollector/main/sub/all/mixed.txt
+      https://raw.githubusercontent.com/10ium/V2ray-Config/main/All_Configs_Sub.txt
+      https://raw.githubusercontent.com/maimengmeng/mysub/refs/heads/main/valid_content_all.txt
+      https://raw.githubusercontent.com/itsyebekhe/PSG/main/subscriptions/xray/base64/reality
+      https://raw.githubusercontent.com/itsyebekhe/PSG/main/subscriptions/xray/base64/xhttp
+      https://raw.githubusercontent.com/10ium/telegram-configs-collector/main/splitted/mixed
+      https://raw.githubusercontent.com/hamedp-71/N_sub_cheker/refs/heads/patch-1/final.txt
+      https://raw.githubusercontent.com/MrBihal/Channel-Hddify/refs/heads/main/MeLi-Shekan
+      https://raw.githubusercontent.com/MrBihal/Channel-Hddify/refs/heads/main/Meli
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs1.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs2.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs3.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs4.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs5.txt
+      https://raw.githubusercontent.com/peweza/PUBLICSUB/refs/heads/main/PewezaVPNPubSUB
+      https://raw.githubusercontent.com/frank-vpl/servers/refs/heads/main/irbox
+      https://v2.alicivil.workers.dev/?list=mix&count=500&shuffle=false&unique=false
+      https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_SS%2BAll_RUS.txt
+      https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt
+      https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt      https://v2.alicivil.workers.dev/?list=mix&count=500&shuffle=false&unique=false
+      `.split("\n").map(s => s.trim()).filter(Boolean))]
+
+      let proxies = []
+
+      const fetchPromises = SUBS.map(async (sub) => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
+        try {
+          const res = await fetch(sub, {
+            signal: controller.signal,
+            cf: { cacheTtl: 3600, cacheEverything: true }
+          })
+          clearTimeout(timer)
+          if (!res.ok) return []
+
+          const raw = await res.text()
+          const decoded = decodeSub(raw)
+          let localProxies = []
+
+          if (/^\s*proxies:/m.test(decoded) || /^\s*-\s*name:/m.test(decoded) || /^\s*-\s*\{/m.test(decoded)) {
+            localProxies = extractYamlConfigs(decoded)
+          } else {
+            const lines = decoded.split("\n").map(l => l.trim()).filter(Boolean)
+            for (const line of lines) {
+              const p = parseProxy(line)
+              if (p) localProxies.push(p)
+            }
+          }
+
+          const cleanLocal = []
+          for (let p of localProxies) {
+            p = sanitizeObj(p)
+            p.name = p.name || "Unnamed"
+            if (valid(p) && p.type !== 'inline') cleanLocal.push(p)
+          }
+          return cleanLocal
+        } catch {
+          clearTimeout(timer)
+          return []
+        }
+      })
+
+      const results = await Promise.allSettled(fetchPromises)
+      results.forEach(r => { if (r.status === "fulfilled") proxies.push(...r.value) })
+
+      proxies = dedupe(proxies)
+
+      if (mode === 'v2ray') {
+        proxies = proxies.filter(p => ['vless', 'vmess'].includes(p.type))
+      } else if (mode === 'others') {
+        proxies = proxies.filter(p => !['vless', 'vmess'].includes(p.type))
+      }
+
+      // گروه‌بندی و shuffle و حداکثر MAX_PER_PROTOCOL
+      const grouped = {}
+      proxies.forEach(p => {
+        if (!grouped[p.type]) grouped[p.type] = []
+        grouped[p.type].push(p)
+      })
+      const randomizedProxies = []
+      for (const type in grouped) {
+        const group = grouped[type]
+        for (let i = group.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [group[i], group[j]] = [group[j], group[i]]
+        }
+        randomizedProxies.push(...group.slice(0, MAX_PER_PROTOCOL))
+      }
+      proxies = randomizedProxies
+
+      // مرتب‌سازی
+      const protocolOrder = {
+        "hy2": 1, "vless": 2, "anytls": 3, "trojan": 4, "ss": 5,
+        "vmess": 6, "wg": 7, "tuic": 8, "http": 9, "socks": 10, "ssh": 11
+      }
+      proxies.sort((a, b) => {
+        const dt = t => {
+          if (t === "hysteria2") return "hy2"
+          if (t === "wireguard") return "wg"
+          if (t === "socks5") return "socks"
+          return t.toLowerCase()
+        }
+        return (protocolOrder[dt(a.type)] || 99) - (protocolOrder[dt(b.type)] || 99)
+      })
+
+      // نام‌گذاری ترتیبی
+      const typeCounters = {}
+      for (const p of proxies) {
+        const dt = p.type === "hysteria2" ? "hy2" :
+                   p.type === "wireguard" ? "wg" :
+                   p.type === "socks5" ? "socks" : p.type.toLowerCase()
+        typeCounters[dt] = (typeCounters[dt] || 0) + 1
+        p.name = `${dt} ${typeCounters[dt]}`
+      }
+
+      const output = buildProvider(proxies)
+
+      // ── مرحله ۳: ذخیره در KV ──
+      if (env.CACHE) {
+        try { await env.CACHE.put(cacheKey, output, { expirationTtl: CACHE_TTL }) } catch {}
+      }
+
+      return new Response(output, {
+        headers: {
+          "content-type": "text/yaml; charset=utf-8",
+          "Cache-Control": "public, max-age=1800",
+          "x-cache": "MISS"
+        }
+      })
+
+    } catch (e) {
+      return new Response("error: " + e.toString(), { status: 500 })
+    }
+  }
+}
+
+/* ========== YAML Parser ========== */
+function parseInlineYaml(str) {
+  str = str.trim()
+  if (!str.startsWith('{') || !str.endsWith('}')) return null
+  str = str.slice(1, -1)
+  const result = {}
+  let currentKey = "", currentValue = "", inKey = true, depth = 0, inQuote = false, quoteChar = ''
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i]
+    if (char === '"' || char === "'") {
+      if (!inQuote) { inQuote = true; quoteChar = char }
+      else if (quoteChar === char) inQuote = false
+    }
+    if (!inQuote) {
+      if (char === '{' || char === '[') depth++
+      if (char === '}' || char === ']') depth--
+      if (char === ':' && inKey && depth === 0) { inKey = false; continue }
+      if (char === ',' && !inKey && depth === 0) {
+        if (currentKey.trim()) result[currentKey.trim()] = parseYamlValue(currentValue.trim())
+        currentKey = ""; currentValue = ""; inKey = true; continue
+      }
+    }
+    if (inKey) currentKey += char; else currentValue += char
+  }
+  if (currentKey.trim()) result[currentKey.trim()] = parseYamlValue(currentValue.trim())
+  return result
+}
+
+function parseYamlValue(val) {
+  if (typeof val !== 'string') return val
+  val = val.trim()
+  if (val === 'true') return true
+  if (val === 'false') return false
+  if (/^[0-9]+$/.test(val)) return Number(val)
+  if (val.startsWith('{') && val.endsWith('}')) return parseInlineYaml(val)
+  if (val.startsWith('[') && val.endsWith(']')) return val.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''))
+  return val.replace(/^["']|["']$/g, '')
+}
+
+function extractYamlConfigs(text) {
+  const proxies = []
+  let currentProxy = null
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trim().startsWith('#')) continue
+    const listMatch = line.match(/^(\s*)-\s*(.*)$/)
+    if (listMatch) {
+      if (currentProxy && currentProxy.type && currentProxy.server) proxies.push(currentProxy)
+      currentProxy = {}
+      const remainder = listMatch[2].trim()
+      if (remainder.startsWith('{')) {
+        const parsed = parseInlineYaml(remainder)
+        if (parsed) proxies.push(parsed)
+        currentProxy = null
+      } else if (remainder) {
+        const kv = remainder.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)$/)
+        if (kv) currentProxy[kv[1]] = parseYamlValue(kv[2])
+      }
+      continue
+    }
+    if (currentProxy) {
+      const kv = line.match(/^\s+([a-zA-Z0-9_-]+)\s*:\s*(.*)$/)
+      if (kv) currentProxy[kv[1]] = parseYamlValue(kv[2])
+    }
+  }
+  if (currentProxy && currentProxy.type && currentProxy.server) proxies.push(currentProxy)
+  return proxies
+}
+
+/* ========== Decode / Sanitize ========== */
+function normalizeBase64(v) {
+  if (!v) return null
+  v = v.trim().replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "")
+  const pad = v.length % 4
+  if (pad === 1) return null
+  if (pad === 2) v += "=="
+  if (pad === 3) v += "="
+  try { return new TextDecoder().decode(Uint8Array.from(atob(v), m => m.codePointAt(0))) }
+  catch { return null }
+}
+function decodeSub(text) { return text.includes("://") ? text : (normalizeBase64(text) || text) }
+function safeDecode(str) { try { return decodeURIComponent(str) } catch { return str } }
+function sanitizeObj(obj) {
+  if (typeof obj === 'string') return obj.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200D\uFEFF\uFFFD]/g, "").trim()
+  if (Array.isArray(obj)) return obj.map(sanitizeObj)
+  if (obj !== null && typeof obj === 'object') {
+    const res = {}
+    for (const key in obj) res[key] = sanitizeObj(obj[key])
+    return res
+  }
+  return obj
+}
+
+/* ========== Parser Router ========== */
+function parseProxy(line) {
+  try {
+    const l = line.toLowerCase()
+    if (l.startsWith("vless://"))                               return parseVless(line)
+    if (l.startsWith("vmess://"))                               return parseVmess(line)
+    if (l.startsWith("trojan://"))                              return parseTrojan(line)
+    if (l.startsWith("anytls://"))                              return parseAnyTls(line)
+    if (l.startsWith("ss://"))                                  return parseSS(line)
+    if (l.startsWith("hy2://") || l.startsWith("hysteria2://")) return parseHysteria2(line)
+    if (l.startsWith("wg://") || l.startsWith("wireguard://")) return parseWireguard(line)
+    if (l.startsWith("tuic://"))                                return parseTuic(line)
+    if (l.startsWith("http://") || l.startsWith("https://"))   return parseHttp(line)
+    if (l.startsWith("socks://") || l.startsWith("socks5://")) return parseSocks(line)
+    if (l.startsWith("ssh://"))                                 return parseSSH(line)
+  } catch {}
+  return null
+}
+
+/* ========== Protocol Parsers ========== */
+
+// ---- VLESS ----
+// فیلدهای mihomo: uuid, flow, tls, servername, alpn, client-fingerprint,
+//                  skip-cert-verify, reality-opts, network, ws-opts, grpc-opts
+function parseVless(link) {
+  const url = new URL(link.replace(/^vless:\/\//i, "http://"))
+  const security = url.searchParams.get("security") || ""
+  const network = url.searchParams.get("type") || "tcp"
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "vless",
+    server: url.hostname,
+    port: parseInt(url.port),
+    uuid: url.username || "",
+    udp: true,
+    tls: ["tls", "reality"].includes(security),
+    network
+  }
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.servername = sni  // vless استفاده می‌کند از servername
+
+  const fp = url.searchParams.get("fp")
+  if (fp) proxy["client-fingerprint"] = fp
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const flow = url.searchParams.get("flow")
+  if (flow) proxy.flow = flow
+
+  const insecure = url.searchParams.get("allowInsecure") || url.searchParams.get("insecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  if (security === "reality") {
+    proxy["reality-opts"] = { "public-key": url.searchParams.get("pbk") || "" }
+    const sid = url.searchParams.get("sid")
+    if (sid) proxy["reality-opts"]["short-id"] = sid
+  }
+
+  if (network === "ws") {
+    const path = url.searchParams.get("path")
+    const host = url.searchParams.get("host")
+    if (path || host) {
+      proxy["ws-opts"] = {}
+      if (path) proxy["ws-opts"].path = path
+      if (host) proxy["ws-opts"].headers = { Host: host }
+    }
+  } else if (network === "grpc") {
+    const serviceName = url.searchParams.get("serviceName")
+    if (serviceName) proxy["grpc-opts"] = { "grpc-service-name": serviceName }
+  } else if (network === "h2") {
+    const path = url.searchParams.get("path")
+    const host = url.searchParams.get("host")
+    if (path || host) {
+      proxy["h2-opts"] = {}
+      if (path) proxy["h2-opts"].path = path
+      if (host) proxy["h2-opts"].host = [host]
+    }
+  }
+
+  return proxy
+}
+
+// ---- VMESS ----
+// فیلدهای mihomo: uuid, alterId, cipher, udp, tls, servername, network
+function parseVmess(link) {
+  try {
+    const raw = link.replace(/^vmess:\/\//i, "")
+    const fixed = normalizeBase64(raw)
+    if (!fixed) return null
+    const j = JSON.parse(fixed)
+    if (!j.add || !j.port || !j.id) return null
+
+    const proxy = {
+      name: safeDecode(j.ps || j.add),
+      type: "vmess",
+      server: j.add,
+      port: parseInt(j.port),
+      uuid: j.id || "",
+      alterId: parseInt(j.aid) || 0,
+      cipher: "auto",
+      udp: true
+    }
+
+    if (j.tls === "tls") {
+      proxy.tls = true
+      if (j.sni) proxy.servername = j.sni
+      if (j.fp) proxy["client-fingerprint"] = j.fp
+      if (j.alpn) proxy.alpn = typeof j.alpn === 'string' ? j.alpn.split(",") : j.alpn
+    }
+
+    const net = j.net || j.type
+    if (net && net !== "tcp") {
+      proxy.network = net
+      if (net === "ws") {
+        proxy["ws-opts"] = {}
+        if (j.path) proxy["ws-opts"].path = j.path
+        const host = j.host || j.add
+        if (host) proxy["ws-opts"].headers = { Host: host }
+      } else if (net === "grpc") {
+        proxy["grpc-opts"] = { "grpc-service-name": j.path || "" }
+      } else if (net === "h2") {
+        proxy["h2-opts"] = {}
+        if (j.path) proxy["h2-opts"].path = j.path
+        if (j.host) proxy["h2-opts"].host = [j.host]
+      }
+    }
+
+    return proxy
+  } catch { return null }
+}
+
+// ---- TROJAN ----
+// فیلدهای mihomo: password, sni (نه servername!), skip-cert-verify,
+//                  client-fingerprint, alpn, network, ws-opts, grpc-opts
+function parseTrojan(link) {
+  const url = new URL(link.replace(/^trojan:\/\//i, "http://"))
+  const network = url.searchParams.get("type") || "tcp"
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "trojan",
+    server: url.hostname,
+    port: parseInt(url.port),
+    password: safeDecode(url.username) || "",
+    udp: true,
+    tls: true,
+    network
+  }
+
+  // ⚠️ trojan در mihomo از "sni" استفاده می‌کند، نه "servername"
+  const sni = url.searchParams.get("sni") || url.searchParams.get("peer")
+  if (sni) proxy.sni = sni
+
+  const fp = url.searchParams.get("fp")
+  if (fp) proxy["client-fingerprint"] = fp
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const insecure = url.searchParams.get("allowInsecure") || url.searchParams.get("insecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  const security = url.searchParams.get("security") || ""
+  if (security === "reality") {
+    proxy["reality-opts"] = { "public-key": url.searchParams.get("pbk") || "" }
+    const sid = url.searchParams.get("sid")
+    if (sid) proxy["reality-opts"]["short-id"] = sid
+  }
+
+  if (network === "ws") {
+    const path = url.searchParams.get("path")
+    const host = url.searchParams.get("host")
+    if (path || host) {
+      proxy["ws-opts"] = {}
+      if (path) proxy["ws-opts"].path = path
+      if (host) proxy["ws-opts"].headers = { Host: host }
+    }
+  } else if (network === "grpc") {
+    const serviceName = url.searchParams.get("serviceName")
+    if (serviceName) proxy["grpc-opts"] = { "grpc-service-name": serviceName }
+  }
+
+  return proxy
+}
+
+// ---- ANYTLS ----
+function parseAnyTls(link) {
+  const url = new URL(link.replace(/^anytls:\/\//i, "http://"))
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "anytls",
+    server: url.hostname,
+    port: parseInt(url.port)
+  }
+  const pass = safeDecode(url.username || url.password)
+  if (pass) proxy.password = pass
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.sni = sni
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const fp = url.searchParams.get("fp") || url.searchParams.get("fingerprint")
+  if (fp) proxy["client-fingerprint"] = fp
+
+  const insecure = url.searchParams.get("insecure") || url.searchParams.get("allowInsecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  return proxy
+}
+
+// ---- SHADOWSOCKS ----
+// لیست کامل cipher‌های mihomo
+function parseSS(link) {
+  const raw = link.replace(/^ss:\/\//i, "")
+  const hashIdx = raw.indexOf('#')
+  const base = hashIdx >= 0 ? raw.substring(0, hashIdx) : raw
+  const tag = hashIdx >= 0 ? raw.substring(hashIdx + 1) : ""
+
+  let method, password, server, port
+
+  if (base.includes("@")) {
+    const atIdx = base.lastIndexOf("@")
+    const authPart = base.substring(0, atIdx)
+    const serverPart = base.substring(atIdx + 1)
+    const decoded = normalizeBase64(authPart) || authPart
+    const colonIdx = decoded.indexOf(":")
+    if (colonIdx < 0) return null
+    method = decoded.substring(0, colonIdx)
+    password = decoded.substring(colonIdx + 1)
+    const lastColon = serverPart.lastIndexOf(":")
+    if (lastColon < 0) return null
+    server = serverPart.substring(0, lastColon)
+    port = serverPart.substring(lastColon + 1)
+  } else {
+    const decoded = normalizeBase64(base)
+    if (!decoded) return null
+    const atIdx = decoded.lastIndexOf("@")
+    if (atIdx < 0) return null
+    const authPart = decoded.substring(0, atIdx)
+    const serverPart = decoded.substring(atIdx + 1)
+    const colonIdx = authPart.indexOf(":")
+    if (colonIdx < 0) return null
+    method = authPart.substring(0, colonIdx)
+    password = authPart.substring(colonIdx + 1)
+    const lastColon = serverPart.lastIndexOf(":")
+    if (lastColon < 0) return null
+    server = serverPart.substring(0, lastColon)
+    port = serverPart.substring(lastColon + 1)
+  }
+
+  // پاک کردن bracket برای IPv6
+  server = server.replace(/^\[|\]$/g, "")
+
+  if (!server || !port || !method || password === undefined) return null
+
+  return {
+    name: safeDecode(tag || server),
+    type: "ss",
+    server,
+    port: parseInt(port),
+    cipher: method.toLowerCase(),
+    password: password || "",
+    udp: true
+  }
+}
+
+// ---- HYSTERIA2 ----
+// فیلدهای mihomo: password, sni, skip-cert-verify, obfs (فقط salamander), obfs-password
+function parseHysteria2(link) {
+  const url = new URL(link.replace(/^(hy2|hysteria2):\/\//i, "http://"))
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "hysteria2",
+    server: url.hostname,
+    port: parseInt(url.port),
+    password: safeDecode(url.username) || "",
+    udp: true
+  }
+
+  const sni = url.searchParams.get("sni") || url.searchParams.get("peer")
+  if (sni) proxy.sni = sni
+
+  const insecure = url.searchParams.get("insecure") || url.searchParams.get("allowInsecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  // ⚠️ mihomo فقط "salamander" رو قبول می‌کنه
+  const obfs = url.searchParams.get("obfs")
+  if (obfs && obfs.toLowerCase() === "salamander") {
+    proxy.obfs = "salamander"
+    const obfsPass = url.searchParams.get("obfs-password") || url.searchParams.get("obfsPassword")
+    if (obfsPass) proxy["obfs-password"] = obfsPass
+  }
+
+  const up = url.searchParams.get("up")
+  const down = url.searchParams.get("down")
+  if (up) proxy.up = up
+  if (down) proxy.down = down
+
+  return proxy
+}
+
+// ---- WIREGUARD ----
+// فیلدهای mihomo: private-key, public-key, ip, udp, reserved, mtu
+function parseWireguard(link) {
+  const url = new URL(link.replace(/^(wg|wireguard):\/\//i, "http://"))
+
+  const rawIp = url.searchParams.get("ip") || url.searchParams.get("address") || "10.0.0.1"
+  // فقط اولین IP (بدون CIDR)
+  const ip = rawIp.split(",")[0].trim().split("/")[0]
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "wireguard",
+    server: url.hostname,
+    port: parseInt(url.port) || 51820,
+    ip,
+    "private-key": safeDecode(url.username || url.searchParams.get("privateKey") || url.searchParams.get("private-key") || ""),
+    "public-key": safeDecode(url.searchParams.get("public-key") || url.searchParams.get("peer_public_key") || url.searchParams.get("publicKey") || ""),
+    udp: true
+  }
+
+  const reserved = url.searchParams.get("reserved")
+  if (reserved) {
+    const parts = reserved.split(",").map(Number)
+    if (parts.length === 3 && parts.every(n => !isNaN(n))) proxy.reserved = parts
+  }
+
+  const mtu = url.searchParams.get("mtu")
+  if (mtu) proxy.mtu = parseInt(mtu)
+
+  const dns = url.searchParams.get("dns")
+  if (dns) proxy.dns = dns.split(",")
+
+  return proxy
+}
+
+// ---- TUIC ----
+// فیلدهای mihomo: uuid, password, sni, alpn, congestion-controller, udp-relay-mode, skip-cert-verify
+function parseTuic(link) {
+  const url = new URL(link.replace(/^tuic:\/\//i, "http://"))
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "tuic",
+    server: url.hostname,
+    port: parseInt(url.port),
+    uuid: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || "",
+    udp: true
+  }
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.sni = sni
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const congestion = url.searchParams.get("congestion_control") || url.searchParams.get("congestion-control")
+  if (congestion) proxy["congestion-controller"] = congestion
+
+  const udpRelay = url.searchParams.get("udp_relay_mode") || url.searchParams.get("udp-relay-mode")
+  if (udpRelay) proxy["udp-relay-mode"] = udpRelay
+
+  const insecure = url.searchParams.get("insecure") || url.searchParams.get("allowInsecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  const fp = url.searchParams.get("fp")
+  if (fp) proxy["client-fingerprint"] = fp
+
+  return proxy
+}
+
+// ---- HTTP/HTTPS ----
+function parseHttp(link) {
+  const isHttps = link.toLowerCase().startsWith("https://")
+  const url = new URL(link)
+  return {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "http",
+    server: url.hostname,
+    port: parseInt(url.port) || (isHttps ? 443 : 80),
+    tls: isHttps,
+    username: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || ""
+  }
+}
+
+// ---- SOCKS5 ----
+function parseSocks(link) {
+  const url = new URL(link.replace(/^(socks|socks5):\/\//i, "http://"))
+  return {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "socks5",
+    server: url.hostname,
+    port: parseInt(url.port) || 1080,
+    username: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || "",
+    udp: true
+  }
+}
+
+// ---- SSH ----
+// فیلدهای mihomo: username, password
+function parseSSH(link) {
+  const url = new URL(link.replace(/^ssh:\/\//i, "http://"))
+  return {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "ssh",
+    server: url.hostname,
+    port: parseInt(url.port) || 22,
+    username: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || ""
+  }
+}
+
+/* ========== Validation ========== */
+
+// لیست کامل cipher‌های معتبر در mihomo
+const VALID_SS_CIPHERS = new Set([
+  "aes-128-ctr", "aes-192-ctr", "aes-256-ctr",
+  "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+  "aes-128-gcm", "aes-192-gcm", "aes-256-gcm",
+  "aes-128-ccm", "aes-192-ccm", "aes-256-ccm",
+  "aes-128-gcm-siv", "aes-256-gcm-siv",
+  "chacha20-ietf", "chacha20", "xchacha20",
+  "chacha20-ietf-poly1305", "xchacha20-ietf-poly1305",
+  "chacha8-ietf-poly1305", "xchacha8-ietf-poly1305",
+  "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm",
+  "2022-blake3-chacha20-poly1305",
+  "lea-128-gcm", "lea-192-gcm", "lea-256-gcm",
+  "rabbit128-poly1305", "aegis-128l", "aegis-256",
+  "aez-384", "deoxys-ii-256-128",
+  "rc4-md5", "none"
+])
+
+function valid(p) {
+  if (!p.server || typeof p.server !== 'string' || p.server.trim() === '') return false
+  if (!p.port || isNaN(p.port) || p.port < 1 || p.port > 65535) return false
+
+  const blockedServers = ["127.0.0.1", "0.0.0.0", "localhost", "::1", "t.me", "github.com", "raw.githubusercontent.com", "google.com"]
+  if (blockedServers.some(s => p.server.toLowerCase().includes(s))) return false
+
+  // اعتبارسنجی reality-opts
+  if (p["reality-opts"]) {
+    const pbk = p["reality-opts"]["public-key"]
+    if (!pbk || typeof pbk !== 'string') return false
+    const cleanPbk = pbk.replace(/=/g, "").trim()
+    if (cleanPbk.length !== 43 || !/^[A-Za-z0-9\-_]+$/.test(cleanPbk)) return false
+    const sid = p["reality-opts"]["short-id"]
+    if (sid !== undefined && sid !== "") {
+      if (typeof sid !== 'string' || !/^[0-9a-fA-F]*$/.test(sid) || sid.length % 2 !== 0 || sid.length > 16) return false
+    }
+  }
+
+  switch (p.type) {
+    case "vless":
+      if (!p.uuid || typeof p.uuid !== 'string' || p.uuid.trim() === '') return false
+      if (!/^[0-9a-f-]{32,36}$/i.test(p.uuid.replace(/-/g, "").padEnd(32))) return false
+      break
+
+    case "vmess":
+      if (!p.uuid || typeof p.uuid !== 'string' || p.uuid.trim() === '') return false
+      if (p.alterId === undefined || isNaN(p.alterId)) return false
+      break
+
+    case "trojan":
+      if (!p.password || typeof p.password !== 'string' || p.password.trim() === '') return false
+      break
+
+    case "hysteria2":
+      if (!p.password || typeof p.password !== 'string' || p.password.trim() === '') return false
+      if (p.obfs && p.obfs !== "salamander") return false
+      break
+
+    case "tuic":
+      if (!p.uuid || p.uuid.trim() === '') return false
+      if (!p.password || p.password.trim() === '') return false
+      break
+
+    case "wireguard":
+      if (!p["private-key"] || p["private-key"].trim() === '') return false
+      if (!p["public-key"] || p["public-key"].trim() === '') return false
+      break
+
+    case "ss": {
+      if (!p.cipher || !p.password) return false
+      const cipher = p.cipher.toLowerCase()
+      if (!VALID_SS_CIPHERS.has(cipher)) return false
+      if (cipher.startsWith("2022-")) {
+        try {
+          const keys = p.password.split(":")
+          const fixedKeys = []
+          for (const k of keys) {
+            let cleanK = k.trim().replace(/-/g, "+").replace(/_/g, "/")
+            const pad = cleanK.length % 4
+            if (pad === 1) return false
+            if (pad === 2) cleanK += "=="
+            if (pad === 3) cleanK += "="
+            if (!/^[A-Za-z0-9+/]+=*$/.test(cleanK)) return false
+            atob(cleanK)
+            fixedKeys.push(cleanK)
+          }
+          p.password = fixedKeys.join(":")
+        } catch { return false }
+      }
+      break
+    }
+
+    case "anytls":
+      if (!p.password || p.password.trim() === '') return false
+      break
+
+    case "ssh":
+    case "http":
+    case "socks5":
+      break
+  }
+
+  return true
+}
+
+/* ========== Dedupe ========== */
+function fingerprint(p) {
+  const key = p.uuid || p.password || p["auth-str"] || p["private-key"] || p.psk || p.username || ""
+  return `${p.type}|${p.server}|${p.port}|${key}`
+}
+
+function dedupe(list) {
+  const m = new Map()
+  for (const p of list) {
+    const fp = fingerprint(p)
+    if (!m.has(fp)) m.set(fp, p)
+  }
+  return [...m.values()]
+}
+
+/* ========== YAML Builder ========== */
+function yamlStr(val) {
+  return '"' + String(val).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r") + '"'
+}
+
+function buildProvider(proxies) {
+  let yaml = "proxies:\n"
+  for (const p of proxies) {
+    yaml += `  - name: ${yamlStr(p.name)}\n`
+    yaml += `    type: ${p.type}\n`
+    yaml += `    server: ${yamlStr(p.server)}\n`
+    yaml += `    port: ${p.port}\n`
+
+    for (const key in p) {
+      if (["name", "type", "server", "port"].includes(key)) continue
+      const val = p[key]
+      if (val === null || val === undefined) continue
+
+      if (typeof val === 'object') {
+        if (Array.isArray(val)) {
+          yaml += `    ${key}:\n`
+          for (const item of val) {
+            yaml += `      - ${typeof item === 'string' ? yamlStr(item) : item}\n`
+          }
+        } else {
+          yaml += `    ${key}: ${JSON.stringify(val)}\n`
+        }
+      } else if (typeof val === 'string') {
+        yaml += `    ${key}: ${yamlStr(val)}\n`
+      } else if (typeof val === 'boolean') {
+        yaml += `    ${key}: ${val}\n`
+      } else if (typeof val === 'number') {
+        yaml += `    ${key}: ${val}\n`
+      }
+    }
+  }
+  return yaml
+}

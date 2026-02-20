@@ -1,0 +1,698 @@
+export default {
+  async fetch() {
+    try {
+      // Your new subscription links (Automatically deduplicates any repeated URLs)
+      const SUBS = [...new Set(`
+      https://raw.githubusercontent.com/liketolivefree/kobabi/main/sub_all.txt
+      https://raw.githubusercontent.com/10ium/VpnClashFaCollector/main/sub/all/mixed.txt
+      https://raw.githubusercontent.com/10ium/V2ray-Config/main/All_Configs_Sub.txt
+      https://raw.githubusercontent.com/maimengmeng/mysub/refs/heads/main/valid_content_all.txt
+      https://raw.githubusercontent.com/10ium/VpnClashFaCollector/main/sub/all/mixed.txt
+      https://raw.githubusercontent.com/itsyebekhe/PSG/main/subscriptions/xray/base64/reality
+      https://raw.githubusercontent.com/itsyebekhe/PSG/main/subscriptions/xray/base64/xhttp
+      https://raw.githubusercontent.com/10ium/telegram-configs-collector/main/splitted/mixed
+      `.split("\n").map(s => s.trim()).filter(Boolean))]
+
+      let proxies = []
+
+      const fetchPromises = SUBS.map(async (sub) => {
+        try {
+          const res = await fetch(sub, { cf: { cacheTtl: 0 } })
+          const raw = await res.text()
+          const decoded = decodeSub(raw)
+
+          const lines = decoded.split("\n")
+            .map(l => l.trim())
+            .filter(Boolean)
+
+          const localProxies = []
+          for (const line of lines) {
+            let p = parseProxy(line)
+            if (p) {
+              // Deep sanitize all fields recursively to completely eliminate YAML control character errors
+              p = sanitizeObj(p) 
+              p.name = p.name || "Unnamed" // Ensure name exists after sanitization
+              if (valid(p)) localProxies.push(p)
+            }
+          }
+          return localProxies
+        } catch {
+          return []
+        }
+      })
+
+      const results = await Promise.allSettled(fetchPromises)
+      results.forEach(result => {
+        if (result.status === "fulfilled") {
+          proxies.push(...result.value)
+        }
+      })
+
+      proxies = dedupe(proxies)
+
+      // --- Sorting Logic: Sort by specific protocol order ---
+      const protocolOrder = {
+        "hy2": 1,
+        "hy": 2,
+        "vless": 3,
+        "anytls": 4,
+        "trojan": 5,
+        "ss": 6,
+        "vmess": 7,
+        "wg": 8,
+        "tuic": 9,
+        "ssr": 10,
+        "snell": 11,
+        "http": 12,
+        "socks": 13,
+        "ssh": 14
+      }
+
+      proxies.sort((a, b) => {
+        const getDisplayType = (type) => {
+          if (type === "hysteria2") return "hy2";
+          if (type === "hysteria") return "hy";
+          if (type === "wireguard") return "wg";
+          if (type === "socks5") return "socks";
+          return type.toLowerCase();
+        }
+        
+        const orderA = protocolOrder[getDisplayType(a.type)] || 99; // 99 for unknown protocols
+        const orderB = protocolOrder[getDisplayType(b.type)] || 99;
+        
+        return orderA - orderB;
+      })
+      // ------------------------------------------------------
+
+      // --- Naming Logic: Rename proxies sequentially based on their type ---
+      const typeCounters = {}
+      for (const p of proxies) {
+        // Normalize type names for display
+        const displayType = p.type === "hysteria2" ? "hy2" : 
+                            p.type === "hysteria" ? "hy" : 
+                            p.type === "wireguard" ? "wg" : 
+                            p.type === "socks5" ? "socks" : p.type.toLowerCase()
+                            
+        typeCounters[displayType] = (typeCounters[displayType] || 0) + 1
+        p.name = `${displayType} ${typeCounters[displayType]}`
+      }
+      // ---------------------------------------------------------------------
+
+      return new Response(buildProvider(proxies), {
+        headers: { "content-type": "text/yaml; charset=utf-8" }
+      })
+
+    } catch (e) {
+      return new Response("error: " + e.toString(), { status: 500 })
+    }
+  }
+}
+
+/* ---------- Decode ---------- */
+
+function normalizeBase64(v) {
+  if (!v) return null
+  v = v.trim().replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "")
+  const pad = v.length % 4
+  if (pad === 2) v += "=="
+  if (pad === 3) v += "="
+  if (pad === 1) return null
+  
+  try {
+    const binString = atob(v);
+    const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch { 
+    return null 
+  }
+}
+
+function decodeSub(text) {
+  if (text.includes("://")) return text
+  const fixed = normalizeBase64(text)
+  if (!fixed) return text
+  return fixed
+}
+
+function safeDecode(str) {
+  try { return decodeURIComponent(str) } catch { return str }
+}
+
+/* ---------- Deep Sanitize ---------- */
+
+// Recursively removes control characters, BOM, and zero-width spaces from all strings
+function sanitizeObj(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200D\uFEFF\uFFFD]/g, "").trim();
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeObj);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const res = {};
+    for (const key in obj) {
+      res[key] = sanitizeObj(obj[key]);
+    }
+    return res;
+  }
+  return obj;
+}
+
+/* ---------- Parser ---------- */
+
+function parseProxy(line) {
+  try {
+    const lowerLine = line.toLowerCase();
+    if (lowerLine.startsWith("vless://")) return parseVless(line)
+    if (lowerLine.startsWith("vmess://")) return parseVmess(line)
+    if (lowerLine.startsWith("trojan://")) return parseTrojan(line)
+    if (lowerLine.startsWith("anytls://")) return parseAnyTls(line)
+    if (lowerLine.startsWith("ss://")) return parseSS(line)
+    if (lowerLine.startsWith("ssr://")) return parseSSR(line)
+    if (lowerLine.startsWith("hy2://") || lowerLine.startsWith("hysteria2://")) return parseHysteria2(line)
+    if (lowerLine.startsWith("hysteria://")) return parseHysteria(line)
+    if (lowerLine.startsWith("wg://") || lowerLine.startsWith("wireguard://")) return parseWireguard(line)
+    if (lowerLine.startsWith("tuic://")) return parseTuic(line)
+    if (lowerLine.startsWith("http://") || lowerLine.startsWith("https://")) return parseHttp(line)
+    if (lowerLine.startsWith("socks://") || lowerLine.startsWith("socks5://")) return parseSocks(line)
+    if (lowerLine.startsWith("snell://")) return parseSnell(line)
+    if (lowerLine.startsWith("ssh://")) return parseSSH(line)
+  } catch {}
+  return null
+}
+
+/* ---------- VLESS ---------- */
+
+function parseVless(link) {
+  const url = new URL(link.replace(/^vless:\/\//i, "http://"))
+  const security = url.searchParams.get("security") || ""
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "vless",
+    server: url.hostname,
+    port: parseInt(url.port),
+    uuid: url.username || "",
+    tls: ["tls","reality"].includes(security),
+    network: url.searchParams.get("type") || "tcp"
+  }
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.servername = sni
+
+  const fp = url.searchParams.get("fp")
+  if (fp) proxy["client-fingerprint"] = fp
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const flow = url.searchParams.get("flow")
+  if (flow) proxy.flow = flow
+
+  if (security === "reality") {
+    proxy["reality-opts"] = {
+      "public-key": url.searchParams.get("pbk") || ""
+    }
+    const sid = url.searchParams.get("sid")
+    if (sid) proxy["reality-opts"]["short-id"] = sid
+  }
+
+  if (proxy.network === "ws") {
+    const path = url.searchParams.get("path")
+    const host = url.searchParams.get("host")
+    if (path || host) {
+      proxy["ws-opts"] = {}
+      if (path) proxy["ws-opts"].path = path
+      if (host) proxy["ws-opts"].headers = { Host: host }
+    }
+  } else if (proxy.network === "grpc") {
+    const serviceName = url.searchParams.get("serviceName")
+    if (serviceName) {
+      proxy["grpc-opts"] = { "grpc-service-name": serviceName }
+    }
+  }
+
+  return proxy
+}
+
+/* ---------- VMESS ---------- */
+
+function parseVmess(link) {
+  const raw = link.replace(/^vmess:\/\//i, "")
+  const fixed = normalizeBase64(raw)
+  if (!fixed) return null
+  const j = JSON.parse(fixed)
+
+  return {
+    name: j.ps || j.add,
+    type: "vmess",
+    server: j.add,
+    port: parseInt(j.port),
+    uuid: j.id || "",
+    alterId: 0,
+    cipher: "auto"
+  }
+}
+
+/* ---------- TROJAN ---------- */
+
+function parseTrojan(link) {
+  const url = new URL(link.replace(/^trojan:\/\//i, "http://"))
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "trojan",
+    server: url.hostname,
+    port: parseInt(url.port),
+    password: safeDecode(url.username) || "",
+    tls: true,
+    network: url.searchParams.get("type") || "tcp"
+  }
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.servername = sni
+
+  if (proxy.network === "ws") {
+    const path = url.searchParams.get("path")
+    const host = url.searchParams.get("host")
+    if (path || host) {
+      proxy["ws-opts"] = {}
+      if (path) proxy["ws-opts"].path = path
+      if (host) proxy["ws-opts"].headers = { Host: host }
+    }
+  } else if (proxy.network === "grpc") {
+    const serviceName = url.searchParams.get("serviceName")
+    if (serviceName) {
+      proxy["grpc-opts"] = { "grpc-service-name": serviceName }
+    }
+  }
+
+  return proxy
+}
+
+/* ---------- ANYTLS ---------- */
+
+function parseAnyTls(link) {
+  const url = new URL(link.replace(/^anytls:\/\//i, "http://"))
+  
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "anytls",
+    server: url.hostname,
+    port: parseInt(url.port)
+  }
+
+  const pass = safeDecode(url.username || url.password)
+  if (pass) proxy.password = pass
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.servername = sni
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const fp = url.searchParams.get("fp") || url.searchParams.get("fingerprint")
+  if (fp) proxy["client-fingerprint"] = fp
+
+  return proxy
+}
+
+/* ---------- SHADOWSOCKS ---------- */
+
+function parseSS(link) {
+  const raw = link.replace(/^ss:\/\//i,"")
+  const [base, tag] = raw.split("#")
+  
+  let method, password, server, port;
+
+  if (base.includes("@")) {
+    const decodedAuth = normalizeBase64(base.split("@")[0]) || base.split("@")[0];
+    [method, password] = decodedAuth.split(":");
+    [server, port] = base.split("@")[1].split(":");
+  } else {
+    const decodedFull = normalizeBase64(base);
+    if (!decodedFull) return null;
+    const [authPart, serverPart] = decodedFull.split("@");
+    if (!authPart || !serverPart) return null;
+    [method, password] = authPart.split(":");
+    [server, port] = serverPart.split(":");
+  }
+  
+  if (!server || !port || !method || !password) return null;
+
+  return {
+    name: safeDecode(tag || server),
+    type: "ss",
+    server,
+    port: parseInt(port),
+    cipher: method,
+    password: password || ""
+  }
+}
+
+/* ---------- SHADOWSOCKS R (SSR) ---------- */
+
+function parseSSR(link) {
+  const raw = link.replace(/^ssr:\/\//i, "")
+  const decoded = normalizeBase64(raw)
+  if (!decoded) return null
+  
+  const parts = decoded.split("/")
+  const mainPart = parts[0]
+  const paramsPart = parts[1] || ""
+
+  const [server, port, protocol, method, obfs, b64pass] = mainPart.split(":")
+  if (!server || !port || !method) return null
+
+  const proxy = {
+    name: "SSR",
+    type: "ssr",
+    server: server,
+    port: parseInt(port),
+    cipher: method,
+    password: normalizeBase64(b64pass) || b64pass || "",
+    protocol: protocol,
+    obfs: obfs
+  }
+
+  if (paramsPart) {
+    const params = new URLSearchParams(paramsPart.replace(/^\?/, ""))
+    const remarks = params.get("remarks")
+    if (remarks) proxy.name = safeDecode(normalizeBase64(remarks) || remarks)
+    const obfsparam = params.get("obfsparam")
+    if (obfsparam) proxy["obfs-param"] = safeDecode(normalizeBase64(obfsparam) || obfsparam)
+    const protoparam = params.get("protoparam")
+    if (protoparam) proxy["protocol-param"] = safeDecode(normalizeBase64(protoparam) || protoparam)
+  }
+
+  return proxy
+}
+
+/* ---------- HYSTERIA 2 ---------- */
+
+function parseHysteria2(link) {
+  const url = new URL(link.replace(/^(hy2|hysteria2):\/\//i, "http://"))
+  
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "hysteria2",
+    server: url.hostname,
+    port: parseInt(url.port),
+    password: safeDecode(url.username) || ""
+  }
+
+  const sni = url.searchParams.get("sni") || url.searchParams.get("peer")
+  if (sni) proxy.sni = sni
+
+  const insecure = url.searchParams.get("insecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  const obfs = url.searchParams.get("obfs")
+  if (obfs && obfs !== "none") {
+    proxy.obfs = obfs
+    const obfsPass = url.searchParams.get("obfs-password")
+    if (obfsPass) proxy["obfs-password"] = obfsPass
+  }
+
+  return proxy
+}
+
+/* ---------- HYSTERIA 1 ---------- */
+
+function parseHysteria(link) {
+  const url = new URL(link.replace(/^hysteria:\/\//i, "http://"))
+  
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "hysteria",
+    server: url.hostname,
+    port: parseInt(url.port),
+    up: url.searchParams.get("up") || "50 Mbps",
+    down: url.searchParams.get("down") || "100 Mbps"
+  }
+
+  const auth = url.searchParams.get("auth") || url.searchParams.get("obfsParam")
+  if (auth) proxy.auth_str = auth
+
+  const sni = url.searchParams.get("peer") || url.searchParams.get("sni")
+  if (sni) proxy.sni = sni
+
+  const insecure = url.searchParams.get("insecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  return proxy
+}
+
+/* ---------- WIREGUARD ---------- */
+
+function parseWireguard(link) {
+  const url = new URL(link.replace(/^(wg|wireguard):\/\//i, "http://"))
+  
+  const rawIp = url.searchParams.get("ip") || url.searchParams.get("address") || "10.0.0.1"
+  const ip = rawIp.split(",")[0].trim()
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "wireguard",
+    server: url.hostname,
+    port: parseInt(url.port) || 51820,
+    ip: ip,
+    "private-key": safeDecode(url.username || url.searchParams.get("privateKey")),
+    "public-key": safeDecode(url.searchParams.get("public-key") || url.searchParams.get("peer_public_key") || url.searchParams.get("publicKey")),
+    udp: true
+  }
+
+  const reserved = url.searchParams.get("reserved")
+  if (reserved) proxy.reserved = reserved.split(",").map(Number)
+
+  const mtu = url.searchParams.get("mtu")
+  if (mtu) proxy.mtu = parseInt(mtu)
+
+  return proxy
+}
+
+/* ---------- TUIC ---------- */
+
+function parseTuic(link) {
+  const url = new URL(link.replace(/^tuic:\/\//i, "http://"))
+  
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "tuic",
+    server: url.hostname,
+    port: parseInt(url.port),
+    uuid: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || ""
+  }
+
+  const sni = url.searchParams.get("sni")
+  if (sni) proxy.sni = sni
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const congestion = url.searchParams.get("congestion_control")
+  if (congestion) proxy["congestion-controller"] = congestion
+
+  const udpRelay = url.searchParams.get("udp_relay_mode")
+  if (udpRelay) proxy["udp-relay-mode"] = udpRelay
+
+  return proxy
+}
+
+/* ---------- HTTP / HTTPS ---------- */
+
+function parseHttp(link) {
+  const isHttps = link.toLowerCase().startsWith("https://")
+  const url = new URL(link)
+  
+  return {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "http",
+    server: url.hostname,
+    port: parseInt(url.port) || (isHttps ? 443 : 80),
+    tls: isHttps,
+    username: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || ""
+  }
+}
+
+/* ---------- SOCKS5 ---------- */
+
+function parseSocks(link) {
+  const url = new URL(link.replace(/^(socks|socks5):\/\//i, "http://"))
+  
+  return {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "socks5",
+    server: url.hostname,
+    port: parseInt(url.port) || 1080,
+    username: safeDecode(url.username) || "",
+    password: safeDecode(url.password) || ""
+  }
+}
+
+/* ---------- SNELL ---------- */
+
+function parseSnell(link) {
+  const url = new URL(link.replace(/^snell:\/\//i, "http://"))
+  
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "snell",
+    server: url.hostname,
+    port: parseInt(url.port),
+    psk: safeDecode(url.username || url.searchParams.get("psk")) || "",
+    version: url.searchParams.get("version") || "2"
+  }
+  
+  const obfs = url.searchParams.get("obfs")
+  if (obfs && obfs !== "none") {
+    proxy["obfs-opts"] = { mode: obfs }
+    const host = url.searchParams.get("obfs-host")
+    if (host) proxy["obfs-opts"].host = host
+  }
+
+  return proxy
+}
+
+/* ---------- SSH ---------- */
+
+function parseSSH(link) {
+  const url = new URL(link.replace(/^ssh:\/\//i, "http://"))
+  
+  return {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "ssh",
+    server: url.hostname,
+    port: parseInt(url.port) || 22,
+    user: safeDecode(url.username) || "",
+    username: safeDecode(url.username) || "", // Duplicate to prevent strict Mihomo YAML missing key errors
+    password: safeDecode(url.password) || ""
+  }
+}
+
+/* ---------- Validation ---------- */
+
+function valid(p) {
+  if (!p.server) return false
+  if (!p.port || isNaN(p.port) || p.port < 1 || p.port > 65535) return false
+  
+  // Block junk domains that get mistakenly parsed as HTTP proxies
+  const blockedServers = ["127.0.0.1", "0.0.0.0", "localhost", "t.me", "github.com", "raw.githubusercontent.com", "google.com"]
+  if (blockedServers.some(s => p.server.toLowerCase().includes(s))) return false
+
+  // Strict Reality Validation
+  if (p["reality-opts"]) {
+    const pbk = p["reality-opts"]["public-key"]
+    if (!pbk || typeof pbk !== 'string') return false
+    
+    // Check Public Key format and length
+    const cleanPbk = pbk.replace(/=/g, "").trim()
+    if (cleanPbk.length !== 43 || !/^[A-Za-z0-9\-_]+$/.test(cleanPbk)) {
+      return false
+    }
+
+    // Check Short ID (sid) format and length
+    const sid = p["reality-opts"]["short-id"]
+    if (sid) {
+      if (typeof sid !== 'string' || !/^[0-9a-fA-F]+$/.test(sid) || sid.length % 2 !== 0 || sid.length > 16) {
+        return false // Drop the proxy if the sid is invalid
+      }
+    }
+  }
+
+  // Official Mihomo Supported SS/SSR Ciphers Whitelist
+  const validSSCiphers = [
+    "aes-128-gcm", "aes-192-gcm", "aes-256-gcm",
+    "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+    "aes-128-ctr", "aes-192-ctr", "aes-256-ctr",
+    "rc4-md5", "chacha20-ietf", "xchacha20", "chacha20",
+    "chacha20-ietf-poly1305", "xchacha20-ietf-poly1305",
+    "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305",
+    "none"
+  ];
+  
+  // Specific Protocol Strict Validation (Drop configs missing required auth fields if they are critically needed)
+  switch (p.type) {
+    case "vmess":
+    case "vless":
+      if (!p.uuid) return false; break;
+    case "trojan":
+      if (!p.password) return false; break;
+    case "wireguard":
+      if (!p["private-key"]) return false; break;
+    case "hysteria2":
+      if (!p.password) return false; break;
+    case "hysteria":
+      if (!p.auth_str) return false; break;
+    case "tuic":
+      if (!p.uuid || !p.password) return false; break;
+    case "snell":
+      if (!p.psk) return false; break;
+    case "ss":
+      if (!p.cipher || !p.password) return false;
+      if (!validSSCiphers.includes(p.cipher.toLowerCase())) return false; 
+      
+      // Auto-Padder and Strict Validation specifically for SS-2022 Ciphers
+      if (p.cipher.toLowerCase().startsWith("2022-")) {
+        try {
+          const keys = p.password.split(":");
+          let fixedKeys = [];
+          for (const k of keys) {
+            let cleanK = k.trim().replace(/-/g, "+").replace(/_/g, "/");
+            const pad = cleanK.length % 4;
+            if (pad === 1) return false; // Fundamentally invalid base64 length
+            if (pad === 2) cleanK += "==";
+            if (pad === 3) cleanK += "=";
+            
+            // Check for illegal characters before decoding
+            if (!/^[A-Za-z0-9+/]+={0,2}$/.test(cleanK)) return false;
+            
+            atob(cleanK); // Perform strict check
+            fixedKeys.push(cleanK); // Save the corrected padded key
+          }
+          p.password = fixedKeys.join(":"); // Mutate the object to feed Mihomo the correctly padded key
+        } catch {
+          return false; // Drop if decoding completely fails
+        }
+      }
+      break;
+    case "ssr":
+      if (!p.cipher || !p.password || !p.protocol || !p.obfs) return false;
+      if (!validSSCiphers.includes(p.cipher.toLowerCase())) return false; 
+      break;
+    case "anytls":
+    case "http":
+    case "socks5":
+    case "ssh":
+      // Keys are guaranteed to exist now (even as empty strings), no need to drop them!
+      break;
+  }
+
+  return true
+}
+
+/* ---------- Dedupe ---------- */
+
+function fingerprint(p) {
+  // Catch all authentication parameters for accurate deduplication
+  return [p.type, p.server, p.port, p.uuid || p.password || p.auth_str || p["private-key"] || p.psk || p.user || ""].join("|")
+}
+
+function dedupe(list) {
+  const m = new Map()
+  for (const p of list)
+    if (!m.has(fingerprint(p)))
+      m.set(fingerprint(p), p)
+  return [...m.values()]
+}
+
+/* ---------- Provider Builder ---------- */
+
+function buildProvider(proxies) {
+  // Uses explicit \n instead of multi-line template literal to avoid CRLF trailing issues
+  return "proxies:\n" + proxies.map(p => "  - " + JSON.stringify(p)).join("\n") + "\n";
+}

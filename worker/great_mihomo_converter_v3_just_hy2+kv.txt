@@ -1,0 +1,407 @@
+// =====================================================
+// wrangler.toml:
+// [[kv_namespaces]]
+// binding = "CACHE"
+// id = "YOUR_KV_NAMESPACE_ID"
+// =====================================================
+
+const CACHE_TTL = 1800     // 30 دقیقه KV cache
+const FETCH_TIMEOUT = 7000 // 7 ثانیه timeout هر subscription
+const MAX_PROXIES = 1000
+
+export default {
+  async fetch(request, env) {
+    try {
+      const reqUrl = new URL(request.url)
+
+      // پاک‌سازی cache با ?purge=1
+      if (reqUrl.searchParams.get("purge") === "1") {
+        if (env.CACHE) await env.CACHE.delete("proxies_hy2")
+        return new Response("Cache cleared.", { status: 200 })
+      }
+
+      // ── مرحله ۱: خواندن از KV cache ──
+      if (env.CACHE) {
+        try {
+          const cached = await env.CACHE.get("proxies_hy2")
+          if (cached) {
+            return new Response(cached, {
+              headers: {
+                "content-type": "text/yaml; charset=utf-8",
+                "Cache-Control": "public, max-age=1800",
+                "x-cache": "HIT"
+              }
+            })
+          }
+        } catch {}
+      }
+
+      // ── مرحله ۲: fetch و پردازش ──
+      const SUBS = [...new Set(`     
+      https://raw.githubusercontent.com/10ium/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt
+      https://raw.githubusercontent.com/10ium/telegram-configs-collector/main/protocols/hysteria
+      https://raw.githubusercontent.com/10ium/VpnClashFaCollector/main/sub/all/hysteria2.txt
+      https://raw.githubusercontent.com/10ium/HiN-VPN/main/subscription/normal/hysteria
+      https://raw.githubusercontent.com/itsyebekhe/PSG/main/subscriptions/xray/base64/hy2
+      https://raw.githubusercontent.com/DarknessShade/WoW/refs/heads/main/clash-wg.yml
+      https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/clash-meta-wg.yml
+      https://raw.githubusercontent.com/darkvpnapp/CloudflarePlus/refs/heads/main/clash.yaml
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs1.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs2.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs3.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs4.txt
+      https://raw.githubusercontent.com/expressalaki/ExpressVPN/refs/heads/main/configs5.txt
+      https://raw.githubusercontent.com/lagzian/TVC/main/lite/subscriptions/meta/mix
+      https://raw.githubusercontent.com/liketolivefree/kobabi/main/prov_clash.yaml
+      https://raw.githubusercontent.com/liketolivefree/kobabi/main/sub_all.txt
+      https://raw.githubusercontent.com/maimengmeng/mysub/refs/heads/main/valid_content_all.txt
+      https://raw.githubusercontent.com/xtoolkit/TVC/main/subscriptions/meta/mix
+      https://v2.alicivil.workers.dev/?list=mix&count=500&shuffle=false&unique=false
+      https://raw.githubusercontent.com/10ium/V2ray-Config/main/Splitted-By-Protocol/hysteria2.txt
+      `.split("\n").map(s => s.trim()).filter(Boolean))]
+
+      let proxies = []
+
+      const fetchPromises = SUBS.map(async (sub) => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
+        try {
+          const res = await fetch(sub, {
+            signal: controller.signal,
+            cf: { cacheTtl: 3600, cacheEverything: true }
+          })
+          clearTimeout(timer)
+          if (!res.ok) return []
+
+          const raw = await res.text()
+          const decoded = decodeSub(raw)
+          let localProxies = []
+
+          if (/^\s*proxies:/m.test(decoded) || /^\s*-\s*name:/m.test(decoded) || /^\s*-\s*\{/m.test(decoded)) {
+            localProxies = extractYamlConfigs(decoded)
+          } else {
+            const lines = decoded.split("\n").map(l => l.trim()).filter(Boolean)
+            for (const line of lines) {
+              const l = line.toLowerCase()
+              if (l.startsWith("hy2://") || l.startsWith("hysteria2://")) {
+                const p = parseHysteria2(line)
+                if (p) localProxies.push(p)
+              }
+            }
+          }
+
+          const cleanLocal = []
+          for (let p of localProxies) {
+            // ── فیلتر: فقط hysteria2 ──
+            if (p.type !== "hysteria2") continue
+            p = sanitizeObj(p)
+            p = fixProxyArrayFields(p)
+            p.name = p.name || "Unnamed"
+            if (valid(p)) cleanLocal.push(p)
+          }
+          return cleanLocal
+        } catch {
+          clearTimeout(timer)
+          return []
+        }
+      })
+
+      const results = await Promise.allSettled(fetchPromises)
+      results.forEach(r => { if (r.status === "fulfilled") proxies.push(...r.value) })
+
+      proxies = dedupe(proxies)
+
+      // shuffle
+      for (let i = proxies.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [proxies[i], proxies[j]] = [proxies[j], proxies[i]]
+      }
+      proxies = proxies.slice(0, MAX_PROXIES)
+
+      // نام‌گذاری ترتیبی
+      proxies.forEach((p, i) => { p.name = `hy2 ${i + 1}` })
+
+      const output = buildProvider(proxies)
+
+      // ── مرحله ۳: ذخیره در KV ──
+      if (env.CACHE) {
+        try { await env.CACHE.put("proxies_hy2", output, { expirationTtl: CACHE_TTL }) } catch {}
+      }
+
+      return new Response(output, {
+        headers: {
+          "content-type": "text/yaml; charset=utf-8",
+          "Cache-Control": "public, max-age=1800",
+          "x-cache": "MISS"
+        }
+      })
+
+    } catch (e) {
+      return new Response("error: " + e.toString(), { status: 500 })
+    }
+  }
+}
+
+/* ========== YAML Parser ========== */
+function parseInlineYaml(str) {
+  str = str.trim()
+  if (!str.startsWith('{') || !str.endsWith('}')) return null
+  str = str.slice(1, -1)
+  const result = {}
+  let currentKey = "", currentValue = "", inKey = true, depth = 0, inQuote = false, quoteChar = ''
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i]
+    if (char === '"' || char === "'") {
+      if (!inQuote) { inQuote = true; quoteChar = char }
+      else if (quoteChar === char) inQuote = false
+    }
+    if (!inQuote) {
+      if (char === '{' || char === '[') depth++
+      if (char === '}' || char === ']') depth--
+      if (char === ':' && inKey && depth === 0) { inKey = false; continue }
+      if (char === ',' && !inKey && depth === 0) {
+        if (currentKey.trim()) result[currentKey.trim()] = parseYamlValue(currentValue.trim())
+        currentKey = ""; currentValue = ""; inKey = true; continue
+      }
+    }
+    if (inKey) currentKey += char; else currentValue += char
+  }
+  if (currentKey.trim()) result[currentKey.trim()] = parseYamlValue(currentValue.trim())
+  return result
+}
+
+function parseYamlValue(val) {
+  if (typeof val !== 'string') return val
+  val = val.trim()
+  if (val === 'true') return true
+  if (val === 'false') return false
+  if (/^[0-9]+$/.test(val)) return Number(val)
+  if (val.startsWith('{') && val.endsWith('}')) return parseInlineYaml(val)
+  if (val.startsWith('[') && val.endsWith(']')) return val.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''))
+  return val.replace(/^["']|["']$/g, '')
+}
+
+// ── دقیقاً همون منطق ورکر اصلی ──
+function extractYamlConfigs(text) {
+  const proxies = []
+  let currentProxy = null
+  let currentNestedKey = null
+  let currentNestedIndent = 0
+
+  const knownListKeys = new Set(["allowed-ips", "dns", "alpn", "peers"])
+
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trim().startsWith('#')) continue
+
+    const listMatch = line.match(/^(\s*)-\s*(.*)$/)
+    if (listMatch) {
+      const indent = listMatch[1].length
+
+      // آیتم list داخل nested block
+      if (currentProxy && currentNestedKey && indent > currentNestedIndent) {
+        if (Array.isArray(currentProxy[currentNestedKey])) {
+          currentProxy[currentNestedKey].push(parseYamlValue(listMatch[2].trim()))
+          continue
+        }
+      }
+
+      // ذخیره proxy قبلی (بدون فیلتر — فیلتر بیرون از این تابعه)
+      if (currentProxy && currentProxy.type && currentProxy.server) proxies.push(currentProxy)
+      currentProxy = {}
+      currentNestedKey = null
+      currentNestedIndent = 0
+      const remainder = listMatch[2].trim()
+      if (remainder.startsWith('{')) {
+        const parsed = parseInlineYaml(remainder)
+        if (parsed) proxies.push(parsed)
+        currentProxy = null
+      } else if (remainder) {
+        const kv = remainder.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)$/)
+        if (kv) currentProxy[kv[1]] = parseYamlValue(kv[2])
+      }
+      continue
+    }
+
+    if (currentProxy) {
+      const indent = line.match(/^(\s*)/)[1].length
+
+      // داخل nested key هستیم
+      if (currentNestedKey && indent > currentNestedIndent) {
+        const nestedListItem = line.match(/^\s+-\s+(.*)$/)
+        if (nestedListItem) {
+          if (!Array.isArray(currentProxy[currentNestedKey])) {
+            currentProxy[currentNestedKey] = []
+          }
+          currentProxy[currentNestedKey].push(parseYamlValue(nestedListItem[1]))
+          continue
+        }
+        const nestedKv = line.match(/^\s+([a-zA-Z0-9_-]+)\s*:\s*(.*)$/)
+        if (nestedKv && nestedKv[2].trim() !== '') {
+          if (Array.isArray(currentProxy[currentNestedKey])) {
+            currentProxy[currentNestedKey] = {}
+          }
+          currentProxy[currentNestedKey][nestedKv[1]] = parseYamlValue(nestedKv[2])
+          continue
+        }
+      }
+
+      // nested key بدون مقدار
+      const nestedKeyOnly = line.match(/^(\s+)([a-zA-Z0-9_-]+)\s*:\s*$/)
+      if (nestedKeyOnly) {
+        currentNestedKey = nestedKeyOnly[2]
+        currentNestedIndent = nestedKeyOnly[1].length
+        currentProxy[currentNestedKey] = knownListKeys.has(currentNestedKey) ? [] : {}
+        continue
+      }
+
+      // فیلد معمولی با مقدار
+      const kv = line.match(/^\s+([a-zA-Z0-9_-]+)\s*:\s*(.*)$/)
+      if (kv && kv[2].trim() !== '') {
+        currentNestedKey = null
+        currentNestedIndent = 0
+        currentProxy[kv[1]] = parseYamlValue(kv[2])
+      }
+    }
+  }
+  if (currentProxy && currentProxy.type && currentProxy.server) proxies.push(currentProxy)
+  return proxies
+}
+
+/* ========== Fix Array Fields ========== */
+function fixProxyArrayFields(p) {
+  // alpn باید array باشه
+  if (p.alpn !== undefined && !Array.isArray(p.alpn)) {
+    if (typeof p.alpn === 'string' && p.alpn.trim() !== '') {
+      p.alpn = p.alpn.split(",").map(s => s.trim()).filter(Boolean)
+    } else {
+      delete p.alpn
+    }
+  }
+  return p
+}
+
+/* ========== Decode / Sanitize ========== */
+function normalizeBase64(v) {
+  if (!v) return null
+  v = v.trim().replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "")
+  const pad = v.length % 4
+  if (pad === 1) return null
+  if (pad === 2) v += "=="
+  if (pad === 3) v += "="
+  try { return new TextDecoder().decode(Uint8Array.from(atob(v), m => m.codePointAt(0))) }
+  catch { return null }
+}
+function decodeSub(text) { return text.includes("://") ? text : (normalizeBase64(text) || text) }
+function safeDecode(str) { try { return decodeURIComponent(str) } catch { return str } }
+function sanitizeObj(obj) {
+  if (typeof obj === 'string') return obj.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200D\uFEFF\uFFFD]/g, "").trim()
+  if (Array.isArray(obj)) return obj.map(sanitizeObj)
+  if (obj !== null && typeof obj === 'object') {
+    const res = {}
+    for (const key in obj) res[key] = sanitizeObj(obj[key])
+    return res
+  }
+  return obj
+}
+
+/* ========== Hysteria2 Parser ========== */
+function parseHysteria2(link) {
+  const url = new URL(link.replace(/^(hy2|hysteria2):\/\//i, "http://"))
+
+  const proxy = {
+    name: safeDecode(url.hash.substring(1) || url.hostname),
+    type: "hysteria2",
+    server: url.hostname,
+    port: parseInt(url.port),
+    password: safeDecode(url.username) || "",
+    udp: true
+  }
+
+  const sni = url.searchParams.get("sni") || url.searchParams.get("peer")
+  if (sni) proxy.sni = sni
+
+  const insecure = url.searchParams.get("insecure") || url.searchParams.get("allowInsecure")
+  if (insecure === "1" || insecure === "true") proxy["skip-cert-verify"] = true
+
+  const alpn = url.searchParams.get("alpn")
+  if (alpn) proxy.alpn = alpn.split(",")
+
+  const obfs = url.searchParams.get("obfs")
+  if (obfs && obfs.toLowerCase() === "salamander") {
+    proxy.obfs = "salamander"
+    const obfsPass = url.searchParams.get("obfs-password") || url.searchParams.get("obfsPassword")
+    if (obfsPass) proxy["obfs-password"] = obfsPass
+  }
+
+  const up = url.searchParams.get("up")
+  const down = url.searchParams.get("down")
+  if (up) proxy.up = up
+  if (down) proxy.down = down
+
+  return proxy
+}
+
+/* ========== Validation ========== */
+function valid(p) {
+  if (!p.server || typeof p.server !== 'string' || p.server.trim() === '') return false
+  if (!p.port || isNaN(p.port) || p.port < 1 || p.port > 65535) return false
+  if (!p.password || typeof p.password !== 'string' || p.password.trim() === '') return false
+  if (p.obfs && p.obfs !== "salamander") return false
+
+  const blockedServers = ["127.0.0.1", "0.0.0.0", "localhost", "::1", "t.me", "github.com", "raw.githubusercontent.com", "google.com"]
+  if (blockedServers.some(s => p.server.toLowerCase().includes(s))) return false
+
+  if (p.alpn !== undefined && !Array.isArray(p.alpn)) return false
+
+  return true
+}
+
+/* ========== Dedupe ========== */
+function dedupe(list) {
+  const m = new Map()
+  for (const p of list) {
+    const key = `${p.server}|${p.port}|${p.password}`
+    if (!m.has(key)) m.set(key, p)
+  }
+  return [...m.values()]
+}
+
+/* ========== YAML Builder ========== */
+function yamlStr(val) {
+  return '"' + String(val).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r") + '"'
+}
+
+function buildProvider(proxies) {
+  let yaml = "proxies:\n"
+  for (const p of proxies) {
+    yaml += `  - name: ${yamlStr(p.name)}\n`
+    yaml += `    type: ${p.type}\n`
+    yaml += `    server: ${yamlStr(p.server)}\n`
+    yaml += `    port: ${p.port}\n`
+
+    for (const key in p) {
+      if (["name", "type", "server", "port"].includes(key)) continue
+      const val = p[key]
+      if (val === null || val === undefined) continue
+
+      if (typeof val === 'object') {
+        if (Array.isArray(val)) {
+          yaml += `    ${key}:\n`
+          for (const item of val) {
+            yaml += `      - ${typeof item === 'string' ? yamlStr(item) : item}\n`
+          }
+        } else {
+          yaml += `    ${key}: ${JSON.stringify(val)}\n`
+        }
+      } else if (typeof val === 'string') {
+        yaml += `    ${key}: ${yamlStr(val)}\n`
+      } else if (typeof val === 'boolean') {
+        yaml += `    ${key}: ${val}\n`
+      } else if (typeof val === 'number') {
+        yaml += `    ${key}: ${val}\n`
+      }
+    }
+  }
+  return yaml
+}

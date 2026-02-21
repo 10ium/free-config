@@ -1,0 +1,747 @@
+/**
+ * ============================================
+ * IPTV Proxy & Player - Cloudflare Worker
+ * ============================================
+ * Features:
+ *  - Full 31 Categories (Persian Translations)
+ *  - Favorites System (Local Storage) & Drag-to-Reorder
+ *  - Direct Stream URL Exporter & Copy to Clipboard
+ *  - VPN Warning for Geo-blocked Direct Links
+ *  - Media Scanner (Detects Subtitles/Dubs & Suggests External Player)
+ *  - Smart Proxy Fallback (User-Selectable Priority)
+ *  - Advanced Proxy Engine (Rewrites deep HLS manifests)
+ *  - Infinite Scroll & Lazy Loading (Search Bug Fixed)
+ *  - Smart Error Analyzer
+ *  - Perfect Mobile UI (No Overlapping Panels)
+ * ============================================
+ */
+
+const HTML_UI = `
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Pro Player</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <style>
+        :root { --bg-color: #0f172a; --panel-bg: #1e293b; --text-color: #f8fafc; --primary: #3b82f6; --hover: #334155; --fav: #eab308; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, system-ui, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        header { background-color: var(--panel-bg); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; flex-wrap: wrap; gap: 10px; }
+        header h1 { font-size: 1.2rem; display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; }
+        .search-box { padding: 8px 15px; border-radius: 20px; border: none; outline: none; background: #0f172a; color: white; width: 300px; transition: 0.3s; }
+        .search-box:focus { box-shadow: 0 0 0 2px var(--primary); }
+        
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        
+        /* 🔥 FIX: Changed alignment and added gap to prevent overlap 🔥 */
+        .player-container { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #000; position: relative; overflow-y: auto; gap: 15px; }
+        
+        /* 🔥 FIX: Added flex-shrink: 0 to protect video aspect ratio 🔥 */
+        .video-wrapper { width: 100%; max-width: 1000px; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000; position: relative; flex-shrink: 0; margin-top: 10px; }
+        .video-wrapper video { width: 100%; height: 100%; }
+
+        /* Stream Info Panel & Export URL */
+        /* 🔥 FIX: Added flex-shrink: 0 to prevent crushing text 🔥 */
+        .stream-info-panel { width: 100%; max-width: 1000px; background: #1e293b; border-radius: 10px; padding: 15px; display: none; flex-direction: column; gap: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border: 1px solid #334155; flex-shrink: 0; margin-bottom: 20px; }
+        .copy-url-container { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .copy-url-container input { flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #60a5fa; outline: none; font-family: monospace; direction: ltr; text-align: left; font-size: 0.85rem; }
+        .copy-url-container button { padding: 10px 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; white-space: nowrap; font-weight: bold; font-size: 0.9rem; }
+        .copy-url-container button:hover { background: #2563eb; }
+        
+        .media-features-box { background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; display: none; flex-direction: column; gap: 8px; border-right: 4px solid var(--fav); }
+        .external-player-notice { color: var(--fav); font-weight: bold; margin-top: 5px; font-size: 0.8rem; line-height: 1.6; background: rgba(234, 179, 8, 0.1); padding: 8px; border-radius: 5px; }
+        .vpn-notice { display: none; color: #ef4444; font-weight: bold; margin-top: 5px; font-size: 0.85rem; line-height: 1.6; background: rgba(239, 68, 68, 0.1); padding: 8px; border-radius: 5px; border-right: 4px solid #ef4444; }
+
+        .playlist-container { width: 400px; background-color: var(--panel-bg); display: flex; flex-direction: column; border-right: 1px solid #334155; flex-shrink: 0; }
+        .controls-panel { padding: 15px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; flex-direction: column; gap: 10px; }
+        .category-select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; cursor: pointer; font-family: inherit; font-size: 0.85rem; }
+        
+        .custom-input-group { display: flex; gap: 5px; }
+        .custom-input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; font-size: 0.8rem; }
+        .custom-btn { padding: 8px 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; white-space: nowrap; }
+        .custom-btn:hover { background: #2563eb; }
+
+        .playlist-header { font-size: 0.85rem; text-align: center; color: #94a3b8; margin-top: 5px; }
+        
+        .channel-list { flex: 1; overflow-y: auto; list-style: none; position: relative; scroll-behavior: smooth; }
+        .channel-item { display: flex; align-items: center; padding: 10px 15px; border-bottom: 1px solid #334155; cursor: pointer; transition: background 0.2s, opacity 0.2s; user-select: none; }
+        .channel-item:hover { background-color: var(--hover); }
+        .channel-item.active { background-color: var(--primary); color: white; border-right: 4px solid #60a5fa; }
+        
+        .drag-handle { cursor: grab; padding: 5px 10px; color: #64748b; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+        .drag-handle:active { cursor: grabbing; }
+        .channel-item.dragging { opacity: 0.4; background: #0f172a; }
+        .channel-item.drag-over { border-top: 2px solid var(--primary); }
+        
+        .favorite-btn { cursor: pointer; color: #475569; font-size: 1.5rem; padding: 5px 10px; transition: 0.2s; }
+        .favorite-btn:hover { color: #94a3b8; transform: scale(1.1); }
+        .favorite-btn.active { color: var(--fav); text-shadow: 0 0 10px rgba(234,179,8,0.5); }
+
+        .channel-logo { width: 45px; height: 45px; border-radius: 5px; margin-left: 10px; background: #334155; object-fit: contain; padding: 2px; flex-shrink: 0; pointer-events: none; }
+        .channel-info { flex: 1; overflow: hidden; pointer-events: none; }
+        .channel-name-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+        .channel-name { font-size: 0.95rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .channel-category { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .loading-text { text-align: center; padding: 30px 20px; color: #94a3b8; line-height: 1.6; }
+        .loading-more { text-align: center; padding: 15px; color: #64748b; font-size: 0.8rem; }
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; margin-right: 5px; font-weight: normal; }
+        .badge-direct { background: #10b981; color: white; }
+        .badge-proxy { background: #3b82f6; color: white; }
+        .badge-error { background: #ef4444; color: white; }
+        .badge-warning { background: #f59e0b; color: white; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        
+        /* 📱 MOBILE OPTIMIZATIONS 📱 */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .playlist-container { width: 100%; height: 50vh; border-right: none; border-top: 1px solid #334155; }
+            
+            header { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
+            .search-box { width: 100%; max-width: none; }
+            
+            /* 🔥 FIX: Let the player section scroll properly without squishing 🔥 */
+            .player-container { padding: 10px; gap: 10px; overflow-y: auto; justify-content: flex-start; }
+            .video-wrapper { margin-top: 0; }
+            #nowPlayingText { font-size: 1rem; margin-top: 5px; margin-bottom: 0; flex-shrink: 0; }
+            
+            .stream-info-panel { padding: 12px; margin-top: 5px; gap: 12px; }
+            .copy-url-container { flex-direction: column; align-items: stretch; gap: 8px; }
+            .copy-url-container input { width: 100%; min-width: 100%; padding: 12px 10px; font-size: 0.8rem; }
+            .copy-url-container button { width: 100%; padding: 12px; font-size: 1rem; }
+            
+            .vpn-notice { font-size: 0.8rem; padding: 10px; text-align: justify; }
+            .media-features-box { padding: 10px; gap: 10px; }
+            .external-player-notice { font-size: 0.75rem; padding: 10px; text-align: justify; margin-top: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 onclick="document.getElementById('categorySelect').value='favorites'; loadCategory('favorites');">📺 IPTV Pro</h1>
+        <input type="text" id="searchInput" class="search-box" placeholder="جستجو در این لیست...">
+    </header>
+
+    <div class="main-container">
+        <!-- Player Area -->
+        <div class="player-container">
+            <div class="video-wrapper">
+                <video id="player" controls crossorigin="anonymous" playsinline></video>
+            </div>
+            
+            <h2 id="nowPlayingText" style="color: #94a3b8; text-align: center; line-height: 1.6;">آماده پخش</h2>
+
+            <!-- Stream URL & Media Features Panel -->
+            <div class="stream-info-panel" id="streamInfoPanel">
+                <div class="copy-url-container">
+                    <input type="text" id="streamUrlInput" readonly title="لینک مستقیم استریم">
+                    <button id="copyBtn" onclick="copyStreamUrl()">📋 کپی لینک مستقیم</button>
+                </div>
+                
+                <div id="vpnNotice" class="vpn-notice">
+                    ⚠️ توجه: پخش مستقیم این شبکه محدود شده است. برای تماشای این لینک مستقیم در پلیر خارجی، حتماً VPN خود را روشن کنید.
+                </div>
+                
+                <div class="media-features-box" id="mediaFeaturesBox">
+                    <div id="audioFeatures" style="display:none;"></div>
+                    <div id="subtitleFeatures" style="display:none;"></div>
+                    <div class="external-player-notice">
+                        💡 مرورگرها قابلیت تغییر صدای دوبله و نمایش زیرنویس این شبکه را محدود کرده‌اند. برای استفاده از این امکانات، لینک مستقیم بالا را کپی کرده و در پلیرهای قدرتمند (مثل <b>VLC</b> یا <b>MX Player</b>) باز کنید.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Playlist Area -->
+        <div class="playlist-container">
+            <div class="controls-panel">
+                <select id="playbackMode" class="category-select" style="border-color: var(--primary);">
+                    <option value="direct-proxy">⚡ هوشمند: اول مستقیم، درصورت خطا پروکسی (پیش‌فرض)</option>
+                    <option value="proxy-direct">🛡️ هوشمند: اول پروکسی، درصورت خطا مستقیم</option>
+                    <option value="proxy-only">🌐 فقط پروکسی (عبور از تحریم / حل مشکل HTTP)</option>
+                    <option value="direct-only">🎯 فقط اتصال مستقیم</option>
+                </select>
+
+                <select id="categorySelect" class="category-select" onchange="loadCategory(this.value)">
+                    <option value="favorites" style="color: var(--fav); font-weight: bold;">⭐ شبکه‌های نشان‌شده (علاقه‌مندی‌ها)</option>
+                    <option disabled>─────────────────────────</option>
+                    <option value="https://iptv-org.github.io/iptv/languages/fas.m3u" selected>🇮🇷 شبکه‌های فارسی (پیش‌فرض)</option>
+                    <option value="https://iptv-org.github.io/iptv/index.m3u">🌍 همه شبکه‌های جهان (کامل)</option>
+                    <option disabled>────────── دسته‌بندی‌ها ──────────</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/movies.m3u">فیلم و سینما (Movies)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/series.m3u">سریال (Series)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/animation.m3u">انیمیشن (Animation)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/comedy.m3u">کمدی (Comedy)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/music.m3u">موسیقی (Music)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/news.m3u">اخبار (News)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/documentary.m3u">مستند (Documentary)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/sports.m3u">ورزشی (Sports)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/entertainment.m3u">سرگرمی (Entertainment)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/family.m3u">خانواده (Family)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/cooking.m3u">آشپزی (Cooking)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/general.m3u">عمومی (General)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/science.m3u">علمی (Science)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/lifestyle.m3u">سبک زندگی (Lifestyle)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/auto.m3u">خودرو (Auto)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/business.m3u">تجارت (Business)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/classic.m3u">کلاسیک (Classic)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/culture.m3u">فرهنگ (Culture)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/education.m3u">آموزش (Education)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/interactive.m3u">تعاملی (Interactive)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/kids.m3u">کودکان (Kids)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/legislative.m3u">مجلس و قانون‌گذاری (Legislative)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/outdoor.m3u">طبیعت و فضای باز (Outdoor)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/public.m3u">مردمی (Public)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/relax.m3u">آرامش‌بخش (Relax)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/shop.m3u">فروشگاهی (Shop)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/travel.m3u">سفر و گردشگری (Travel)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/weather.m3u">آب و هوا (Weather)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/religious.m3u">مذهبی (Religious)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/xxx.m3u">بزرگسالان (XXX)</option>
+                    <option value="https://iptv-org.github.io/iptv/categories/undefined.m3u">دسته‌بندی نشده (Undefined)</option>
+                </select>
+
+                <div class="custom-input-group">
+                    <input type="text" id="customUrlInput" class="custom-input" placeholder="لینک M3U8 یا لیست خود را وارد کنید...">
+                    <button class="custom-btn" onclick="handleCustomInput()">پخش / افزودن</button>
+                </div>
+
+                <div class="playlist-header" id="channelCount">انتخاب کنید...</div>
+            </div>
+            
+            <ul class="channel-list" id="channelList">
+                <div class="loading-text">لطفاً صبر کنید...</div>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script>
+        let fullChannelList = [];
+        let filteredChannelList = [];
+        let renderedCount = 0;
+        const CHUNK_SIZE = 50; 
+        let player, hls, itemObserver, infiniteScrollObserver;
+        let myFavorites = [];
+        let draggedItemIndex = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const savedFavs = localStorage.getItem('iptv_favorites_v5');
+                if (savedFavs) myFavorites = JSON.parse(savedFavs);
+            } catch(e) {}
+
+            const video = document.getElementById('player');
+            
+            player = new Plyr(video, {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'pip', 'airplay', 'fullscreen']
+            });
+
+            itemObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const li = entry.target;
+                        const img = li.querySelector('img');
+                        if (img && img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                            img.onerror = () => { img.style.opacity = '0'; };
+                        }
+                        observer.unobserve(li);
+                    }
+                });
+            }, { root: document.getElementById('channelList'), rootMargin: '100px' });
+
+            infiniteScrollObserver = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) { loadMoreChannels(); }
+            }, { root: document.getElementById('channelList'), rootMargin: '300px' });
+
+            loadCategory("https://iptv-org.github.io/iptv/languages/fas.m3u");
+        });
+
+        // 🌟 COPY URL TO CLIPBOARD 🌟
+        function copyStreamUrl() {
+            const input = document.getElementById('streamUrlInput');
+            input.select();
+            input.setSelectionRange(0, 99999); 
+            try {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    const btn = document.getElementById('copyBtn');
+                    btn.innerText = "✅ کپی شد";
+                    btn.style.background = "#10b981";
+                    setTimeout(() => {
+                        btn.innerText = "📋 کپی لینک مستقیم";
+                        btn.style.background = "var(--primary)";
+                    }, 2000);
+                });
+            } catch(err) {
+                document.execCommand("copy"); 
+            }
+        }
+
+        function resetInfoPanel() {
+            document.getElementById('streamInfoPanel').style.display = 'none';
+            document.getElementById('mediaFeaturesBox').style.display = 'none';
+            document.getElementById('audioFeatures').style.display = 'none';
+            document.getElementById('subtitleFeatures').style.display = 'none';
+            document.getElementById('vpnNotice').style.display = 'none';
+            document.getElementById('audioFeatures').innerHTML = '';
+            document.getElementById('subtitleFeatures').innerHTML = '';
+        }
+
+        // 🌟 FAVORITES SYSTEM 🌟
+        function toggleFavorite(event, url, name, logo, group) {
+            event.stopPropagation(); 
+            const existingIndex = myFavorites.findIndex(f => f.url === url);
+            if (existingIndex > -1) {
+                myFavorites.splice(existingIndex, 1);
+                event.target.classList.remove('active');
+            } else {
+                myFavorites.push({ url, name, logo, group });
+                event.target.classList.add('active');
+            }
+            localStorage.setItem('iptv_favorites_v5', JSON.stringify(myFavorites));
+            
+            if (document.getElementById('categorySelect').value === 'favorites') {
+                loadCategory('favorites');
+            }
+        }
+
+        async function loadCategory(url) {
+            const listEl = document.getElementById('channelList');
+            listEl.innerHTML = \`<div class="loading-text">در حال بارگیری...<br><small>لطفاً صبر کنید</small></div>\`;
+            document.getElementById('channelCount').innerText = "...";
+
+            if (url === 'favorites') {
+                fullChannelList = [...myFavorites];
+                filteredChannelList = [...fullChannelList];
+                initRender();
+                return;
+            }
+
+            try {
+                const response = await fetch('/proxy-m3u?url=' + encodeURIComponent(url));
+                const text = await response.text();
+                fullChannelList = parseM3U(text);
+                
+                // Keep search filter active if switching categories while typing
+                const term = document.getElementById('searchInput').value.trim().toLowerCase();
+                if (term.length > 0) {
+                    filteredChannelList = fullChannelList.filter(c => c.name.toLowerCase().includes(term) || c.group.toLowerCase().includes(term));
+                } else {
+                    filteredChannelList = [...fullChannelList];
+                }
+                
+                initRender();
+            } catch (error) {
+                listEl.innerHTML = \`<div class="loading-text" style="color:#ef4444">خطا در دریافت لیست.</div>\`;
+            }
+        }
+
+        function handleCustomInput() {
+            const inputUrl = document.getElementById('customUrlInput').value.trim();
+            if (!inputUrl) return;
+
+            if (inputUrl.includes('.m3u8') && !inputUrl.includes('.m3u')) {
+                startPlaybackLogic(inputUrl, 'شبکه شخصی', null);
+            } else {
+                document.getElementById('categorySelect').value = ""; 
+                loadCategory(inputUrl);
+            }
+        }
+
+        function parseM3U(m3uText) {
+            const lines = m3uText.split(/\\r?\\n/);
+            const parsedChannels = [];
+            let currentChannel = null;
+
+            if (!m3uText.includes('#EXTM3U') && !m3uText.includes('#EXTINF')) return [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                    const groupMatch = line.match(/group-title="([^"]+)"/);
+                    const namePart = line.split(',').pop();
+                    
+                    let logoUrl = logoMatch && logoMatch[1] ? logoMatch[1] : '';
+                    if(logoUrl) logoUrl = \`https://wsrv.nl/?url=\${encodeURIComponent(logoUrl)}&w=64&h=64&fit=contain\`;
+
+                    currentChannel = {
+                        name: namePart ? namePart.trim() : 'شبکه ناشناس',
+                        logo: logoUrl,
+                        group: groupMatch ? groupMatch[1] : 'عمومی',
+                        url: ''
+                    };
+                } else if (line.startsWith('http') && currentChannel) {
+                    currentChannel.url = line;
+                    parsedChannels.push(currentChannel);
+                    currentChannel = null;
+                }
+            }
+            return parsedChannels;
+        }
+
+        // 🌟 DRAG AND DROP REORDERING 🌟
+        function handleDragStart(e) {
+            if (document.getElementById('searchInput').value.trim() !== '') {
+                e.preventDefault();
+                return;
+            }
+            draggedItemIndex = parseInt(e.currentTarget.dataset.absIndex);
+            e.currentTarget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetElement = e.currentTarget;
+            targetElement.classList.remove('drag-over');
+            
+            const targetIndex = parseInt(targetElement.dataset.absIndex);
+            if (draggedItemIndex === null || draggedItemIndex === targetIndex) return;
+
+            const itemToMove = filteredChannelList.splice(draggedItemIndex, 1)[0];
+            filteredChannelList.splice(targetIndex, 0, itemToMove);
+
+            if (document.getElementById('categorySelect').value === 'favorites') {
+                myFavorites = [...filteredChannelList];
+                localStorage.setItem('iptv_favorites_v5', JSON.stringify(myFavorites));
+            }
+
+            const ul = document.getElementById('channelList');
+            const scrollPos = ul.scrollTop;
+            initRender();
+            setTimeout(() => { ul.scrollTop = scrollPos; }, 50);
+        }
+
+        function handleDragEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('drag-over'));
+            draggedItemIndex = null;
+        }
+
+        function initRender() {
+            const ul = document.getElementById('channelList');
+            
+            if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+            
+            ul.innerHTML = '';
+            renderedCount = 0;
+
+            const sentinel = document.createElement('div');
+            sentinel.id = 'scroll-sentinel';
+            sentinel.className = 'loading-more';
+            ul.appendChild(sentinel);
+            infiniteScrollObserver.observe(sentinel);
+
+            if (filteredChannelList.length === 0) {
+                sentinel.innerText = "لیست خالی است یا موردی یافت نشد.";
+            } else {
+                loadMoreChannels();
+            }
+        }
+
+        function loadMoreChannels() {
+            if (renderedCount >= filteredChannelList.length) {
+                const sentinel = document.getElementById('scroll-sentinel');
+                if(sentinel) sentinel.innerText = "پایان لیست.";
+                return;
+            }
+
+            const ul = document.getElementById('channelList');
+            const sentinel = document.getElementById('scroll-sentinel');
+            const nextBatch = filteredChannelList.slice(renderedCount, renderedCount + CHUNK_SIZE);
+            
+            nextBatch.forEach((channel, i) => {
+                const absoluteIndex = renderedCount + i;
+                const isFav = myFavorites.some(f => f.url === channel.url);
+                
+                const li = document.createElement('li');
+                li.className = 'channel-item';
+                li.dataset.streamUrl = channel.url; 
+                li.dataset.absIndex = absoluteIndex;
+                li.draggable = true;
+                
+                li.innerHTML = \`
+                    <span class="drag-handle" title="جابجایی (Drag & Drop)">↕</span>
+                    <img data-src="\${channel.logo}" class="channel-logo">
+                    <div class="channel-info">
+                        <div class="channel-name-row">
+                            <div class="channel-name">\${channel.name}</div>
+                        </div>
+                        <div class="channel-category">\${channel.group}</div>
+                    </div>
+                    <span class="favorite-btn \${isFav ? 'active' : ''}" title="نشان کردن" 
+                          onclick="toggleFavorite(event, '\${channel.url}', '\${channel.name}', '\${channel.logo}', '\${channel.group}')">★</span>
+                \`;
+                
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragover', handleDragOver);
+                li.addEventListener('dragleave', handleDragLeave);
+                li.addEventListener('drop', handleDrop);
+                li.addEventListener('dragend', handleDragEnd);
+
+                li.onclick = (e) => {
+                    if(e.target.classList.contains('drag-handle') || e.target.classList.contains('favorite-btn')) return;
+                    startPlaybackLogic(channel.url, channel.name, li);
+                };
+                
+                ul.insertBefore(li, sentinel);
+                itemObserver.observe(li);
+            });
+
+            renderedCount += nextBatch.length;
+            document.getElementById('channelCount').innerText = \`نمایش: \${renderedCount} از \${filteredChannelList.length}\`;
+        }
+
+        // 🌟 LIVE SEARCH 🌟
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            filteredChannelList = term.length === 0 
+                ? [...fullChannelList] 
+                : fullChannelList.filter(c => c.name.toLowerCase().includes(term) || c.group.toLowerCase().includes(term));
+            initRender();
+        });
+
+        /**
+         * 🌟 SMART PLAYBACK ENGINE & ERROR ANALYZER 🌟
+         */
+        function translateError(responseCode) {
+            if (!responseCode) return "خطای شبکه / عدم دسترسی مرورگر";
+            if (responseCode === 403) return "مسدود شده ⛔ (تحریم/انقضای لینک)";
+            if (responseCode === 404) return "حذف شده ❌ (لینک از کار افتاده)";
+            if (responseCode >= 500 && responseCode <= 504) return "سرور مبدا قطع است ⚠️";
+            if (responseCode > 504) return "خطای کلودفلر/ارتباطی مبدا ⚠️";
+            return \`خطای \${responseCode}\`;
+        }
+
+        function startPlaybackLogic(originalUrl, name, element) {
+            if(element) {
+                document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+                element.classList.add('active');
+            }
+            
+            resetInfoPanel();
+            
+            let mode = document.getElementById('playbackMode').value;
+            const isHttpsSite = window.location.protocol === 'https:';
+            const isHttpStream = originalUrl.startsWith('http://');
+
+            if (isHttpsSite && isHttpStream && (mode === 'direct-proxy' || mode === 'direct-only')) {
+                mode = (mode === 'direct-only') ? 'proxy-only' : 'proxy-direct';
+                document.getElementById('nowPlayingText').innerHTML = \`هشدار امنیتی: <span class="status-badge badge-warning">HTTP مسدود شد</span> تغییر اجباری به پروکسی...\`;
+            }
+
+            let attempt1Proxy = false, attempt2Proxy = null;
+            if (mode === 'direct-proxy') { attempt1Proxy = false; attempt2Proxy = true; }
+            else if (mode === 'proxy-direct') { attempt1Proxy = true; attempt2Proxy = false; }
+            else if (mode === 'proxy-only') { attempt1Proxy = true; attempt2Proxy = null; }
+            else if (mode === 'direct-only') { attempt1Proxy = false; attempt2Proxy = null; }
+
+            executeHlsLoad(originalUrl, name, attempt1Proxy, attempt2Proxy);
+        }
+
+        function executeHlsLoad(originalUrl, name, useProxy, fallbackToProxyState) {
+            const statusLabel = document.getElementById('nowPlayingText');
+            const video = document.getElementById('player');
+            
+            const targetUrl = useProxy ? ('/proxy-stream?url=' + encodeURIComponent(originalUrl)) : originalUrl;
+            
+            // 🌟 Always export the Original (Direct) URL
+            document.getElementById('streamUrlInput').value = originalUrl;
+            document.getElementById('streamInfoPanel').style.display = 'flex';
+            
+            if (useProxy) {
+                document.getElementById('vpnNotice').style.display = 'block';
+            } else {
+                document.getElementById('vpnNotice').style.display = 'none';
+            }
+
+            statusLabel.innerHTML = \`در حال اتصال: \${name} <span class="status-badge \${useProxy ? 'badge-proxy' : 'badge-direct'}">\${useProxy ? 'پروکسی' : 'مستقیم'}</span>\`;
+
+            const handleStreamError = (errorReason) => {
+                if (fallbackToProxyState !== null) {
+                    statusLabel.innerHTML = \`خطا (\${errorReason}). <span class="status-badge badge-warning">تلاش مسیر دوم...</span>\`;
+                    executeHlsLoad(originalUrl, name, fallbackToProxyState, null);
+                } else {
+                    statusLabel.innerHTML = \`خطا در پخش: \${name} <br><span class="status-badge badge-error" style="margin-top:5px; font-size:0.85rem">\${errorReason}</span>\`;
+                }
+            };
+
+            if (Hls.isSupported()) {
+                if (hls) hls.destroy();
+                hls = new Hls({ maxBufferLength: 30 });
+                
+                hls.loadSource(targetUrl);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+                    video.play().catch(e => console.log("Autoplay blocked")); 
+                    statusLabel.innerHTML = \`در حال پخش: \${name} <span class="status-badge \${useProxy ? 'badge-proxy' : 'badge-direct'}">\${useProxy ? 'پروکسی' : 'مستقیم'}</span>\`;
+                });
+
+                // 🌟 MEDIA SCANNER: DETECT AUDIO TRACKS 🌟
+                hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function (event, data) {
+                    if (data.audioTracks && data.audioTracks.length > 1) {
+                        const languages = data.audioTracks.map((t, i) => t.name || t.lang || \`زبان \${i+1}\`).join('، ');
+                        const audioBox = document.getElementById('audioFeatures');
+                        audioBox.innerHTML = \`🎧 <b>صداهای یافت شده:</b> \${languages}\`;
+                        audioBox.style.display = 'block';
+                        document.getElementById('mediaFeaturesBox').style.display = 'flex';
+                    }
+                });
+
+                // 🌟 MEDIA SCANNER: DETECT SUBTITLES 🌟
+                hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function (event, data) {
+                    if (data.subtitleTracks && data.subtitleTracks.length > 0) {
+                        const languages = data.subtitleTracks.map((t, i) => t.name || t.lang || \`زیرنویس \${i+1}\`).join('، ');
+                        const subBox = document.getElementById('subtitleFeatures');
+                        subBox.innerHTML = \`💬 <b>زیرنویس‌های یافت شده:</b> \${languages}\`;
+                        subBox.style.display = 'block';
+                        document.getElementById('mediaFeaturesBox').style.display = 'flex';
+                    }
+                });
+
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        let reason = "قطعی شبکه";
+                        if (data.response && data.response.code) {
+                            reason = translateError(data.response.code);
+                        } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            reason = "محدودیت مرورگر (CORS) یا قطعی نت";
+                        }
+                        handleStreamError(reason);
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = targetUrl;
+                video.addEventListener('error', () => handleStreamError("خطای پخش‌کننده داخلی گوشی"));
+                video.addEventListener('loadedmetadata', () => { 
+                    video.play().catch(e=>e); 
+                    statusLabel.innerHTML = \`در حال پخش: \${name} <span class="status-badge \${useProxy ? 'badge-proxy' : 'badge-direct'}">\${useProxy ? 'پروکسی' : 'مستقیم'}</span>\`;
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>
+`;
+
+export default {
+  async fetch(request) {
+    const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Range, User-Agent, X-Requested-With, Origin, Accept",
+        "Access-Control-Expose-Headers": "Content-Length, Content-Range, Content-Type"
+    };
+
+    if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+    try {
+      const requestUrl = new URL(request.url);
+      const path = requestUrl.pathname;
+
+      if (path === "/" || path === "") {
+        return new Response(HTML_UI, { 
+            headers: { 
+                "Content-Type": "text/html; charset=utf-8",
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            } 
+        });
+      }
+
+      if (path === "/proxy-m3u") {
+        const targetUrl = requestUrl.searchParams.get("url");
+        if (!targetUrl || !targetUrl.startsWith("http")) return new Response("Invalid URL", { status: 400, headers: corsHeaders });
+        const m3uRes = await fetch(targetUrl, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" } });
+        return new Response(m3uRes.body, { headers: { ...corsHeaders, "Content-Type": "text/plain", "Cache-Control": "public, max-age=3600" }});
+      }
+
+      if (path === "/proxy-stream") {
+        const targetUrl = requestUrl.searchParams.get("url");
+        if (!targetUrl) return new Response("Missing url", { status: 400, headers: corsHeaders });
+
+        const safeHeaders = new Headers();
+        safeHeaders.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
+        safeHeaders.set("Accept", "*/*");
+        safeHeaders.set("Referer", new URL(targetUrl).origin + "/");
+        safeHeaders.set("Origin", new URL(targetUrl).origin);
+        
+        const clientRange = request.headers.get("Range");
+        if (clientRange) safeHeaders.set("Range", clientRange);
+
+        const upstreamRes = await fetch(targetUrl, {
+          headers: safeHeaders,
+          redirect: "follow"
+        });
+
+        const proxyStatus = upstreamRes.status;
+
+        if (!upstreamRes.ok && proxyStatus !== 206) {
+            return new Response(`Upstream Error: ${proxyStatus}`, { status: proxyStatus, headers: corsHeaders });
+        }
+
+        let contentType = upstreamRes.headers.get("content-type") || "application/octet-stream";
+        let body = upstreamRes.body;
+
+        if (targetUrl.includes('.vtt') || targetUrl.includes('webvtt') || contentType.includes('text/vtt')) {
+            contentType = "text/vtt; charset=utf-8";
+        }
+
+        if (contentType.includes("mpegurl") || targetUrl.includes(".m3u8") || targetUrl.includes(".m3u")) {
+            let text = await upstreamRes.text();
+            const baseUrl = upstreamRes.url; 
+            
+            text = text.replace(/^([^#\s]+)/gm, (match) => {
+                const absoluteUrl = new URL(match, baseUrl).toString();
+                if(absoluteUrl.startsWith(requestUrl.origin)) return match;
+                return `${requestUrl.origin}/proxy-stream?url=${encodeURIComponent(absoluteUrl)}`;
+            });
+            
+            text = text.replace(/URI="([^"]+)"/g, (match, p1) => {
+                if(p1.includes('key') || p1.startsWith('data:')) return match;
+                const absoluteUrl = new URL(p1, baseUrl).toString();
+                if(absoluteUrl.startsWith(requestUrl.origin)) return match;
+                return `URI="${requestUrl.origin}/proxy-stream?url=${encodeURIComponent(absoluteUrl)}"`;
+            });
+            
+            body = text;
+        }
+
+        return new Response(body, {
+          status: proxyStatus,
+          headers: { ...corsHeaders, "Content-Type": contentType }
+        });
+      }
+
+      return new Response("Not found", { status: 404, headers: corsHeaders });
+    } catch (err) {
+      return new Response("Worker Error", { status: 500 });
+    }
+  }
+}

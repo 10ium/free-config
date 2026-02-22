@@ -3,16 +3,17 @@
  * IPTV Proxy & Player - Cloudflare Worker
  * ============================================
  * Features:
- *  - Full 31 Categories (Persian Translations)
+ *  - Player Settings Gear (Playback Speed, Quality)
+ *  - Categorized Full Menus (Languages, Regions, Genres)
  *  - Favorites System (Local Storage) & Drag-to-Reorder
- *  - Direct Stream URL Exporter & Copy to Clipboard
- *  - VPN Warning for Geo-blocked Direct Links
+ *  - Custom Playlist Manager (Add via URL or Upload File & Delete)
+ *  - Direct Stream URL Exporter & VPN Warning
  *  - Media Scanner (Detects Subtitles/Dubs & Suggests External Player)
  *  - Smart Proxy Fallback (User-Selectable Priority)
- *  - Advanced Proxy Engine (Rewrites deep HLS manifests)
+ *  - Advanced HLS Proxy Engine (Query Strings/Tokens Preserved)
  *  - Infinite Scroll & Lazy Loading (Search Bug Fixed)
  *  - Smart Error Analyzer
- *  - Perfect Mobile UI (No Overlapping Panels)
+ *  - Mobile UI Optimized
  * ============================================
  */
 
@@ -26,7 +27,7 @@ const HTML_UI = `
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-        :root { --bg-color: #0f172a; --panel-bg: #1e293b; --text-color: #f8fafc; --primary: #3b82f6; --hover: #334155; --fav: #eab308; }
+        :root { --bg-color: #0f172a; --panel-bg: #1e293b; --text-color: #f8fafc; --primary: #3b82f6; --hover: #334155; --fav: #eab308; --danger: #ef4444; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, system-ui, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
@@ -36,16 +37,10 @@ const HTML_UI = `
         .search-box:focus { box-shadow: 0 0 0 2px var(--primary); }
         
         .main-container { display: flex; flex: 1; overflow: hidden; }
-        
-        /* 🔥 FIX: Changed alignment and added gap to prevent overlap 🔥 */
         .player-container { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #000; position: relative; overflow-y: auto; gap: 15px; }
-        
-        /* 🔥 FIX: Added flex-shrink: 0 to protect video aspect ratio 🔥 */
         .video-wrapper { width: 100%; max-width: 1000px; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000; position: relative; flex-shrink: 0; margin-top: 10px; }
         .video-wrapper video { width: 100%; height: 100%; }
 
-        /* Stream Info Panel & Export URL */
-        /* 🔥 FIX: Added flex-shrink: 0 to prevent crushing text 🔥 */
         .stream-info-panel { width: 100%; max-width: 1000px; background: #1e293b; border-radius: 10px; padding: 15px; display: none; flex-direction: column; gap: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border: 1px solid #334155; flex-shrink: 0; margin-bottom: 20px; }
         .copy-url-container { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .copy-url-container input { flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #60a5fa; outline: none; font-family: monospace; direction: ltr; text-align: left; font-size: 0.85rem; }
@@ -58,12 +53,19 @@ const HTML_UI = `
 
         .playlist-container { width: 400px; background-color: var(--panel-bg); display: flex; flex-direction: column; border-right: 1px solid #334155; flex-shrink: 0; }
         .controls-panel { padding: 15px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; flex-direction: column; gap: 10px; }
-        .category-select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; cursor: pointer; font-family: inherit; font-size: 0.85rem; }
         
-        .custom-input-group { display: flex; gap: 5px; }
-        .custom-input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; font-size: 0.8rem; }
-        .custom-btn { padding: 8px 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; white-space: nowrap; }
-        .custom-btn:hover { background: #2563eb; }
+        .select-group { display: flex; gap: 5px; align-items: center; }
+        .category-select { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; cursor: pointer; font-family: inherit; font-size: 0.85rem; }
+        .delete-btn { background: var(--danger); color: white; border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer; display: none; }
+        .delete-btn:hover { background: #dc2626; }
+
+        .custom-input-group { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+        .custom-input { flex: 1; min-width: 150px; padding: 8px 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; font-size: 0.8rem; }
+        .custom-btn { padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; white-space: nowrap; }
+        .custom-btn:hover { background: #059669; }
+        .file-upload-btn { position: relative; overflow: hidden; background: #6366f1; color: white; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 0.8rem; text-align: center; }
+        .file-upload-btn input[type=file] { position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer; }
+        .file-upload-btn:hover { background: #4f46e5; }
 
         .playlist-header { font-size: 0.85rem; text-align: center; color: #94a3b8; margin-top: 5px; }
         
@@ -99,27 +101,19 @@ const HTML_UI = `
         ::-webkit-scrollbar-track { background: var(--panel-bg); }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         
-        /* 📱 MOBILE OPTIMIZATIONS 📱 */
         @media (max-width: 768px) {
             .main-container { flex-direction: column; }
             .playlist-container { width: 100%; height: 50vh; border-right: none; border-top: 1px solid #334155; }
-            
             header { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
             .search-box { width: 100%; max-width: none; }
-            
-            /* 🔥 FIX: Let the player section scroll properly without squishing 🔥 */
             .player-container { padding: 10px; gap: 10px; overflow-y: auto; justify-content: flex-start; }
             .video-wrapper { margin-top: 0; }
             #nowPlayingText { font-size: 1rem; margin-top: 5px; margin-bottom: 0; flex-shrink: 0; }
-            
             .stream-info-panel { padding: 12px; margin-top: 5px; gap: 12px; }
             .copy-url-container { flex-direction: column; align-items: stretch; gap: 8px; }
             .copy-url-container input { width: 100%; min-width: 100%; padding: 12px 10px; font-size: 0.8rem; }
             .copy-url-container button { width: 100%; padding: 12px; font-size: 1rem; }
-            
             .vpn-notice { font-size: 0.8rem; padding: 10px; text-align: justify; }
-            .media-features-box { padding: 10px; gap: 10px; }
-            .external-player-notice { font-size: 0.75rem; padding: 10px; text-align: justify; margin-top: 0; }
         }
     </style>
 </head>
@@ -131,7 +125,6 @@ const HTML_UI = `
     </header>
 
     <div class="main-container">
-        <!-- Player Area -->
         <div class="player-container">
             <div class="video-wrapper">
                 <video id="player" controls crossorigin="anonymous" playsinline></video>
@@ -139,13 +132,11 @@ const HTML_UI = `
             
             <h2 id="nowPlayingText" style="color: #94a3b8; text-align: center; line-height: 1.6;">آماده پخش</h2>
 
-            <!-- Stream URL & Media Features Panel -->
             <div class="stream-info-panel" id="streamInfoPanel">
                 <div class="copy-url-container">
                     <input type="text" id="streamUrlInput" readonly title="لینک مستقیم استریم">
                     <button id="copyBtn" onclick="copyStreamUrl()">📋 کپی لینک مستقیم</button>
                 </div>
-                
                 <div id="vpnNotice" class="vpn-notice">
                     ⚠️ توجه: پخش مستقیم این شبکه محدود شده است. برای تماشای این لینک مستقیم در پلیر خارجی، حتماً VPN خود را روشن کنید.
                 </div>
@@ -160,7 +151,6 @@ const HTML_UI = `
             </div>
         </div>
 
-        <!-- Playlist Area -->
         <div class="playlist-container">
             <div class="controls-panel">
                 <select id="playbackMode" class="category-select" style="border-color: var(--primary);">
@@ -170,48 +160,104 @@ const HTML_UI = `
                     <option value="direct-only">🎯 فقط اتصال مستقیم</option>
                 </select>
 
-                <select id="categorySelect" class="category-select" onchange="loadCategory(this.value)">
-                    <option value="favorites" style="color: var(--fav); font-weight: bold;">⭐ شبکه‌های نشان‌شده (علاقه‌مندی‌ها)</option>
-                    <option disabled>─────────────────────────</option>
-                    <option value="https://iptv-org.github.io/iptv/languages/fas.m3u" selected>🇮🇷 شبکه‌های فارسی (پیش‌فرض)</option>
-                    <option value="https://iptv-org.github.io/iptv/index.m3u">🌍 همه شبکه‌های جهان (کامل)</option>
-                    <option disabled>────────── دسته‌بندی‌ها ──────────</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/movies.m3u">فیلم و سینما (Movies)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/series.m3u">سریال (Series)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/animation.m3u">انیمیشن (Animation)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/comedy.m3u">کمدی (Comedy)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/music.m3u">موسیقی (Music)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/news.m3u">اخبار (News)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/documentary.m3u">مستند (Documentary)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/sports.m3u">ورزشی (Sports)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/entertainment.m3u">سرگرمی (Entertainment)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/family.m3u">خانواده (Family)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/cooking.m3u">آشپزی (Cooking)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/general.m3u">عمومی (General)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/science.m3u">علمی (Science)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/lifestyle.m3u">سبک زندگی (Lifestyle)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/auto.m3u">خودرو (Auto)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/business.m3u">تجارت (Business)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/classic.m3u">کلاسیک (Classic)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/culture.m3u">فرهنگ (Culture)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/education.m3u">آموزش (Education)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/interactive.m3u">تعاملی (Interactive)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/kids.m3u">کودکان (Kids)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/legislative.m3u">مجلس و قانون‌گذاری (Legislative)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/outdoor.m3u">طبیعت و فضای باز (Outdoor)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/public.m3u">مردمی (Public)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/relax.m3u">آرامش‌بخش (Relax)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/shop.m3u">فروشگاهی (Shop)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/travel.m3u">سفر و گردشگری (Travel)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/weather.m3u">آب و هوا (Weather)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/religious.m3u">مذهبی (Religious)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/xxx.m3u">بزرگسالان (XXX)</option>
-                    <option value="https://iptv-org.github.io/iptv/categories/undefined.m3u">دسته‌بندی نشده (Undefined)</option>
-                </select>
+                <div class="select-group">
+                    <select id="categorySelect" class="category-select" onchange="handleCategoryChange()">
+                        <option value="favorites" style="color: var(--fav); font-weight: bold;">⭐ شبکه‌های نشان‌شده (علاقه‌مندی‌ها)</option>
+                        
+                        <optgroup id="customListsGroup" label="لیست‌های شخصی" style="display:none;"></optgroup>
+                        
+                        <option disabled>─────────────────────────</option>
+                        <optgroup label="🌐 زبان‌های منتخب">
+                            <option value="https://iptv-org.github.io/iptv/languages/fas.m3u" selected>🇮🇷 فارسی (Persian)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/eng.m3u">🇬🇧 انگلیسی (English)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/spa.m3u">🇪🇸 اسپانیایی (Spanish)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/ita.m3u">🇮🇹 ایتالیایی (Italian)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/fra.m3u">🇫🇷 فرانسوی (French)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/deu.m3u">🇩🇪 آلمانی (German)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/kor.m3u">🇰🇷 کره‌ای (Korean)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/jpn.m3u">🇯🇵 ژاپنی (Japanese)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/zho.m3u">🇨🇳 چینی (Chinese)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/ara.m3u">🇸🇦 عربی (Arabic)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/tur.m3u">🇹🇷 ترکی استانبولی (Turkish)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/hin.m3u">🇮🇳 هندی (Hindi)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/rus.m3u">🇷🇺 روسی (Russian)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/ukr.m3u">🇺🇦 اوکراینی (Ukrainian)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/heb.m3u">🇮🇱 عبری (Hebrew)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/prd.m3u">🇦🇫 دری (Dari)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/tgk.m3u">🇹🇯 تاجیکی (Tajik)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/kur.m3u">☀️ کردی (Kurdish)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/ckb.m3u">☀️ کردی سورانی (Central Kurdish)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/aze.m3u">🇦🇿 آذربایجانی (Azerbaijani)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/kmz.m3u">🇮🇷 ترکی خراسانی (Khorasani Turkish)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/tuk.m3u">🇹🇲 ترکمنی (Turkmen)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/aii.m3u">⛪ آشوری (Assyrian)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/hye.m3u">🇦🇲 ارمنی (Armenian)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/urd.m3u">🇵🇰 اردو (Urdu)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/pus.m3u">🇦🇫 پشتو (Pashto)</option>
+                            <option value="https://iptv-org.github.io/iptv/languages/uzb.m3u">🇺🇿 ازبکی (Uzbek)</option>
+                        </optgroup>
+                        
+                        <option disabled>─────────────────────────</option>
+                        <optgroup label="🌍 مناطق منتخب">
+                           <option value="https://iptv-org.github.io/iptv/index.m3u">🌍 همه شبکه‌های جهان </option>
+                           <option value="https://iptv-org.github.io/iptv/countries/ir.m3u">🇮🇷 ایران (Iran)</option>
+                           <option value="https://iptv-org.github.io/iptv/countries/us.m3u">🇺🇸 آمریکا (USA)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/noram.m3u">🇨🇦 آمریکای شمالی (North America)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/eur.m3u">🇪🇺 اروپا (Europe)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/mideast.m3u">📍 خاورمیانه (Middle East)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/asia.m3u">🌏 آسیا (Asia)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/latam.m3u">💃 آمریکای لاتین (Latin America)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/amer.m3u">🌎 قاره آمریکا (Americas)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/arab.m3u">☪️ جهان عرب (Arab world)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/afr.m3u">🦁 آفریقا (Africa)</option>
+                           <option value="https://iptv-org.github.io/iptv/regions/oce.m3u">🌊 اقیانوسیه (Oceania)</option>
+                        </optgroup>
+
+                        <option disabled>─────────────────────────</option>
+                        <optgroup label="🎬 دسته‌بندی موضوعی">
+                            <option value="https://iptv-org.github.io/iptv/categories/movies.m3u">فیلم و سینما (Movies)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/series.m3u">سریال (Series)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/animation.m3u">انیمیشن (Animation)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/comedy.m3u">کمدی (Comedy)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/music.m3u">موسیقی (Music)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/news.m3u">اخبار (News)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/documentary.m3u">مستند (Documentary)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/sports.m3u">ورزشی (Sports)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/entertainment.m3u">سرگرمی (Entertainment)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/family.m3u">خانواده (Family)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/cooking.m3u">آشپزی (Cooking)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/general.m3u">عمومی (General)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/science.m3u">علمی (Science)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/lifestyle.m3u">سبک زندگی (Lifestyle)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/auto.m3u">خودرو (Auto)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/business.m3u">تجارت (Business)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/classic.m3u">کلاسیک (Classic)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/culture.m3u">فرهنگ (Culture)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/education.m3u">آموزش (Education)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/interactive.m3u">تعاملی (Interactive)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/kids.m3u">کودکان (Kids)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/legislative.m3u">مجلس و قانون‌گذاری (Legislative)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/outdoor.m3u">طبیعت و فضای باز (Outdoor)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/public.m3u">مردمی (Public)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/relax.m3u">آرامش‌بخش (Relax)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/shop.m3u">فروشگاهی (Shop)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/travel.m3u">سفر و گردشگری (Travel)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/weather.m3u">آب و هوا (Weather)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/religious.m3u">مذهبی (Religious)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/xxx.m3u">بزرگسالان (XXX)</option>
+                            <option value="https://iptv-org.github.io/iptv/categories/undefined.m3u">دسته‌بندی نشده (Undefined)</option>
+                        </optgroup>
+                    </select>
+                    <button id="deleteListBtn" class="delete-btn" onclick="deleteCustomList()" title="حذف این لیست شخصی">🗑️</button>
+                </div>
 
                 <div class="custom-input-group">
-                    <input type="text" id="customUrlInput" class="custom-input" placeholder="لینک M3U8 یا لیست خود را وارد کنید...">
-                    <button class="custom-btn" onclick="handleCustomInput()">پخش / افزودن</button>
+                    <input type="text" id="customUrlInput" class="custom-input" placeholder="لینک استریم (m3u8) یا لیست (m3u)">
+                    <button class="custom-btn" onclick="handleCustomInputUrl()">پخش/ذخیره</button>
+                    <div class="file-upload-btn">
+                        <span>فایل M3U</span>
+                        <input type="file" id="fileUploadInput" accept=".m3u,.m3u8,text/plain" onchange="handleFileUpload(event)">
+                    </div>
                 </div>
 
                 <div class="playlist-header" id="channelCount">انتخاب کنید...</div>
@@ -233,18 +279,27 @@ const HTML_UI = `
         const CHUNK_SIZE = 50; 
         let player, hls, itemObserver, infiniteScrollObserver;
         let myFavorites = [];
+        let myCustomLists = []; 
         let draggedItemIndex = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             try {
-                const savedFavs = localStorage.getItem('iptv_favorites_v5');
+                const savedFavs = localStorage.getItem('iptv_favorites_v7');
                 if (savedFavs) myFavorites = JSON.parse(savedFavs);
+                
+                const savedLists = localStorage.getItem('iptv_custom_lists_v2');
+                if (savedLists) myCustomLists = JSON.parse(savedLists);
             } catch(e) {}
+
+            renderCustomListOptions();
 
             const video = document.getElementById('player');
             
+            // 🔥 ADDED SETTINGS GEAR ICON: Allows playback speed adjustment & quality options if available 🔥
             player = new Plyr(video, {
-                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'pip', 'airplay', 'fullscreen']
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'pip', 'airplay', 'fullscreen'],
+                settings: ['quality', 'speed'],
+                i18n: { speed: 'سرعت پخش', quality: 'کیفیت', normal: 'عادی' }
             });
 
             itemObserver = new IntersectionObserver((entries, observer) => {
@@ -269,7 +324,6 @@ const HTML_UI = `
             loadCategory("https://iptv-org.github.io/iptv/languages/fas.m3u");
         });
 
-        // 🌟 COPY URL TO CLIPBOARD 🌟
         function copyStreamUrl() {
             const input = document.getElementById('streamUrlInput');
             input.select();
@@ -291,15 +345,14 @@ const HTML_UI = `
 
         function resetInfoPanel() {
             document.getElementById('streamInfoPanel').style.display = 'none';
+            document.getElementById('vpnNotice').style.display = 'none';
             document.getElementById('mediaFeaturesBox').style.display = 'none';
             document.getElementById('audioFeatures').style.display = 'none';
             document.getElementById('subtitleFeatures').style.display = 'none';
-            document.getElementById('vpnNotice').style.display = 'none';
             document.getElementById('audioFeatures').innerHTML = '';
             document.getElementById('subtitleFeatures').innerHTML = '';
         }
 
-        // 🌟 FAVORITES SYSTEM 🌟
         function toggleFavorite(event, url, name, logo, group) {
             event.stopPropagation(); 
             const existingIndex = myFavorites.findIndex(f => f.url === url);
@@ -310,31 +363,164 @@ const HTML_UI = `
                 myFavorites.push({ url, name, logo, group });
                 event.target.classList.add('active');
             }
-            localStorage.setItem('iptv_favorites_v5', JSON.stringify(myFavorites));
+            localStorage.setItem('iptv_favorites_v7', JSON.stringify(myFavorites));
             
             if (document.getElementById('categorySelect').value === 'favorites') {
                 loadCategory('favorites');
             }
         }
 
-        async function loadCategory(url) {
+        function generateId() { return Math.random().toString(36).substring(2, 9); }
+
+        function renderCustomListOptions() {
+            const optGroup = document.getElementById('customListsGroup');
+            optGroup.innerHTML = '';
+            
+            if (myCustomLists.length > 0) {
+                optGroup.style.display = 'block';
+                myCustomLists.forEach((list) => {
+                    const opt = document.createElement('option');
+                    opt.value = "custom:" + list.id;
+                    const icon = list.type === 'single' ? '▶️' : '📁';
+                    opt.text = \`\${icon} \${list.name}\`;
+                    optGroup.appendChild(opt);
+                });
+            } else {
+                optGroup.style.display = 'none';
+            }
+        }
+
+        function handleCategoryChange() {
+            const val = document.getElementById('categorySelect').value;
+            const delBtn = document.getElementById('deleteListBtn');
+            
+            // Delete button ONLY appears for custom lists
+            if (val.startsWith('custom:')) {
+                delBtn.style.display = 'block';
+                loadCategory(val);
+            } else {
+                delBtn.style.display = 'none';
+                loadCategory(val);
+            }
+        }
+
+        function deleteCustomList() {
+            const val = document.getElementById('categorySelect').value;
+            if (val.startsWith('custom:')) {
+                const listId = val.split('custom:')[1];
+                if(confirm("آیا از حذف این لیست شخصی مطمئن هستید؟")) {
+                    myCustomLists = myCustomLists.filter(list => list.id !== listId);
+                    localStorage.setItem('iptv_custom_lists_v2', JSON.stringify(myCustomLists));
+                    renderCustomListOptions();
+                    document.getElementById('deleteListBtn').style.display = 'none';
+                    document.getElementById('categorySelect').value = "favorites";
+                    loadCategory('favorites');
+                }
+            }
+        }
+
+        function handleCustomInputUrl() {
+            const inputUrl = document.getElementById('customUrlInput').value.trim();
+            if (!inputUrl) return;
+
+            let isSingleChannel = inputUrl.includes('.m3u8') && !inputUrl.includes('.m3u?');
+            let listName = prompt(
+                isSingleChannel ? "لطفاً نامی برای این کانال شخصی وارد کنید:" : "لطفاً نامی برای این لیست پخش وارد کنید:", 
+                isSingleChannel ? "کانال من" : "لیست شخصی من"
+            );
+
+            if (!listName) listName = isSingleChannel ? "کانال بدون نام" : "لیست بدون نام";
+
+            const newId = generateId();
+            myCustomLists.push({ 
+                id: newId, 
+                name: listName, 
+                type: isSingleChannel ? 'single' : 'url', 
+                content: inputUrl 
+            });
+            
+            localStorage.setItem('iptv_custom_lists_v2', JSON.stringify(myCustomLists));
+            renderCustomListOptions();
+
+            document.getElementById('customUrlInput').value = "";
+            document.getElementById('categorySelect').value = "custom:" + newId;
+            handleCategoryChange();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            let listName = prompt("لطفاً نامی برای فایل لیست پخش وارد کنید:", file.name);
+            if (!listName) listName = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const textContent = e.target.result;
+                const newId = generateId();
+                
+                myCustomLists.push({ 
+                    id: newId, 
+                    name: listName, 
+                    type: 'file', 
+                    content: textContent 
+                });
+                
+                localStorage.setItem('iptv_custom_lists_v2', JSON.stringify(myCustomLists));
+                renderCustomListOptions();
+                
+                document.getElementById('categorySelect').value = "custom:" + newId;
+                handleCategoryChange();
+            };
+            reader.readAsText(file);
+            event.target.value = ""; 
+        }
+
+        async function loadCategory(val) {
             const listEl = document.getElementById('channelList');
             listEl.innerHTML = \`<div class="loading-text">در حال بارگیری...<br><small>لطفاً صبر کنید</small></div>\`;
             document.getElementById('channelCount').innerText = "...";
 
-            if (url === 'favorites') {
+            if (val === 'favorites') {
                 fullChannelList = [...myFavorites];
                 filteredChannelList = [...fullChannelList];
                 initRender();
                 return;
             }
+            
+            if (val.startsWith('custom:')) {
+                const listId = val.split('custom:')[1];
+                const customItem = myCustomLists.find(l => l.id === listId);
+                
+                if (customItem) {
+                    if (customItem.type === 'single') {
+                        fullChannelList = [{ name: customItem.name, url: customItem.content, logo: '', group: 'شخصی' }];
+                        filteredChannelList = [...fullChannelList];
+                        initRender();
+                        setTimeout(()=> {
+                            const firstEl = document.querySelector('.channel-item');
+                            if(firstEl) startPlaybackLogic(customItem.content, customItem.name, firstEl);
+                        }, 500);
+                        return;
+                    } 
+                    else if (customItem.type === 'file') {
+                        fullChannelList = parseM3U(customItem.content);
+                        filteredChannelList = [...fullChannelList];
+                        initRender();
+                        return;
+                    }
+                    else if (customItem.type === 'url') {
+                        val = customItem.content; 
+                    }
+                }
+            }
 
             try {
-                const response = await fetch('/proxy-m3u?url=' + encodeURIComponent(url));
+                const response = await fetch('/proxy-m3u?url=' + encodeURIComponent(val));
+                if (!response.ok) throw new Error("Network Error");
                 const text = await response.text();
                 fullChannelList = parseM3U(text);
                 
-                // Keep search filter active if switching categories while typing
                 const term = document.getElementById('searchInput').value.trim().toLowerCase();
                 if (term.length > 0) {
                     filteredChannelList = fullChannelList.filter(c => c.name.toLowerCase().includes(term) || c.group.toLowerCase().includes(term));
@@ -344,19 +530,7 @@ const HTML_UI = `
                 
                 initRender();
             } catch (error) {
-                listEl.innerHTML = \`<div class="loading-text" style="color:#ef4444">خطا در دریافت لیست.</div>\`;
-            }
-        }
-
-        function handleCustomInput() {
-            const inputUrl = document.getElementById('customUrlInput').value.trim();
-            if (!inputUrl) return;
-
-            if (inputUrl.includes('.m3u8') && !inputUrl.includes('.m3u')) {
-                startPlaybackLogic(inputUrl, 'شبکه شخصی', null);
-            } else {
-                document.getElementById('categorySelect').value = ""; 
-                loadCategory(inputUrl);
+                listEl.innerHTML = \`<div class="loading-text" style="color:#ef4444">خطا در دریافت لیست. لطفاً از فعال بودن لینک مطمئن شوید.</div>\`;
             }
         }
 
@@ -371,7 +545,15 @@ const HTML_UI = `
                 const line = lines[i].trim();
                 if (line.startsWith('#EXTINF:')) {
                     const logoMatch = line.match(/tvg-logo="([^"]+)"/);
-                    const groupMatch = line.match(/group-title="([^"]+)"/);
+                    const groupMatch = line.match(/group-title="([^"]+)"/) || line.match(/#EXTGRP:(.*)/); 
+                    
+                    let groupName = 'عمومی';
+                    if (groupMatch) groupName = groupMatch[1];
+                    
+                    if(i + 1 < lines.length && lines[i+1].startsWith('#EXTGRP:')) {
+                        groupName = lines[i+1].replace('#EXTGRP:', '').trim();
+                    }
+
                     const namePart = line.split(',').pop();
                     
                     let logoUrl = logoMatch && logoMatch[1] ? logoMatch[1] : '';
@@ -380,7 +562,7 @@ const HTML_UI = `
                     currentChannel = {
                         name: namePart ? namePart.trim() : 'شبکه ناشناس',
                         logo: logoUrl,
-                        group: groupMatch ? groupMatch[1] : 'عمومی',
+                        group: groupName,
                         url: ''
                     };
                 } else if (line.startsWith('http') && currentChannel) {
@@ -392,7 +574,6 @@ const HTML_UI = `
             return parsedChannels;
         }
 
-        // 🌟 DRAG AND DROP REORDERING 🌟
         function handleDragStart(e) {
             if (document.getElementById('searchInput').value.trim() !== '') {
                 e.preventDefault();
@@ -425,7 +606,7 @@ const HTML_UI = `
 
             if (document.getElementById('categorySelect').value === 'favorites') {
                 myFavorites = [...filteredChannelList];
-                localStorage.setItem('iptv_favorites_v5', JSON.stringify(myFavorites));
+                localStorage.setItem('iptv_favorites_v7', JSON.stringify(myFavorites));
             }
 
             const ul = document.getElementById('channelList');
@@ -442,7 +623,6 @@ const HTML_UI = `
 
         function initRender() {
             const ul = document.getElementById('channelList');
-            
             if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
             
             ul.innerHTML = '';
@@ -514,7 +694,6 @@ const HTML_UI = `
             document.getElementById('channelCount').innerText = \`نمایش: \${renderedCount} از \${filteredChannelList.length}\`;
         }
 
-        // 🌟 LIVE SEARCH 🌟
         document.getElementById('searchInput').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             filteredChannelList = term.length === 0 
@@ -523,9 +702,6 @@ const HTML_UI = `
             initRender();
         });
 
-        /**
-         * 🌟 SMART PLAYBACK ENGINE & ERROR ANALYZER 🌟
-         */
         function translateError(responseCode) {
             if (!responseCode) return "خطای شبکه / عدم دسترسی مرورگر";
             if (responseCode === 403) return "مسدود شده ⛔ (تحریم/انقضای لینک)";
@@ -567,7 +743,6 @@ const HTML_UI = `
             
             const targetUrl = useProxy ? ('/proxy-stream?url=' + encodeURIComponent(originalUrl)) : originalUrl;
             
-            // 🌟 Always export the Original (Direct) URL
             document.getElementById('streamUrlInput').value = originalUrl;
             document.getElementById('streamInfoPanel').style.display = 'flex';
             
@@ -598,9 +773,28 @@ const HTML_UI = `
                 hls.on(Hls.Events.MANIFEST_PARSED, () => { 
                     video.play().catch(e => console.log("Autoplay blocked")); 
                     statusLabel.innerHTML = \`در حال پخش: \${name} <span class="status-badge \${useProxy ? 'badge-proxy' : 'badge-direct'}">\${useProxy ? 'پروکسی' : 'مستقیم'}</span>\`;
+                    
+                    // Populate Quality Levels dynamically
+                    if (hls.levels.length > 1) {
+                        const availableQualities = hls.levels.map((l) => l.height);
+                        availableQualities.unshift(0); 
+                        player.config.quality = {
+                            default: 0,
+                            options: availableQualities,
+                            forced: true,
+                            onChange: (e) => {
+                                if (e === 0) {
+                                    hls.currentLevel = -1; // Auto
+                                } else {
+                                    hls.levels.forEach((level, levelIndex) => {
+                                        if (level.height === e) hls.currentLevel = levelIndex;
+                                    });
+                                }
+                            }
+                        };
+                    }
                 });
 
-                // 🌟 MEDIA SCANNER: DETECT AUDIO TRACKS 🌟
                 hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function (event, data) {
                     if (data.audioTracks && data.audioTracks.length > 1) {
                         const languages = data.audioTracks.map((t, i) => t.name || t.lang || \`زبان \${i+1}\`).join('، ');
@@ -611,7 +805,6 @@ const HTML_UI = `
                     }
                 });
 
-                // 🌟 MEDIA SCANNER: DETECT SUBTITLES 🌟
                 hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function (event, data) {
                     if (data.subtitleTracks && data.subtitleTracks.length > 0) {
                         const languages = data.subtitleTracks.map((t, i) => t.name || t.lang || \`زیرنویس \${i+1}\`).join('، ');
@@ -683,19 +876,22 @@ export default {
       }
 
       if (path === "/proxy-stream") {
-        const targetUrl = requestUrl.searchParams.get("url");
-        if (!targetUrl) return new Response("Missing url", { status: 400, headers: corsHeaders });
+        const targetUrlString = requestUrl.searchParams.get("url");
+        if (!targetUrlString) return new Response("Missing url", { status: 400, headers: corsHeaders });
+
+        const targetUrl = new URL(targetUrlString);
+        const queryString = targetUrl.search || "";
 
         const safeHeaders = new Headers();
         safeHeaders.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
         safeHeaders.set("Accept", "*/*");
-        safeHeaders.set("Referer", new URL(targetUrl).origin + "/");
-        safeHeaders.set("Origin", new URL(targetUrl).origin);
+        safeHeaders.set("Referer", targetUrl.origin + "/");
+        safeHeaders.set("Origin", targetUrl.origin);
         
         const clientRange = request.headers.get("Range");
         if (clientRange) safeHeaders.set("Range", clientRange);
 
-        const upstreamRes = await fetch(targetUrl, {
+        const upstreamRes = await fetch(targetUrl.toString(), {
           headers: safeHeaders,
           redirect: "follow"
         });
@@ -709,25 +905,31 @@ export default {
         let contentType = upstreamRes.headers.get("content-type") || "application/octet-stream";
         let body = upstreamRes.body;
 
-        if (targetUrl.includes('.vtt') || targetUrl.includes('webvtt') || contentType.includes('text/vtt')) {
+        if (targetUrl.pathname.endsWith('.vtt') || contentType.includes('text/vtt')) {
             contentType = "text/vtt; charset=utf-8";
         }
 
-        if (contentType.includes("mpegurl") || targetUrl.includes(".m3u8") || targetUrl.includes(".m3u")) {
+        if (contentType.includes("mpegurl") || targetUrl.pathname.endsWith(".m3u8") || targetUrl.pathname.endsWith(".m3u")) {
             let text = await upstreamRes.text();
-            const baseUrl = upstreamRes.url; 
-            
-            text = text.replace(/^([^#\s]+)/gm, (match) => {
-                const absoluteUrl = new URL(match, baseUrl).toString();
-                if(absoluteUrl.startsWith(requestUrl.origin)) return match;
-                return `${requestUrl.origin}/proxy-stream?url=${encodeURIComponent(absoluteUrl)}`;
+            const finalUrl = upstreamRes.url; 
+            const finalBase = finalUrl.substring(0, finalUrl.lastIndexOf("/") + 1);
+
+            text = text.replace(/^([^#][^\r\n]*)/gm, (line) => {
+                if (!line.trim()) return line;
+                const absoluteUpstreamUrl = new URL(line, finalBase);
+                if (queryString && !absoluteUpstreamUrl.search) {
+                    absoluteUpstreamUrl.search = queryString;
+                }
+                return `${requestUrl.origin}/proxy-stream?url=${encodeURIComponent(absoluteUpstreamUrl.toString())}`;
             });
             
             text = text.replace(/URI="([^"]+)"/g, (match, p1) => {
-                if(p1.includes('key') || p1.startsWith('data:')) return match;
-                const absoluteUrl = new URL(p1, baseUrl).toString();
-                if(absoluteUrl.startsWith(requestUrl.origin)) return match;
-                return `URI="${requestUrl.origin}/proxy-stream?url=${encodeURIComponent(absoluteUrl)}"`;
+                if(p1.startsWith('data:')) return match;
+                const absoluteUrl = new URL(p1, finalBase);
+                if (queryString && !absoluteUrl.search && !p1.includes('key')) {
+                    absoluteUrl.search = queryString;
+                }
+                return `URI="${requestUrl.origin}/proxy-stream?url=${encodeURIComponent(absoluteUrl.toString())}"`;
             });
             
             body = text;

@@ -1,0 +1,986 @@
+/**
+ * Telegram Proxy & Config Master System v6.1 (Ultimate + Auto-Chunking Edition)
+ * Features: Dual Mode, UI, KV Tracking, CF Detection, File Output, Rate Limit, Admin Alerts, Protocol Merging, Auto-Chunking
+ */
+
+// لیست پروتکل‌های اصلی و استاندارد شده برای نمایش در منوها (ترکیب شده‌ها)
+const ALL_PROTOCOLS = [
+  'vmess', 'vless', 'trojan', 'ss', 'ssr', 'tuic', 'hysteria', 'hysteria2', 
+  'juicity', 'snell', 'anytls', 'ssh', 'wireguard', 'socks', 'cloudflare'
+];
+
+// مپ کردن پیشوندهای لینک به پروتکل اصلی (ترکیب هوشمند)
+const PROTOCOL_ALIASES = {
+  'hy2': 'hysteria2',
+  'wg': 'wireguard',
+  'warp': 'wireguard',
+  'socks4': 'socks',
+  'socks5': 'socks'
+};
+
+// ساختار پیش‌فرض تنظیمات با پروتکل‌های فعال اولیه
+const DEFAULT_PROTOCOLS_STATE = {};
+ALL_PROTOCOLS.forEach(p => {
+  DEFAULT_PROTOCOLS_STATE[p] = { 
+    enabled: ['vless', 'vmess', 'trojan', 'wireguard', 'cloudflare'].includes(p), 
+    qty: 2 
+  };
+});
+
+const DEFAULT_SETTINGS = {
+  bot_mode_enabled: true,
+  channel_mode_enabled: true,
+  channel_id: "",
+  admin_chat_id: "", // برای دریافت هشدارهای سیستم
+  rl_enabled: false, // Rate Limit
+  rl_time: 60, // به دقیقه
+  rl_reqs: 5, // تعداد درخواست مجاز در آن زمان
+  post_qty: 10,
+  sources: ["https://raw.githubusercontent.com/10ium/VpnClashFaCollector/main/sub/all/tg.txt"],
+  config_sources: ["https://raw.githubusercontent.com/10ium/VpnClashFaCollector/main/sub/tested/ping_passed.txt"],
+  protocols: DEFAULT_PROTOCOLS_STATE
+};
+
+// ==========================================
+// کلاس لاگر و هشدارهای ادمین
+// ==========================================
+class SystemLogger {
+  constructor(env, ctx, settings = null) {
+    this.env = env;
+    this.ctx = ctx;
+    this.settings = settings;
+  }
+
+  async log(level, message, notifyAdmin = false) {
+    if (!this.env.PROXY_KV) return;
+    const timestamp = new Date().toLocaleString("fa-IR", { timeZone: "Asia/Tehran" });
+    const logEntry = { ts: timestamp, level, msg: message };
+    
+    this.ctx.waitUntil(this._saveLog(logEntry));
+
+    if ((notifyAdmin || level === "CRITICAL") && this.settings && this.settings.admin_chat_id) {
+      this.ctx.waitUntil(sendTelegramMessage(this.env.BOT_TOKEN, this.settings.admin_chat_id, `⚠️ <b>هشدار سیستم (Admin Alert)</b>\n\nسطح: ${level}\nپیام: ${message}`));
+    }
+  }
+
+  async _saveLog(entry) {
+    try {
+      let logs = await this.env.PROXY_KV.get("system_logs", { type: "json" });
+      if (!logs || !Array.isArray(logs)) logs = [];
+      logs.unshift(entry);
+      if (logs.length > 50) logs = logs.slice(0, 50);
+      await this.env.PROXY_KV.put("system_logs", JSON.stringify(logs));
+    } catch (e) {
+      if (e.message && e.message.toLowerCase().includes("limit") && this.settings && this.settings.admin_chat_id) {
+        await sendTelegramMessage(this.env.BOT_TOKEN, this.settings.admin_chat_id, "🚨 <b>هشدار بحرانی:</b> محدودیت دیتابیس کلادفلر (KV Limits) پر شده است!");
+      }
+    }
+  }
+
+  async clear() {
+    if (this.env.PROXY_KV) await this.env.PROXY_KV.delete("system_logs");
+  }
+}
+
+export default {
+  // ==========================================
+  // هندلر زمان‌بندی (Cron Trigger)
+  // ==========================================
+  async scheduled(event, env, ctx) {
+    const settings = await getSettings(env.PROXY_KV);
+    const logger = new SystemLogger(env, ctx, settings);
+    try {
+      await processAutoPost(env, settings, logger);
+    } catch (e) {
+      await logger.log("CRITICAL", `خطای بحرانی در Cron: ${e.message}`, true);
+    }
+  },
+
+  // ==========================================
+  // هندلر درخواست‌های HTTP (پنل وب + وب‌هوک)
+  // ==========================================
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const settings = await getSettings(env.PROXY_KV);
+    const logger = new SystemLogger(env, ctx, settings);
+
+    if (request.method === "POST" && url.pathname === "/webhook") {
+      try {
+        const update = await request.json();
+        ctx.waitUntil(handleTelegramUpdate(update, env, settings, logger));
+        return new Response("OK", { status: 200 });
+      } catch (e) {
+        await logger.log("CRITICAL", `خطای هندل وب‌هوک: ${e.message}`);
+        return new Response("Error", { status: 500 });
+      }
+    }
+
+    if (!checkAuth(request, env)) {
+      return new Response("Unauthorized", {
+        status: 401,
+        headers: { "WWW-Authenticate": 'Basic realm="Admin Panel"' }
+      });
+    }
+
+    if (url.pathname === "/api/logs") {
+      const logs = await env.PROXY_KV.get("system_logs", { type: "json" }) || [];
+      const health = {
+        bot_token: !!env.BOT_TOKEN,
+        kv_bound: !!env.PROXY_KV,
+        admin_pass: !!env.ADMIN_PASSWORD
+      };
+      return new Response(JSON.stringify({ logs, health }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    if (url.pathname === "/api/clear-logs") {
+      await logger.clear();
+      return new Response(JSON.stringify({ success: true }));
+    }
+
+    if (url.pathname === "/api/settings") {
+      if (request.method === "GET") {
+        return new Response(JSON.stringify(settings), { headers: { "Content-Type": "application/json" } });
+      } 
+      if (request.method === "POST") {
+        const newSettings = await request.json();
+        const merged = { ...settings, ...newSettings };
+        await env.PROXY_KV.put("app_settings", JSON.stringify(merged));
+        await logger.log("INFO", "تنظیمات سیستم توسط ادمین به‌روزرسانی شد.");
+        return new Response(JSON.stringify({ success: true }));
+      }
+    }
+
+    if (url.pathname === "/api/setup-webhook") {
+      if (!env.BOT_TOKEN) return new Response(JSON.stringify({ ok: false, description: "Token missing" }));
+      const webhookUrl = `https://${url.hostname}/webhook`;
+      const tgApi = `https://api.telegram.org/bot${env.BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
+      const res = await fetch(tgApi);
+      const result = await res.json();
+      if (result.ok) await logger.log("INFO", "وب‌هوک تلگرام با موفقیت متصل شد.");
+      else await logger.log("CRITICAL", `خطا در اتصال وب‌هوک: ${result.description}`, true);
+      return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
+    }
+
+    if (url.pathname === "/api/clear-history") {
+      await env.PROXY_KV.delete("sent_proxies");
+      await env.PROXY_KV.delete("sent_configs");
+      await logger.log("WARN", "تاریخچه جلوگیری از ارسال تکراری (پروکسی و کانفیگ) پاکسازی شد.");
+      return new Response(JSON.stringify({ success: true }));
+    }
+
+    if (url.pathname === "/") {
+      const html = generateHTML();
+      return new Response(html, { headers: { "Content-Type": "text/html;charset=UTF-8" } });
+    }
+
+    return new Response("Not Found", { status: 404 });
+  }
+};
+
+// ==========================================
+// توابع کمکی و منطقی سیستم
+// ==========================================
+
+function checkAuth(request, env) {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader) return false;
+  const [scheme, encoded] = authHeader.split(" ");
+  if (scheme !== "Basic") return false;
+  try {
+    const decoded = atob(encoded);
+    const [user, pass] = decoded.split(":");
+    return pass === env.ADMIN_PASSWORD;
+  } catch (e) { return false; }
+}
+
+async function getSettings(kv) {
+  if (!kv) return DEFAULT_SETTINGS;
+  const data = await kv.get("app_settings");
+  if (data) {
+    try { 
+      const parsed = JSON.parse(data);
+      let mergedProtocols = { ...DEFAULT_SETTINGS.protocols };
+      if (parsed.protocols) {
+        for (const p of ALL_PROTOCOLS) {
+          if (parsed.protocols[p]) mergedProtocols[p] = parsed.protocols[p];
+        }
+      }
+      parsed.protocols = mergedProtocols;
+      return { ...DEFAULT_SETTINGS, ...parsed }; 
+    } catch (e) {}
+  }
+  return DEFAULT_SETTINGS;
+}
+
+// ==========================================
+// استخراج هوشمند و فیلترینگ کانفیگ‌ها
+// ==========================================
+
+function fixWireguardConfig(link) {
+  if (!link.toLowerCase().match(/^(wireguard|wg|warp):\/\//)) return link;
+  try {
+    let dummyUrlStr = link.replace(/^(wireguard|wg|warp):\/\//i, 'http://');
+    let url = new URL(dummyUrlStr);
+    
+    let pubKey = url.searchParams.get("public-key") || url.searchParams.get("peer_public_key") || url.searchParams.get("publicKey") || url.searchParams.get("publickey");
+    let privKey = url.username || url.searchParams.get("privateKey") || url.searchParams.get("private-key") || url.searchParams.get("privatekey");
+
+    if (!pubKey || !privKey) {
+      for (const [k, v] of url.searchParams.entries()) {
+        const lowerK = k.toLowerCase().replace(/[-_]/g, '');
+        if (!pubKey && lowerK === 'publickey') pubKey = v;
+        if (!privKey && lowerK === 'privatekey') privKey = v;
+      }
+    }
+
+    if (!pubKey) {
+      pubKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
+      url.searchParams.set("publicKey", pubKey);
+    }
+    
+    let originalProto = link.match(/^(wireguard|wg|warp):\/\//i)[0];
+    return url.toString().replace(/^http:\/\//i, originalProto);
+  } catch (e) { return link; }
+}
+
+function isBehindCloudflare(link) {
+  const cfDomains = ['.workers.dev', '.pages.dev', '.trycloudflare.com', 'chatgpt.com', 'cloudflare.com'];
+  const check = (d) => {
+    if (!d) return false;
+    const lowerD = d.toLowerCase();
+    return cfDomains.some(cf => lowerD.endsWith(cf) || lowerD === cf);
+  };
+
+  try {
+    if (link.toLowerCase().startsWith('vmess://')) {
+      let b64 = link.slice(8);
+      while (b64.length % 4 !== 0) b64 += '=';
+      let jsonStr = decodeURIComponent(escape(atob(b64)));
+      let data = JSON.parse(jsonStr);
+      return check(data.add) || check(data.host) || check(data.sni);
+    } else {
+      let dummyUrlStr = link.replace(/^[a-zA-Z0-9]+:\/\//i, 'http://');
+      let parsed = new URL(dummyUrlStr);
+      return check(parsed.hostname) || check(parsed.searchParams.get('sni')) || check(parsed.searchParams.get('host')) || check(parsed.searchParams.get('peer'));
+    }
+  } catch (e) { return false; }
+}
+
+async function fetchAndFilterConfigs(sources) {
+  let configsByProtocol = {};
+  ALL_PROTOCOLS.forEach(p => configsByProtocol[p] = new Set());
+  
+  const allPrefixes = [...ALL_PROTOCOLS, ...Object.keys(PROTOCOL_ALIASES)];
+
+  for (const url of sources) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+        
+        for (let line of lines) {
+          let matchedCanonicalProto = null;
+          
+          for (const prefix of allPrefixes) {
+            if (prefix !== 'cloudflare' && line.toLowerCase().startsWith(`${prefix}://`)) {
+              matchedCanonicalProto = PROTOCOL_ALIASES[prefix] || prefix;
+              
+              if (matchedCanonicalProto === 'wireguard') {
+                line = fixWireguardConfig(line);
+              }
+              
+              configsByProtocol[matchedCanonicalProto].add(line);
+              break;
+            }
+          }
+
+          if (matchedCanonicalProto && isBehindCloudflare(line)) {
+            configsByProtocol['cloudflare'].add(line);
+          }
+        }
+      }
+    } catch (e) {}
+  }
+  
+  let result = {};
+  for (const p of ALL_PROTOCOLS) {
+    result[p] = Array.from(configsByProtocol[p]);
+  }
+  return result;
+}
+
+// ==========================================
+// منطق ربات تلگرام (Webhook)
+// ==========================================
+async function handleTelegramUpdate(update, env, settings, logger) {
+  if (!settings.bot_mode_enabled) return;
+
+  if (update.message && update.message.text === "/start") {
+    const chatId = update.message.chat.id;
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: "🚀 دریافت پروکسی 🚀", callback_data: "menu_proxies" }],
+        [{ text: "🌐 دریافت کانفیگ 🌐", callback_data: "menu_configs" }]
+      ]
+    };
+    await sendTelegramMessage(env.BOT_TOKEN, chatId, "سلام! به ربات سیستم هوشمند خوش آمدید.\nلطفاً سرویس مورد نظر خود را انتخاب کنید:", keyboard);
+  } 
+  
+  else if (update.callback_query) {
+    const cb = update.callback_query;
+    const chatId = cb.message.chat.id;
+    const data = cb.data;
+    const msgId = cb.message.message_id;
+
+    if (settings.rl_enabled && (data.startsWith("get_") || data.startsWith("cfg_get_"))) {
+      const rlKey = `rl_${chatId}`;
+      let rlData = await env.PROXY_KV.get(rlKey, { type: 'json' });
+      if (!rlData) {
+        await env.PROXY_KV.put(rlKey, JSON.stringify({ count: 1 }), { expirationTtl: settings.rl_time * 60 });
+      } else {
+        if (rlData.count >= settings.rl_reqs) {
+          await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/answerCallbackQuery?callback_query_id=${cb.id}&text=${encodeURIComponent("⚠️ شما به محدودیت ضداسپم رسیده‌اید. لطفا بعدا تلاش کنید.")}&show_alert=true`);
+          return;
+        }
+        await env.PROXY_KV.put(rlKey, JSON.stringify({ count: rlData.count + 1 }), { expirationTtl: settings.rl_time * 60 });
+      }
+    }
+
+    await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/answerCallbackQuery?callback_query_id=${cb.id}`);
+
+    if (data === "menu_proxies") {
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "💻 ویندوز (ویژه)", callback_data: "get_proxy_win" }, { text: "📱 عادی (موبایل)", callback_data: "get_proxy_reg" }],
+          [{ text: "🔀 ترکیبی (میکس)", callback_data: "get_proxy_mix" }],
+          [{ text: "🔙 بازگشت", callback_data: "menu_back" }]
+        ]
+      };
+      await editTelegramMessage(env.BOT_TOKEN, chatId, msgId, "نوع پروکسی را انتخاب کنید (۲۰ عدد):", keyboard);
+    } 
+    else if (data.startsWith("get_proxy_")) {
+      const type = data.replace("get_proxy_", "get_");
+      await sendProxiesToUser(chatId, type, env, settings.sources, logger);
+    }
+    
+    else if (data === "menu_configs") {
+      let inline_keyboard = [];
+      let row = [];
+      let activeProtocols = Object.keys(settings.protocols).filter(p => settings.protocols[p].enabled);
+      
+      activeProtocols.forEach((p, index) => {
+        let btnText = p === 'cloudflare' ? '☁️ کلادفلر (ویژه)' : p.toUpperCase();
+        row.push({ text: btnText, callback_data: `cfg_sel_${p}` });
+        if (row.length === 2 || index === activeProtocols.length - 1) {
+          inline_keyboard.push(row);
+          row = [];
+        }
+      });
+      inline_keyboard.push([{ text: "🔙 بازگشت", callback_data: "menu_back" }]);
+
+      if (activeProtocols.length === 0) {
+        await editTelegramMessage(env.BOT_TOKEN, chatId, msgId, "هیچ پروتکلی در سیستم فعال نیست.", { inline_keyboard });
+      } else {
+        await editTelegramMessage(env.BOT_TOKEN, chatId, msgId, "پروتکل مورد نظر را انتخاب کنید:", { inline_keyboard });
+      }
+    }
+    else if (data.startsWith("cfg_sel_")) {
+      const proto = data.replace("cfg_sel_", "");
+      const protoName = proto === 'cloudflare' ? 'کلادفلر' : proto.toUpperCase();
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "۵ عدد", callback_data: `cfg_get_${proto}_5` }, { text: "۱۰ عدد", callback_data: `cfg_get_${proto}_10` }],
+          [{ text: "۲۰ عدد (فایل)", callback_data: `cfg_get_${proto}_20` }, { text: "۵۰ عدد (فایل)", callback_data: `cfg_get_${proto}_50` }],
+          [{ text: "۱۰۰ عدد (فایل)", callback_data: `cfg_get_${proto}_100` }, { text: "۵۰۰ عدد (فایل)", callback_data: `cfg_get_${proto}_500` }],
+          [{ text: "حداکثر (فایل)", callback_data: `cfg_get_${proto}_max` }],
+          [{ text: "🔙 بازگشت", callback_data: "menu_configs" }]
+        ]
+      };
+      await editTelegramMessage(env.BOT_TOKEN, chatId, msgId, `تعداد کانفیگ ${protoName} را انتخاب کنید:`, keyboard);
+    }
+    else if (data.startsWith("cfg_get_")) {
+      const parts = data.split("_");
+      const proto = parts[2];
+      const qtyParam = parts[3];
+      const qty = qtyParam === 'max' ? Infinity : parseInt(qtyParam);
+      
+      await sendConfigsToUser(chatId, proto, qty, env, settings.config_sources, logger);
+    }
+    
+    else if (data === "menu_back") {
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "🚀 دریافت پروکسی 🚀", callback_data: "menu_proxies" }],
+          [{ text: "🌐 دریافت کانفیگ 🌐", callback_data: "menu_configs" }]
+        ]
+      };
+      await editTelegramMessage(env.BOT_TOKEN, chatId, msgId, "سلام! به ربات سیستم هوشمند خوش آمدید.\nلطفاً سرویس مورد نظر خود را انتخاب کنید:", keyboard);
+    }
+  }
+}
+
+async function sendProxiesToUser(chatId, type, env, sources, logger) {
+  await sendTelegramMessage(env.BOT_TOKEN, chatId, "⏳ در حال استخراج و بررسی پروکسی...");
+  const { standard, windows } = await fetchAndFilterProxies(sources);
+  let selection = [];
+  const REQ_AMOUNT = 20;
+
+  if (type === "get_win") {
+    shuffleArray(windows);
+    selection = windows.slice(0, REQ_AMOUNT).map(l => `<a href="${cleanLink(l)}">پروکسی ویندوز</a>`);
+  } else if (type === "get_reg") {
+    shuffleArray(standard);
+    selection = standard.slice(0, REQ_AMOUNT).map(l => `<a href="${cleanLink(l)}">پروکسی</a>`);
+  } else if (type === "get_mix") {
+    shuffleArray(windows);
+    shuffleArray(standard);
+    const winList = windows.slice(0, REQ_AMOUNT / 2).map(l => `<a href="${cleanLink(l)}">پروکسی ویندوز</a>`);
+    const regList = standard.slice(0, REQ_AMOUNT / 2).map(l => `<a href="${cleanLink(l)}">پروکسی</a>`);
+    selection = [...winList, ...regList];
+    shuffleArray(selection);
+  }
+
+  if (selection.length === 0) {
+    await sendTelegramMessage(env.BOT_TOKEN, chatId, "❌ پروکسی یافت نشد.");
+    return;
+  }
+  await sendTelegramMessage(env.BOT_TOKEN, chatId, `✅ لیست پروکسی‌های شما:\n\n${selection.join("\n")}`);
+}
+
+async function sendConfigsToUser(chatId, proto, qty, env, sources, logger) {
+  await sendTelegramMessage(env.BOT_TOKEN, chatId, "⏳ در حال استخراج هوشمند کانفیگ...");
+  const allConfigs = await fetchAndFilterConfigs(sources);
+  let available = allConfigs[proto] || [];
+  
+  if (available.length === 0) {
+    await sendTelegramMessage(env.BOT_TOKEN, chatId, `❌ کانفیگ یافت نشد.`);
+    return;
+  }
+
+  shuffleArray(available);
+  const selection = available.slice(0, qty === Infinity ? available.length : qty);
+  const protoDisplay = proto === 'cloudflare' ? 'Cloudflare' : proto.toUpperCase();
+
+  if (selection.length > 10) {
+    const fileContent = selection.join("\n");
+    let filenameStr = qty === Infinity ? 'MAX' : selection.length;
+    const filename = `${protoDisplay}_Configs_${filenameStr}_${new Date().getTime()}.txt`;
+    const caption = `✅ تعداد ${selection.length} کانفیگ ${protoDisplay}`;
+    
+    const success = await sendTelegramDocument(env.BOT_TOKEN, chatId, caption, filename, fileContent);
+    if (!success) await sendTelegramMessage(env.BOT_TOKEN, chatId, "❌ خطا در ارسال فایل تلگرام.");
+  } else {
+    const text = `✅ <b>لیست کانفیگ‌های ${protoDisplay}:</b>\n\n<code>${selection.join("\n\n")}</code>\n\n👇 <i>برای کپی کلیک کنید</i>`;
+    await sendTelegramMessage(env.BOT_TOKEN, chatId, text);
+  }
+}
+
+// ==========================================
+// منطق ارسال خودکار کانال (Cron)
+// ==========================================
+async function processAutoPost(env, settings, logger) {
+  if (!env.PROXY_KV || !env.BOT_TOKEN) {
+    await logger.log("ERROR", "KV یا توکن ربات تنظیم نشده است.");
+    return;
+  }
+
+  if (!settings.channel_mode_enabled || !settings.channel_id) return;
+
+  await processProxiesForChannel(env, settings, logger);
+  await processConfigsForChannel(env, settings, logger);
+}
+
+async function processProxiesForChannel(env, settings, logger) {
+  const { standard, windows } = await fetchAndFilterProxies(settings.sources);
+  let sentHistory = [];
+  const historyData = await env.PROXY_KV.get("sent_proxies");
+  if (historyData) sentHistory = JSON.parse(historyData);
+  const sentSet = new Set(sentHistory);
+
+  let newStandard = standard.filter(p => !sentSet.has(p));
+  let newWindows = windows.filter(p => !sentSet.has(p));
+
+  if (newStandard.length === 0 && newWindows.length === 0) return;
+
+  shuffleArray(newStandard);
+  shuffleArray(newWindows);
+
+  const totalToSend = settings.post_qty;
+  let targetHalf = Math.floor(totalToSend / 2);
+  let selectedWindows = newWindows.slice(0, targetHalf);
+  let remaining = totalToSend - selectedWindows.length;
+  let selectedStandard = newStandard.slice(0, remaining);
+
+  if (selectedStandard.length < remaining) {
+    let extra = remaining - selectedStandard.length;
+    selectedWindows = selectedWindows.concat(newWindows.slice(targetHalf, targetHalf + extra));
+  }
+
+  const finalSelection = [...selectedStandard, ...selectedWindows];
+  if (finalSelection.length === 0) return;
+
+  // CHUNKING LOGIC FOR PROXIES (محدودیت پیام‌های طولانی)
+  let successfullySent = [];
+  const chunkSize = 25;
+
+  for (let i = 0; i < finalSelection.length; i += chunkSize) {
+    const chunk = finalSelection.slice(i, i + chunkSize);
+    let messageText = "🚀 <b>پروکسی‌های جدید</b>\n\n";
+    chunk.forEach(link => { 
+        let isWin = isWindowsCompatible(link);
+        messageText += `<a href="${cleanLink(link)}">${isWin ? 'پروکسی ویندوز' : 'پروکسی عادی'}</a>\n`; 
+    });
+
+    const success = await sendTelegramMessage(env.BOT_TOKEN, settings.channel_id, messageText);
+    if (success) successfullySent.push(...chunk);
+    await new Promise(r => setTimeout(r, 500)); // Delay between chunks
+  }
+
+  if (successfullySent.length > 0) {
+    const updatedHistory = [...sentHistory, ...successfullySent].slice(-3000);
+    await env.PROXY_KV.put("sent_proxies", JSON.stringify(updatedHistory));
+    await logger.log("INFO", `ارسال پروکسی به کانال: ${successfullySent.length} عدد.`);
+  }
+}
+
+async function processConfigsForChannel(env, settings, logger) {
+  const configsByProto = await fetchAndFilterConfigs(settings.config_sources);
+  
+  let sentHistory = [];
+  const historyData = await env.PROXY_KV.get("sent_configs");
+  if (historyData) sentHistory = JSON.parse(historyData);
+  const sentSet = new Set(sentHistory);
+
+  let finalSelection = [];
+
+  for (const proto of ALL_PROTOCOLS) {
+    if (settings.protocols[proto] && settings.protocols[proto].enabled) {
+      const qtyRequired = parseInt(settings.protocols[proto].qty) || 0;
+      if (qtyRequired > 0) {
+        let available = configsByProto[proto] || [];
+        let newAvailable = available.filter(c => !sentSet.has(c));
+        shuffleArray(newAvailable);
+        finalSelection = finalSelection.concat(newAvailable.slice(0, qtyRequired));
+      }
+    }
+  }
+
+  if (finalSelection.length === 0) return;
+
+  // CHUNKING LOGIC FOR CONFIGS (برای جلوگیری از خطای طول 4096 کاراکتر تلگرام)
+  let successfullySentConfigs = [];
+  const chunkSize = 10; // ارسال حداکثر ۱۰ کانفیگ در هر پیام
+
+  for (let i = 0; i < finalSelection.length; i += chunkSize) {
+    const chunk = finalSelection.slice(i, i + chunkSize);
+    let messageText = "🌐 <b>کانفیگ‌های جدید</b>\n\n";
+    messageText += `<code>${chunk.join("\n\n")}</code>\n\n`;
+    messageText += "👇 <i>برای کپی کلیک کنید</i>";
+
+    const success = await sendTelegramMessage(env.BOT_TOKEN, settings.channel_id, messageText);
+    if (success) {
+        successfullySentConfigs.push(...chunk);
+    }
+    await new Promise(r => setTimeout(r, 500)); // Delay between chunks to prevent flooding
+  }
+
+  if (successfullySentConfigs.length > 0) {
+    const updatedHistory = [...sentHistory, ...successfullySentConfigs].slice(-5000);
+    await env.PROXY_KV.put("sent_configs", JSON.stringify(updatedHistory));
+    await logger.log("INFO", `ارسال کانفیگ به کانال: ${successfullySentConfigs.length} عدد.`);
+  } else {
+    await logger.log("ERROR", "خطا در ارسال کانفیگ به کانال. ربات در کانال ادمین نیست یا کانال اشتباه است.");
+  }
+}
+
+// ==========================================
+// توابع ارتباط با تلگرام و پروکسی
+// ==========================================
+async function sendTelegramMessage(token, chatId, text, keyboard = null) {
+  try {
+    const body = { chat_id: chatId, text: text, parse_mode: 'HTML', disable_web_page_preview: true };
+    if (keyboard) body.reply_markup = keyboard;
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    return res.ok;
+  } catch (e) { return false; }
+}
+
+async function editTelegramMessage(token, chatId, msgId, text, keyboard = null) {
+  try {
+    const body = { chat_id: chatId, message_id: msgId, text: text, parse_mode: 'HTML', disable_web_page_preview: true };
+    if (keyboard) body.reply_markup = keyboard;
+    await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+  } catch (e) {}
+}
+
+async function sendTelegramDocument(token, chatId, caption, filename, fileContent) {
+  try {
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('caption', caption);
+    formData.append('parse_mode', 'HTML');
+    formData.append('document', new Blob([fileContent], { type: 'text/plain' }), filename);
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+      method: 'POST', body: formData
+    });
+    return res.ok;
+  } catch (e) { return false; }
+}
+
+async function fetchAndFilterProxies(sources) {
+  let standard = [], windows = [], allSet = new Set();
+  for (const url of sources) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        text.split('\n').map(l => l.trim()).forEach(line => {
+          if (line.startsWith('tg://') || line.startsWith('https://t.me/')) allSet.add(line);
+        });
+      }
+    } catch (e) {}
+  }
+  for (const proxy of allSet) {
+    if (isWindowsCompatible(proxy)) windows.push(proxy);
+    else standard.push(proxy);
+  }
+  return { standard, windows };
+}
+
+function isWindowsCompatible(link) {
+  try {
+    const secretMatch = link.match(/secret=([a-zA-Z0-9%_\-]+)/);
+    if (!secretMatch) return false;
+    const secret = secretMatch[1].toLowerCase();
+    if (secret.includes('%') || secret.includes('_') || secret.includes('-')) return false;
+    if (secret.startsWith('ee')) return false;
+    const actualSecret = secret.startsWith('dd') ? secret.substring(2) : secret;
+    if (!/^[0-9a-f]{32}$/.test(actualSecret)) return false;
+    return true;
+  } catch (error) { return false; }
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function cleanLink(link) {
+  return link.replace(/[()\[\]\s!.,;'"]+$/, '');
+}
+
+// ==========================================
+// رابط کاربری پنل وب (HTML/JS/CSS)
+// ==========================================
+function generateHTML() {
+  return `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت پروکسی و کانفیگ (Smart Edition)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --mono: #334155; }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+        .container { max-width: 900px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .card { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); }
+        h1, h2, h3 { margin-top: 0; color: var(--primary); }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--mono); background: #020617; color: white; font-size: 14px; transition: border 0.2s; }
+        input:focus, textarea:focus { border-color: var(--primary); outline: none; }
+        textarea { height: 100px; resize: vertical; direction: ltr; font-family: monospace; }
+        
+        .toggle-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .toggle-label { display: flex; align-items: center; cursor: pointer; gap: 10px; font-size: 15px; background: #020617; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--mono); }
+        input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+        
+        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: #020617; }
+        .btn-danger { background: var(--danger); }
+        .btn-warning { background: var(--warning); color: #020617; }
+        
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+        
+        .proto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 10px; }
+        .proto-item { background: #020617; padding: 10px; border-radius: 8px; border: 1px solid var(--mono); display: flex; justify-content: space-between; align-items: center; }
+        .proto-item label { margin: 0; display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; }
+        .proto-item input[type="number"] { width: 60px; padding: 6px; }
+
+        /* Logs */
+        .log-container { background: #020617; border-radius: 8px; padding: 15px; height: 300px; overflow-y: auto; font-family: monospace; border: 1px solid var(--mono); }
+        .log-entry { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; gap: 10px; }
+        .log-ts { color: #64748b; min-width: 140px; }
+        .log-level { font-weight: bold; min-width: 60px; }
+        .lvl-INFO { color: var(--success); }
+        .lvl-WARN { color: var(--warning); }
+        .lvl-CRITICAL { color: var(--danger); font-weight: 900; text-decoration: underline; }
+        
+        .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .health-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .status-ok { color: var(--success); font-weight: bold; }
+        .status-err { color: var(--danger); font-weight: bold; }
+        
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; display: none; z-index: 1000; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+        .section-divider { height: 1px; background: var(--mono); margin: 25px 0; }
+        .badge { background: var(--warning); color: #000; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="toast"></div>
+
+    <div class="container">
+        <!-- System Health Section -->
+        <div class="card">
+            <h2>🏥 وضعیت سلامت و ادمین</h2>
+            <div class="health-grid" id="health-check">
+                <div class="health-item">توکن ربات <span id="st-token">...</span></div>
+                <div class="health-item">دیتابیس KV <span id="st-kv">...</span></div>
+                <div class="health-item">تأییدیه مدیریت <span id="st-pass">...</span></div>
+            </div>
+            <div class="form-group" style="margin-top:15px;">
+                <label>🆔 چت‌آیدی تلگرام ادمین (دریافت هشدارهای بحرانی سیستم)</label>
+                <input type="text" id="admin_chat_id" placeholder="مثال: 123456789">
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="card">
+            <h1>⚙️ تنظیمات اصلی سیستم</h1>
+            <div class="toggle-row">
+                <label class="toggle-label">
+                    <input type="checkbox" id="bot_mode"> <span>🤖 ربات پاسخگو</span>
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="channel_mode"> <span>📢 ارسال کانال</span>
+                </label>
+                <label class="toggle-label" style="border-color: var(--danger);">
+                    <input type="checkbox" id="rl_enabled"> <span>🛡️ سیستم ضد اسپم (ربات)</span>
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>آیدی کانال (جهت ارسال خودکار)</label>
+                    <input type="text" id="channel_id" placeholder="@MyChannel">
+                </div>
+                <div class="form-group">
+                    <label>تعداد پروکسی در ارسال کانال</label>
+                    <input type="number" id="post_qty" placeholder="10">
+                </div>
+                <div class="form-group">
+                    <label>زمان محدودیت ضداسپم (دقیقه)</label>
+                    <input type="number" id="rl_time" placeholder="60">
+                </div>
+                <div class="form-group">
+                    <label>تعداد درخواست مجاز در زمان محدودیت</label>
+                    <input type="number" id="rl_reqs" placeholder="5">
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <h3>🚀 منابع دریافت پروکسی</h3>
+            <div class="form-group">
+                <textarea id="sources" placeholder="لینک سورس‌های پروکسی تلگرام..."></textarea>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <h3>🌐 منابع دریافت کانفیگ (V2ray, CF و ...)</h3>
+            <div class="form-group">
+                <textarea id="config_sources" placeholder="لینک سورس‌های کانفیگ..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>پروتکل‌های فعال و مقدار ارسالی در هر نوبت به کانال:</label>
+                <div class="proto-grid" id="protocols-grid">
+                    <!-- JS Fills this -->
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="saveSettings()">💾 ذخیره اطلاعات</button>
+                <button class="btn-success" onclick="setupWebhook()">🔗 اتصال مجدد وب‌هوک</button>
+            </div>
+        </div>
+
+        <!-- Logs Section -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h2>📜 لاگ‌های سرور</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-warning" onclick="loadLogs()" style="padding: 6px 12px; font-size: 12px;">🔄 رفرش</button>
+                    <button class="btn-danger" onclick="clearLogs()" style="padding: 6px 12px; font-size: 12px;">🗑 پاکسازی لاگ</button>
+                    <button class="btn-danger" onclick="clearHistory()" style="padding: 6px 12px; font-size: 12px;">🗑 ریست تکراری‌ها</button>
+                </div>
+            </div>
+            <div class="log-container" id="log-viewer"></div>
+        </div>
+    </div>
+
+    <script>
+        // آرایه اصلاح شده فقط شامل پروتکل‌های استاندارد و ادغام شده برای UI
+        const ALL_PROTOCOLS = [
+            'vmess', 'vless', 'trojan', 'ss', 'ssr', 'tuic', 'hysteria', 'hysteria2', 
+            'juicity', 'snell', 'anytls', 'ssh', 'wireguard', 'socks', 'cloudflare'
+        ];
+
+        const showToast = (msg, type = 'success') => {
+            const el = document.getElementById('toast');
+            el.innerText = msg;
+            el.style.display = 'block';
+            el.style.backgroundColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+            el.style.color = type === 'error' ? 'white' : '#020617';
+            setTimeout(() => el.style.display = 'none', 3000);
+        };
+
+        const renderHealth = (health) => {
+            const set = (id, ok) => {
+                const el = document.getElementById(id);
+                el.innerText = ok ? '✅ OK' : '❌ ERR';
+                el.className = ok ? 'status-ok' : 'status-err';
+            };
+            set('st-token', health.bot_token);
+            set('st-kv', health.kv_bound);
+            set('st-pass', health.admin_pass);
+        };
+
+        const renderLogs = (logs) => {
+            const viewer = document.getElementById('log-viewer');
+            if (!logs || logs.length === 0) {
+                viewer.innerHTML = '<div style="text-align: center; color: #64748b; padding-top: 20px;">خالی است.</div>';
+                return;
+            }
+            viewer.innerHTML = logs.map(l => \`
+                <div class="log-entry">
+                    <span class="log-ts">[\${l.ts.split(',')[1].trim()}]</span>
+                    <span class="log-level lvl-\${l.level}">\${l.level}</span>
+                    <span class="log-msg">\${l.msg}</span>
+                </div>
+            \`).join('');
+        };
+
+        const initProtocolsGrid = () => {
+            const grid = document.getElementById('protocols-grid');
+            grid.innerHTML = ALL_PROTOCOLS.map(p => {
+                let badge = p === 'cloudflare' ? '<span class="badge">ویژه</span>' : '';
+                return \`
+                <div class="proto-item" \${p === 'cloudflare' ? 'style="border-color: var(--warning);"' : ''}>
+                    <label><input type="checkbox" id="chk_\${p}"> \${badge}\${p.toUpperCase()}</label>
+                    <input type="number" id="qty_\${p}" min="0" placeholder="تعداد">
+                </div>\`
+            }).join('');
+        };
+
+        async function loadData() {
+            try {
+                initProtocolsGrid();
+                const sRes = await fetch('/api/settings');
+                const sData = await sRes.json();
+                
+                document.getElementById('bot_mode').checked = sData.bot_mode_enabled;
+                document.getElementById('channel_mode').checked = sData.channel_mode_enabled;
+                document.getElementById('rl_enabled').checked = sData.rl_enabled || false;
+                
+                document.getElementById('admin_chat_id').value = sData.admin_chat_id || '';
+                document.getElementById('channel_id').value = sData.channel_id;
+                document.getElementById('post_qty').value = sData.post_qty;
+                document.getElementById('rl_time').value = sData.rl_time || 60;
+                document.getElementById('rl_reqs').value = sData.rl_reqs || 5;
+                
+                document.getElementById('sources').value = sData.sources.join('\\n');
+                document.getElementById('config_sources').value = (sData.config_sources || []).join('\\n');
+
+                if (sData.protocols) {
+                    ALL_PROTOCOLS.forEach(p => {
+                        if (sData.protocols[p]) {
+                            document.getElementById(\`chk_\${p}\`).checked = sData.protocols[p].enabled;
+                            document.getElementById(\`qty_\${p}\`).value = sData.protocols[p].qty;
+                        }
+                    });
+                }
+                await loadLogs();
+            } catch (e) { showToast('خطا در بارگذاری', 'error'); }
+        }
+
+        async function loadLogs() {
+            try {
+                const res = await fetch('/api/logs');
+                const data = await res.json();
+                renderHealth(data.health);
+                renderLogs(data.logs);
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveSettings() {
+            let protocolsData = {};
+            ALL_PROTOCOLS.forEach(p => {
+                protocolsData[p] = {
+                    enabled: document.getElementById(\`chk_\${p}\`).checked,
+                    qty: parseInt(document.getElementById(\`qty_\${p}\`).value) || 0
+                };
+            });
+
+            const payload = {
+                bot_mode_enabled: document.getElementById('bot_mode').checked,
+                channel_mode_enabled: document.getElementById('channel_mode').checked,
+                rl_enabled: document.getElementById('rl_enabled').checked,
+                admin_chat_id: document.getElementById('admin_chat_id').value.trim(),
+                channel_id: document.getElementById('channel_id').value.trim(),
+                post_qty: parseInt(document.getElementById('post_qty').value) || 10,
+                rl_time: parseInt(document.getElementById('rl_time').value) || 60,
+                rl_reqs: parseInt(document.getElementById('rl_reqs').value) || 5,
+                sources: document.getElementById('sources').value.split('\\n').map(s => s.trim()).filter(s => s),
+                config_sources: document.getElementById('config_sources').value.split('\\n').map(s => s.trim()).filter(s => s),
+                protocols: protocolsData
+            };
+            
+            const res = await fetch('/api/settings', { method: 'POST', body: JSON.stringify(payload) });
+            if (res.ok) { showToast('تنظیمات ذخیره شد'); loadLogs(); }
+            else showToast('خطا در ذخیره', 'error');
+        }
+
+        async function setupWebhook() {
+            const res = await fetch('/api/setup-webhook');
+            const data = await res.json();
+            if (data.ok) showToast('وب‌هوک متصل شد');
+            else showToast('خطا: ' + data.description, 'error');
+            loadLogs();
+        }
+
+        async function clearLogs() {
+            await fetch('/api/clear-logs');
+            loadLogs();
+            showToast('لاگ‌ها پاک شدند');
+        }
+
+        async function clearHistory() {
+            if(confirm('تاریخچه جلوگیری از ارسال تکراری کاملا پاک شود؟')) {
+                await fetch('/api/clear-history');
+                showToast('تاریخچه پاک شد');
+                loadLogs();
+            }
+        }
+
+        window.onload = loadData;
+        setInterval(loadLogs, 30000);
+    </script>
+</body>
+</html>`;
+}

@@ -17304,6 +17304,7 @@ rules:
   - RULE-SET,ircidr,سایتای ایرانی 🇮🇷
   - RULE-SET,ir,سایتای ایرانی 🇮🇷
   - RULE-SET,category_ir,سایتای ایرانی 🇮🇷
+  - DOMAIN-SUFFIX,unimics.com,سایتای ایرانی 🇮🇷
   - RULE-SET,whatsapp,واتس آپ 🟢
   - RULE-SET,steam,استیم 🖥️
   - RULE-SET,SteamRegionCheck,استیم 🖥️

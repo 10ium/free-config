@@ -1,0 +1,509 @@
+#---------------------------------------------------#
+#                 Clash Configuration               #
+#      Based on Freedom House (High Privacy)        #
+#---------------------------------------------------#
+
+# General settings
+global-client-fingerprint: chrome
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+tcp-concurrent: true
+enable-process: true
+find-process-mode: strict
+ipv6: true
+log-level: debug
+geo-auto-update: true
+geo-update-interval: 168
+secret: ''
+bind-address: '*'
+unified-delay: false
+disable-keep-alive: false
+keep-alive-idle: 30
+keep-alive-interval: 30
+
+# Profile settings
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# DNS settings
+dns:
+  enable: true
+  ipv6: true
+  respect-rules: false
+  prefer-h3: true
+  cache-algorithm: arc
+  use-system-hosts: true
+  use-host: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-filter-mode: blacklist
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '*.localdomain'
+    - '*.invalid'
+    - '*.localhost'
+    - '*.test'
+    - '*.local'
+    - '*.home.arpa'
+    - 'time.*.com'
+    - 'ntp.*.com'
+    - '*.ir'
+  default-nameserver:
+    - 8.8.8.8
+    - 8.8.4.4
+    - 1.0.0.1
+    - 1.1.1.1
+    - 9.9.9.9
+    - 9.9.9.11
+    - 9.9.9.10
+    - 94.140.14.15
+    - 94.140.15.15
+    - 223.5.5.5
+    - 77.88.8.8
+  nameserver:
+    - 'https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI'
+    - 'tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com'
+  direct-nameserver:
+    - '78.157.42.100'
+    - '78.157.42.101'
+  proxy-server-nameserver:
+    - '2606:4700:4700::1111'
+    - '2606:4700:4700::1001'
+    - '2001:4860:4860::8888'
+    - '2001:4860:4860::8844'
+    - '1.1.1.1'
+    - '8.8.8.8'
+    - '8.8.4.4'
+    - '9.9.9.9'
+    - '223.5.5.5'
+    - '77.88.8.8'
+    - '2400:3200::1'
+    - '2a02:6b8::feed:0ff'
+    - '2620:fe::fe'
+
+# Sniffer settings
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080, 8880, 2052, 2082, 2086, 2095]
+    TLS:
+      ports: [443, 8443, 2053, 2083, 2087, 2096]
+
+# TUN settings
+tun:
+  enable: true
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  auto-redir: true
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+
+# Proxy Groups
+proxy-groups:
+  - name: نوع انتخاب پروکسی 🔀
+    icon: https://www.svgrepo.com/show/412721/choose.svg
+    type: select
+    proxies:
+      - خودکار 🤖
+      - دستی 🤏🏻
+      - بدون فیلترشکن 🛡️
+      - قطع اینترنت ⛔
+
+  - name: دستی 🤏🏻
+    type: select
+    icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
+    proxies:
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - فنلاند 🇫🇮
+      - نروژ 🇳🇴
+      - هلند 🇳🇱
+      - لوکزامبورگ 🇱🇺
+      - نیوزیلند 🇳🇿
+      - دانمارک 🇩🇰
+      - کانادا 🇨🇦
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+
+  - name: خودکار 🤖
+    type: fallback
+    url: 'https://www.gstatic.com/generate_204'
+    interval: 300
+    lazy: true
+    timeout: 5000
+    max-failed-times: 8
+    expected-status: 204
+    icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg
+    proxies:
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - فنلاند 🇫🇮
+      - نروژ 🇳🇴
+      - هلند 🇳🇱
+      - لوکزامبورگ 🇱🇺
+      - نیوزیلند 🇳🇿
+      - دانمارک 🇩🇰
+      - کانادا 🇨🇦
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+
+  # --- Country Specific Groups ---
+  - name: سوئیس 🇨🇭
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/0/08/Flag_of_Switzerland_%28Pantone%29.svg
+    proxies:
+      - خودکار سوئیس
+    use:
+      - Switzerland
+
+  - name: خودکار سوئیس
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Switzerland
+
+  - name: استونی 🇪🇪
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/8/8f/Flag_of_Estonia.svg
+    proxies:
+      - خودکار استونی
+    use:
+      - Estonia
+
+  - name: خودکار استونی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Estonia
+
+  - name: فنلاند 🇫🇮
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Finland.svg
+    proxies:
+      - خودکار فنلاند
+    use:
+      - Finland
+
+  - name: خودکار فنلاند
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Finland
+
+  - name: نروژ 🇳🇴
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Norway.svg
+    proxies:
+      - خودکار نروژ
+    use:
+      - Norway
+
+  - name: خودکار نروژ
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Norway
+
+  - name: هلند 🇳🇱
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/2/20/Flag_of_the_Netherlands.svg
+    proxies:
+      - خودکار هلند
+    use:
+      - Netherlands
+
+  - name: خودکار هلند
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Netherlands
+
+  - name: لوکزامبورگ 🇱🇺
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/d/da/Flag_of_Luxembourg.svg
+    proxies:
+      - خودکار لوکزامبورگ
+    use:
+      - Luxembourg
+
+  - name: خودکار لوکزامبورگ
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Luxembourg
+
+  - name: نیوزیلند 🇳🇿
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/3/3e/Flag_of_New_Zealand.svg
+    proxies:
+      - خودکار نیوزیلند
+    use:
+      - NewZealand
+
+  - name: خودکار نیوزیلند
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - NewZealand
+
+  - name: دانمارک 🇩🇰
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/9/9c/Flag_of_Denmark.svg
+    proxies:
+      - خودکار دانمارک
+    use:
+      - Denmark
+
+  - name: خودکار دانمارک
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Denmark
+
+  - name: کانادا 🇨🇦
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Canada_%28Pantone%29.svg
+    proxies:
+      - خودکار کانادا
+    use:
+      - Canada
+
+  - name: خودکار کانادا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Canada
+
+  - name: اتریش 🇦🇹
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/4/41/Flag_of_Austria.svg
+    proxies:
+      - خودکار اتریش
+    use:
+      - Austria
+
+  - name: خودکار اتریش
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Austria
+
+  - name: بلژیک 🇧🇪
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/6/65/Flag_of_Belgium.svg
+    proxies:
+      - خودکار بلژیک
+    use:
+      - Belgium
+
+  - name: خودکار بلژیک
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Belgium
+
+  - name: لیتوانی 🇱🇹
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/1/11/Flag_of_Lithuania.svg
+    proxies:
+      - خودکار لیتوانی
+    use:
+      - Lithuania
+
+  - name: خودکار لیتوانی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Lithuania
+
+  # --- Utility Groups ---
+  - name: بدون فیلترشکن 🛡️
+    type: select
+    icon: https://www.svgrepo.com/show/6318/connection.svg
+    proxies:
+      - DIRECT
+    hidden: true
+  - name: قطع اینترنت ⛔
+    type: select
+    icon: https://www.svgrepo.com/show/305372/wifi-off.svg
+    proxies:
+      - REJECT
+    hidden: true
+  - name: اجازه ندادن 🚫
+    type: select
+    icon: https://www.svgrepo.com/show/444307/gui-ban.svg
+    proxies:
+      - REJECT
+    hidden: true
+
+# Proxy Providers
+proxy-providers:
+  Switzerland:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CH.yaml"
+    interval: 1440
+    path: "./Switzerland.yaml"
+
+  Estonia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/EE.yaml"
+    interval: 1440
+    path: "./Estonia.yaml"
+
+  Finland:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/FI.yaml"
+    interval: 1440
+    path: "./Finland.yaml"
+
+  Norway:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NO.yaml"
+    interval: 1440
+    path: "./Norway.yaml"
+
+  Netherlands:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NL.yaml"
+    interval: 1440
+    path: "./Netherlands.yaml"
+
+  Luxembourg:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LU.yaml"
+    interval: 1440
+    path: "./Luxembourg.yaml"
+
+  NewZealand:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NZ.yaml"
+    interval: 1440
+    path: "./NewZealand.yaml"
+
+  Denmark:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/DK.yaml"
+    interval: 1440
+    path: "./Denmark.yaml"
+
+  Canada:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CA.yaml"
+    interval: 1440
+    path: "./Canada.yaml"
+
+  Austria:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AT.yaml"
+    interval: 1440
+    path: "./Austria.yaml"
+
+  Belgium:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BE.yaml"
+    interval: 1440
+    path: "./Belgium.yaml"
+
+  Lithuania:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LT.yaml"
+    interval: 1440
+    path: "./Lithuania.yaml"
+
+
+# Rules
+rules:
+  - MATCH,نوع انتخاب پروکسی 🔀
+
+# NTP settings
+ntp:
+  enable: true
+  server: "time.apple.com"
+  port: 123
+  interval: 30

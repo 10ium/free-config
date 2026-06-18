@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>کنترل پنل دستیار هوشمند دپلویر کلادفلر</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #0d1117; color: #c9d1d9; }
+        .glow-effect:focus { box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); border-color: #3b82f6; }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl space-y-4 md:space-y-0">
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <div class="p-3 bg-blue-600 rounded-xl text-white text-3xl">🛰️</div>
+                <div>
+                    <h1 class="text-2xl font-black text-white">دستیار استقرار کلادفلر (ClashFa)</h1>
+                    <p class="text-sm text-gray-400 mt-1">مدیریت، بررسی عیب‌یابی لاگ‌ها و دپلوی همزمان بدون نیاز به تلگرام</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                    <span class="w-2 h-2 mr-1 ml-1.5 bg-green-500 rounded-full animate-ping"></span>
+                    سیستم فعال است
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="lg:col-span-2 p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl space-y-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2"><span>🚀</span> استقرار مستقیم پروژه جدید</h2>
+                <form id="deployForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">توکن دسترسی کلادفلر (API Token):</label>
+                            <input required type="password" id="token" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition" placeholder="توکن خود را با دسترسی کامل وارد کنید">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">شناسه حساب کلادفلر (Account ID):</label>
+                            <input required type="text" id="accountId" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition" placeholder="شناسه حساب کلادفلر شما">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">نوع استقرار (Platform Type):</label>
+                            <select id="projectType" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition">
+                                <option value="worker">کلادفلر ورکرز (Workers)</option>
+                                <option value="pages">کلادفلر پیج‌ها (Pages)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">نام انگلیسی پروژه (Project Name):</label>
+                            <input required type="text" id="projectName" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition" placeholder="مثال: my-fast-worker">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">ساب‌دومین دستی ورکرز (اختیاری):</label>
+                            <input type="text" id="customSubdomain" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition" placeholder="مثال: leo-10-10">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">انتخاب اسکریپت / الگو:</label>
+                            <select id="presetSelect" onchange="onPresetChange()" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition"></select>
+                        </div>
+                    </div>
+
+                    <div id="customUrlContainer" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">آدرس لینک خام ورکر (URL):</label>
+                        <input type="text" id="customUrl" class="w-full p-3 bg-gray-950 border border-gray-800 rounded-xl text-white glow-effect transition" placeholder="https://raw.githubusercontent.com/.../script.js">
+                    </div>
+
+                    <div id="presetDescBox" class="p-4 bg-blue-950/20 border border-blue-500/20 rounded-xl text-sm text-blue-300 hidden"></div>
+
+                    <div id="dynamicVarsContainer" class="space-y-4 hidden">
+                        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+                            <h3 class="text-sm font-bold text-gray-300">تنظیمات پیش‌نیاز الگو:</h3>
+                            <button type="button" onclick="triggerAutoFill()" class="text-xs px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg transition">🎲 تولید خودکار متغیرها</button>
+                        </div>
+                        <div id="dynamicVarsFields" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl transition shadow-lg">آغاز استقرار و انتشار پروژه 🚀</button>
+                </form>
+                <div id="statusResult" class="p-4 rounded-xl text-sm hidden"></div>
+            </section>
+
+            <!-- Logs Terminal -->
+            <section class="p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col h-[520px]">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-3">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2"><span>📋</span> گزارشات زنده و خطایابی</h2>
+                    <button onclick="fetchLogs()" class="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md transition">بروزرسانی</button>
+                </div>
+                <div id="logsConsole" class="flex-1 bg-gray-950 p-4 rounded-xl font-mono text-xs overflow-y-auto space-y-2.5 scrollbar-thin border border-gray-900">
+                    <div class="text-gray-500">درحال بارگذاری لیست گزارشات...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let presetsCache = [];
+        async function init() { await fetchPresets(); await fetchLogs(); setInterval(fetchLogs, 15000); }
+        async function fetchPresets() {
+            try {
+                const response = await fetch('/api/presets');
+                presetsCache = await response.json();
+                const select = document.getElementById('presetSelect');
+                select.innerHTML = '';
+                presetsCache.forEach((p, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = idx; opt.textContent = p.name;
+                    select.appendChild(opt);
+                });
+                const optCustom = document.createElement('option');
+                optCustom.value = 'custom'; optCustom.textContent = '🔗 ورکر سفارشی (از طریق لینک)';
+                select.appendChild(optCustom);
+                onPresetChange();
+            } catch (err) { console.error(err); }
+        }
+
+        function onPresetChange() {
+            const select = document.getElementById('presetSelect');
+            const selectedValue = select.value;
+            const customUrlContainer = document.getElementById('customUrlContainer');
+            const descBox = document.getElementById('presetDescBox');
+            const varsContainer = document.getElementById('dynamicVarsContainer');
+            const varsFields = document.getElementById('dynamicVarsFields');
+            varsFields.innerHTML = '';
+
+            if (selectedValue === 'custom') {
+                customUrlContainer.classList.remove('hidden');
+                descBox.classList.remove('hidden');
+                descBox.innerHTML = '<strong>ورکر سفارشی:</strong> لینک اسکریپت را وارد کنید.';
+                varsContainer.classList.add('hidden');
+            } else {
+                customUrlContainer.classList.add('hidden');
+                const preset = presetsCache[selectedValue];
+                descBox.classList.remove('hidden');
+                descBox.innerHTML = '<strong>توضیحات ورکر:</strong> ' + preset.description;
+                if (preset.vars && preset.vars.length > 0) {
+                    varsContainer.classList.remove('hidden');
+                    preset.vars.forEach(v => {
+                        const fieldDiv = document.createElement('div');
+                        fieldDiv.innerHTML = '<label class="block text-xs text-gray-400 mb-1">' + v + ':</label>' +
+                                             '<input type="text" data-var="' + v + '" required class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-white text-xs glow-effect">';
+                        varsFields.appendChild(fieldDiv);
+                    });
+                } else { varsContainer.classList.add('hidden'); }
+            }
+        }
+
+        function triggerAutoFill() {
+            const select = document.getElementById('presetSelect');
+            const selectedValue = select.value;
+            if (selectedValue === 'custom') return;
+            const preset = presetsCache[selectedValue];
+            const generateRandomString = (charSet, len) => Array.from({length: len}, () => charSet.charAt(Math.floor(Math.random() * charSet.length))).join('');
+            const CharsetAlphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            const CharsetSpecialCharacters = "!@#$%^&*()_+[]{}|;:',.<>?";
+            const CharsetTrojanPassword = CharsetAlphaNumeric + CharsetSpecialCharacters;
+            const CharsetURIPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&*_-+;:,.";
+
+            preset.vars.forEach(v => {
+                const el = document.querySelector('[data-var="' + v + '"]');
+                if (el) {
+                    if (v === "UUID") el.value = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => (Math.random() * 16 | 0).toString(16));
+                    else if (v === "TR_PASS") el.value = generateRandomString(CharsetTrojanPassword, 12);
+                    else if (v === "SUB_PATH") el.value = generateRandomString(CharsetURIPath, 16);
+                    else if (v === "ADMIN_PASSWORD") el.value = generateRandomString(CharsetAlphaNumeric, 12);
+                    else if (v === "PROXY_IP") el.value = "bpb.yousef.isegaro.com";
+                    else if (v === "FALLBACK") el.value = "speed.cloudflare.com";
+                    else if (v === "PREFIX") el.value = "";
+                    else el.value = generateRandomString(CharsetAlphaNumeric, 10);
+                }
+            });
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/logs');
+                const logs = await res.json();
+                const consoleDiv = document.getElementById('logsConsole');
+                consoleDiv.innerHTML = '';
+                if (logs.length === 0) {
+                    consoleDiv.innerHTML = '<div class="text-gray-600">گزارشی ثبت نشده است.</div>';
+                    return;
+                }
+                logs.forEach(log => {
+                    const entry = document.createElement('div');
+                    let color = 'text-blue-400';
+                    if (log.type === 'error') color = 'text-red-400';
+                    if (log.type === 'warning') color = 'text-yellow-400';
+                    entry.innerHTML = '<span class="text-gray-500">[' + log.timestamp + ']</span> <span class="' + color + '">[' + log.type.toUpperCase() + ']</span> <span class="text-gray-200">' + log.message + '</span>';
+                    consoleDiv.appendChild(entry);
+                });
+            } catch (_) {}
+        }
+
+        document.getElementById('deployForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('statusResult');
+            btn.disabled = true;
+            btn.textContent = 'در حال پردازش عملیات دپلو... ⏳';
+            status.className = 'p-4 rounded-xl text-sm bg-blue-900/30 text-blue-300 border border-blue-500/20 block';
+            status.textContent = 'سیستم در حال دپلو منابع روی کلادفلر...';
+
+            const select = document.getElementById('presetSelect');
+            const selectedValue = select.value;
+            const variables = {};
+            if (selectedValue !== 'custom') {
+                presetsCache[selectedValue].vars.forEach(v => {
+                    const el = document.querySelector('[data-var="' + v + '"]');
+                    if (el) variables[v] = el.value;
+                });
+            }
+
+            const payload = {
+                token: document.getElementById('token').value,
+                accountId: document.getElementById('accountId').value,
+                projectName: document.getElementById('projectName').value,
+                projectType: document.getElementById('projectType').value,
+                presetIndex: selectedValue !== 'custom' ? selectedValue : null,
+                isCustomUrl: selectedValue === 'custom',
+                customUrl: selectedValue === 'custom' ? document.getElementById('customUrl').value : null,
+                customSubdomain: document.getElementById('customSubdomain').value,
+                variables: variables
+            };
+
+            try {
+                const res = await fetch('/api/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    status.className = 'p-4 rounded-xl text-sm bg-green-900/30 text-green-300 border border-green-500/20 block space-y-3';
+                    let bindingsHtml = '<div class="mt-3 p-3 bg-gray-950 rounded-lg text-xs space-y-1.5 text-gray-300">';
+                    bindingsHtml += '<p class="font-bold text-gray-400 border-b border-gray-800 pb-1 mb-1">📋 متغیرهای متصل تاییدشده توسط کلادفلر:</p>';
+                    if (result.bindings && result.bindings.length > 0) {
+                        result.bindings.forEach(b => {
+                            if (b.type === 'kv_namespace') bindingsHtml += '<p>📦 <b>دیتابیس [KV]:</b> ' + b.name + ' (شناسه: ' + (b.namespace_id || b.id) + ')</p>';
+                            else bindingsHtml += '<p>⚙️ <b>متغیر [Plain]:</b> ' + b.name + ' = ' + (b.text || b.value || '*******') + '</p>';
+                        });
+                    } else { bindingsHtml += '<p class="text-gray-500">هیچ متغیری برای این ورکر ثبت نشده است.</p>'; }
+                    bindingsHtml += '</div>';
+                    status.innerHTML = '🎉 <strong>موفقیت‌آمیز!</strong> پروژه شما دپلو شد.<br><br>👉 لینک دسترسی: <a href="' + result.url + '" target="_blank" class="underline font-bold text-white">' + result.url + '</a>' + bindingsHtml;
+                } else {
+                    status.className = 'p-4 rounded-xl text-sm bg-red-900/30 text-red-300 border border-red-500/20 block';
+                    status.innerHTML = '❌ <strong>خطا در استقرار:</strong> ' + result.error;
+                }
+            } catch (err) {
+                status.className = 'p-4 rounded-xl text-sm bg-red-900/30 text-red-300 border border-red-500/20 block';
+                status.textContent = '❌ خطا در ارسال درخواست.';
+            } finally {
+                btn.disabled = false; btn.textContent = 'آغاز استقرار و انتشار پروژه 🚀'; await fetchLogs();
+            }
+        });
+        window.onload = init;
+    </script>
+</body>
+</html>

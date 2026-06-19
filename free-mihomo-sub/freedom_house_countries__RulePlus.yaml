@@ -1248,6 +1248,25 @@ proxy-groups:
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
 
+  - name: "انیدسک 🔴"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/331289/anydesk.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: "سایتای سانسوری 🤬"
+    type: "select"
+    icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png"
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+
   - name: بدون فیلترشکن 🛡️
     type: select
     icon: https://www.svgrepo.com/show/6318/connection.svg

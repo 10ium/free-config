@@ -1365,7 +1365,7 @@ rules:
   - "RULE-SET,private,بدون فیلترشکن 🛡️"
   - "MATCH,نوع انتخاب پروکسی 🔀"
 
-  ntp:
+ntp:
   enable: true
   server: "time.apple.com"
   port: 123

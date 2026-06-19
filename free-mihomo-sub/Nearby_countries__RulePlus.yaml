@@ -517,18 +517,21 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
     proxies:
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
-      - ایران 🇮🇷
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
 
   - name: خودکار 🤖
     type: fallback
@@ -540,29 +543,33 @@ proxy-groups:
     expected-status: 204
     icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg
     proxies:
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
-      - بلغارستان 🇧🇬
+      - عربستان 🇸🇦
       - ایران 🇮🇷
+      - روسیه 🇷🇺
+      - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
 
-  # --- Country Specific Groups ---
-  - name: عراق 🇮🇶
+# --- Country Specific Groups ---
+  - name: امارات 🇦🇪
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/f/f6/Flag_of_Iraq.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/c/cb/Flag_of_the_United_Arab_Emirates.svg
     proxies:
-      - خودکار عراق
+      - خودکار امارات
     use:
-      - Iraq
+      - UAE
 
-  - name: خودکار عراق
+  - name: خودکار امارات
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -572,7 +579,27 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - Iraq
+      - UAE
+
+  - name: ترکیه 🇹🇷
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/b/b4/Flag_of_Turkey.svg
+    proxies:
+      - خودکار ترکیه
+    use:
+      - Turkey
+
+  - name: خودکار ترکیه
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Turkey
 
   - name: آذربایجان 🇦🇿
     type: select
@@ -614,15 +641,15 @@ proxy-groups:
     use:
       - Armenia
 
-  - name: امارات 🇦🇪
+  - name: قطر 🇶🇦
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/c/cb/Flag_of_the_United_Arab_Emirates.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/6/65/Flag_of_Qatar.svg
     proxies:
-      - خودکار امارات
+      - خودکار قطر
     use:
-      - UAE
+      - Qatar
 
-  - name: خودکار امارات
+  - name: خودکار قطر
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -632,17 +659,17 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - UAE
+      - Qatar
 
-  - name: عمان 🇴🇲
+  - name: عراق 🇮🇶
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/dd/Flag_of_Oman.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/f/f6/Flag_of_Iraq.svg
     proxies:
-      - خودکار عمان
+      - خودکار عراق
     use:
-      - Oman
+      - Iraq
 
-  - name: خودکار عمان
+  - name: خودکار عراق
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -652,7 +679,7 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - Oman
+      - Iraq
 
   - name: بحرین 🇧🇭
     type: select
@@ -674,15 +701,15 @@ proxy-groups:
     use:
       - Bahrain
 
-  - name: گرجستان 🇬🇪
+  - name: روسیه 🇷🇺
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/0/0f/Flag_of_Georgia.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Russia.svg
     proxies:
-      - خودکار گرجستان
+      - خودکار روسیه
     use:
-      - Georgia
+      - Russia
 
-  - name: خودکار گرجستان
+  - name: خودکار روسیه
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -692,17 +719,17 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - Georgia
+      - Russia
 
-  - name: قبرس 🇨🇾
+  - name: عربستان 🇸🇦
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Cyprus.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg
     proxies:
-      - خودکار قبرس
+      - خودکار عربستان
     use:
-      - Cyprus
+      - SaudiArabia
 
-  - name: خودکار قبرس
+  - name: خودکار عربستان
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -712,17 +739,17 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - Cyprus
+      - SaudiArabia
 
-  - name: قزاقستان 🇰🇿
+  - name: بلغارستان 🇧🇬
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/d3/Flag_of_Kazakhstan.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Bulgaria.svg
     proxies:
-      - خودکار قزاقستان
+      - خودکار بلغارستان
     use:
-      - Kazakhstan
+      - Bulgaria
 
-  - name: خودکار قزاقستان
+  - name: خودکار بلغارستان
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -732,7 +759,27 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - Kazakhstan
+      - Bulgaria
+
+  - name: رومانی 🇷🇴
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/7/73/Flag_of_Romania.svg
+    proxies:
+      - خودکار رومانی
+    use:
+      - Romania
+
+  - name: خودکار رومانی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Romania
 
   - name: آلمان 🇩🇪
     type: select
@@ -754,15 +801,15 @@ proxy-groups:
     use:
       - Germany
 
-  - name: بلغارستان 🇧🇬
+  - name: هلند 🇳🇱
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Bulgaria.svg
+    icon: https://upload.wikimedia.org/wikipedia/commons/2/20/Flag_of_the_Netherlands.svg
     proxies:
-      - خودکار بلغارستان
+      - خودکار هلند
     use:
-      - Bulgaria
+      - Netherlands
 
-  - name: خودکار بلغارستان
+  - name: خودکار هلند
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
@@ -772,7 +819,47 @@ proxy-groups:
     expected-status: 204
     hidden: true
     use:
-      - Bulgaria
+      - Netherlands
+
+  - name: فرانسه 🇫🇷
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg
+    proxies:
+      - خودکار فرانسه
+    use:
+      - France
+
+  - name: خودکار فرانسه
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - France
+
+  - name: بریتانیا 🇬🇧
+    type: select
+    icon: https://upload.wikimedia.org/wikipedia/commons/a/a5/Flag_of_the_United_Kingdom.svg
+    proxies:
+      - خودکار بریتانیا
+    use:
+      - UK
+
+  - name: خودکار بریتانیا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - UK
 
   - name: ایران 🇮🇷
     type: select
@@ -833,17 +920,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "تلگرام 💬"
@@ -855,17 +946,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "یوتیوب ▶️"
@@ -877,17 +972,21 @@ proxy-groups:
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - "بدون فیلترشکن 🛡️"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "گوگل 🌍"
@@ -899,17 +998,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "واتس آپ 🟢"
@@ -921,17 +1024,21 @@ proxy-groups:
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - "بدون فیلترشکن 🛡️"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "هوش مصنوعی 🤖"
@@ -943,17 +1050,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "توییتر 🐦"
@@ -965,17 +1076,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "اسپاتیفای 🎵"
@@ -987,17 +1102,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "اینستاگرام 📸"
@@ -1009,17 +1128,21 @@ proxy-groups:
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - "بدون فیلترشکن 🛡️"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "تبلیغات 🆎"
@@ -1071,17 +1194,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "گیم 🎮"
@@ -1093,17 +1220,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "توییچ 📡"
@@ -1115,17 +1246,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "سایتای ایرانی 🇮🇷"
@@ -1147,17 +1282,21 @@ proxy-groups:
       - "اجازه ندادن 🚫"
       - "خودکار 🤖"
       - "دستی 🤏🏻"
-      - عراق 🇮🇶
+      - amarat امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "کلودفلر ☁️"
@@ -1169,17 +1308,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "گیتهاب 🐙"
@@ -1191,17 +1334,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "دیسکورد 🗣️"
@@ -1213,17 +1360,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "استریمیو 🎬"
@@ -1235,17 +1386,21 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
-      - عراق 🇮🇶
+      - امارات 🇦🇪
+      - ترکیه 🇹🇷
       - آذربایجان 🇦🇿
       - ارمنستان 🇦🇲
-      - امارات 🇦🇪
-      - عمان 🇴🇲
+      - قطر 🇶🇦
+      - عراق 🇮🇶
       - بحرین 🇧🇭
-      - گرجستان 🇬🇪
-      - قبرس 🇨🇾
-      - قزاقستان 🇰🇿
-      - آلمان 🇩🇪
+      - روسیه 🇷🇺
+      - عربستان 🇸🇦
       - بلغارستان 🇧🇬
+      - رومانی 🇷🇴
+      - آلمان 🇩🇪
+      - هلند 🇳🇱
+      - فرانسه 🇫🇷
+      - بریتانیا 🇬🇧
       - ایران 🇮🇷
 
   - name: "انیدسک 🔴"
@@ -1257,6 +1412,7 @@ proxy-groups:
       - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
+
   - name: "سایتای سانسوری 🤬"
     type: "select"
     icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png"
@@ -1273,12 +1429,14 @@ proxy-groups:
     proxies:
       - DIRECT
     hidden: true
+
   - name: قطع اینترنت ⛔
     type: select
     icon: https://www.svgrepo.com/show/305372/wifi-off.svg
     proxies:
       - REJECT
     hidden: true
+
   - name: اجازه ندادن 🚫
     type: select
     icon: https://www.svgrepo.com/show/444307/gui-ban.svg
@@ -1287,11 +1445,17 @@ proxy-groups:
     hidden: true
 
 proxy-providers:
-  Iraq:
+  UAE:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IQ.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AE.yaml"
     interval: 1440
-    path: "./Iraq.yaml"
+    path: "./UAE.yaml"
+
+  Turkey:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/TR.yaml"
+    interval: 1440
+    path: "./Turkey.yaml"
 
   Azerbaijan:
     type: http
@@ -1305,17 +1469,17 @@ proxy-providers:
     interval: 1440
     path: "./Armenia.yaml"
 
-  UAE:
+  Qatar:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AE.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/QA.yaml"
     interval: 1440
-    path: "./UAE.yaml"
+    path: "./Qatar.yaml"
 
-  Oman:
+  Iraq:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/OM.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IQ.yaml"
     interval: 1440
-    path: "./Oman.yaml"
+    path: "./Iraq.yaml"
 
   Bahrain:
     type: http
@@ -1323,23 +1487,29 @@ proxy-providers:
     interval: 1440
     path: "./Bahrain.yaml"
 
-  Georgia:
+  Russia:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/GE.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/RU.yaml"
     interval: 1440
-    path: "./Georgia.yaml"
+    path: "./Russia.yaml"
 
-  Cyprus:
+  SaudiArabia:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CY.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/SA.yaml"
     interval: 1440
-    path: "./Cyprus.yaml"
+    path: "./SaudiArabia.yaml"
 
-  Kazakhstan:
+  Bulgaria:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/KZ.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BG.yaml"
     interval: 1440
-    path: "./Kazakhstan.yaml"
+    path: "./Bulgaria.yaml"
+
+  Romania:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/RO.yaml"
+    interval: 1440
+    path: "./Romania.yaml"
 
   Germany:
     type: http
@@ -1347,11 +1517,23 @@ proxy-providers:
     interval: 1440
     path: "./Germany.yaml"
 
-  Bulgaria:
+  Netherlands:
     type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BG.yaml"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NL.yaml"
     interval: 1440
-    path: "./Bulgaria.yaml"
+    path: "./Netherlands.yaml"
+
+  France:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/FR.yaml"
+    interval: 1440
+    path: "./France.yaml"
+
+  UK:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/GB.yaml"
+    interval: 1440
+    path: "./UK.yaml"
 
   Iran:
     type: http

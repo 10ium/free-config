@@ -18,6 +18,7 @@ geo-update-interval: 168
 secret: ""
 bind-address: "*"
 unified-delay: false
+
 dns:
   enable: true
   ipv6: false
@@ -109,6 +110,7 @@ dns:
   direct-nameserver:
     - "78.157.42.100"
     - "78.157.42.101"
+
 sniffer:
   enable: true
   force-dns-mapping: true
@@ -132,6 +134,7 @@ sniffer:
         - 2083
         - 2087
         - 2096
+
 tun:
   enable: true
   stack: "mixed"
@@ -141,7 +144,7 @@ tun:
   dns-hijack:
     - "any:53"
     - "tcp://any:53"
-    
+
 rule-providers:
   category_public_tracker:
     type: "http"
@@ -500,7 +503,7 @@ rule-providers:
     interval: 86400
     path: "./ruleset/mihSpotify.yaml"
 
-    proxy-groups:
+proxy-groups:
   - name: نوع انتخاب پروکسی 🔀
     icon: https://www.svgrepo.com/show/412721/choose.svg
     type: select
@@ -797,34 +800,37 @@ rule-providers:
     proxies:
       - "بدون فیلترشکن 🛡️"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
+
   - name: "تیماسپیک 🎧"
     type: "select"
     icon: "https://www.svgrepo.com/show/331567/teamspeak.svg"
     proxies:
       - "بدون فیلترشکن 🛡️"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
+
   - name: "دلتاچت ✉️"
     type: "select"
     icon: "https://www.svgrepo.com/show/373771/mail.svg"
     proxies:
       - "بدون فیلترشکن 🛡️"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
+
   - name: "دانلود منیجر 📥"
     type: "select"
     icon: "https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg"
     proxies:
       - "بدون فیلترشکن 🛡️"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -839,13 +845,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "تلگرام 💬"
     type: "select"
     icon: "https://www.svgrepo.com/show/354443/telegram.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -860,12 +867,13 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "یوتیوب ▶️"
     type: "select"
     icon: "https://www.svgrepo.com/show/475700/youtube-color.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - "بدون فیلترشکن 🛡️"
@@ -881,13 +889,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "گوگل 🌍"
     type: "select"
     icon: "https://www.svgrepo.com/show/475656/google-color.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -902,12 +911,13 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "واتس آپ 🟢"
     type: "select"
     icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - "بدون فیلترشکن 🛡️"
@@ -923,13 +933,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "هوش مصنوعی 🤖"
     type: "select"
     icon: "https://www.svgrepo.com/show/306500/openai.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -944,13 +955,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "توییتر 🐦"
     type: "select"
     icon: "https://www.svgrepo.com/show/475689/twitter-color.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -965,13 +977,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "اسپاتیفای 🎵"
     type: "select"
     icon: "https://www.svgrepo.com/show/475684/spotify-color.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -986,12 +999,13 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "اینستاگرام 📸"
     type: "select"
     icon: "https://www.svgrepo.com/show/452229/instagram-1.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - "بدون فیلترشکن 🛡️"
@@ -1007,49 +1021,54 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "تبلیغات 🆎"
     type: "select"
     icon: "https://www.svgrepo.com/show/336358/ad.svg"
     proxies:
       - "اجازه ندادن 🚫"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "بدون فیلترشکن 🛡️"
+
   - name: "تبلیغات اپ ها 🍃"
     type: "select"
     icon: "https://www.svgrepo.com/show/12172/smartphone-ad.svg"
     proxies:
       - "اجازه ندادن 🚫"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "بدون فیلترشکن 🛡️"
+
   - name: "رهگیری جهانی 🛑"
     type: "select"
     icon: "https://www.svgrepo.com/show/298725/tracking-track.svg"
     proxies:
       - "اجازه ندادن 🚫"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "بدون فیلترشکن 🛡️"
+
   - name: "سایتای مخرب ⚠️"
     type: "select"
     icon: "https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg"
     proxies:
       - "اجازه ندادن 🚫"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "بدون فیلترشکن 🛡️"
+
   - name: "استیم 🖥️"
     type: "select"
     icon: "https://www.svgrepo.com/show/452107/steam.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1064,13 +1083,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "گیم 🎮"
     type: "select"
     icon: "https://www.svgrepo.com/show/167729/game-controller.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1085,13 +1105,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "توییچ 📡"
     type: "select"
     icon: "https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1106,15 +1127,17 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "سایتای ایرانی 🇮🇷"
     type: "select"
     icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg"
     proxies:
       - "بدون فیلترشکن 🛡️"
       - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
+
   - name: "ویندوز 🧊"
     type: "select"
     icon: "https://icon.icepanel.io/Technology/svg/Windows-11.svg"
@@ -1122,7 +1145,7 @@ rule-providers:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
       - "اجازه ندادن 🚫"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - سوئیس 🇨🇭
       - استونی 🇪🇪
@@ -1136,13 +1159,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "کلودفلر ☁️"
     type: "select"
     icon: "https://icon.icepanel.io/Technology/svg/Cloudflare.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1157,13 +1181,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "گیتهاب 🐙"
     type: "select"
     icon: "https://www.svgrepo.com/show/355033/github.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1178,13 +1203,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "دیسکورد 🗣️"
     type: "select"
     icon: "https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1199,13 +1225,14 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
+
   - name: "استریمیو 🎬"
     type: "select"
     icon: "https://stremio.github.io/stremio-addon-guide/img/stremio.svg"
     proxies:
       - "نوع انتخاب پروکسی 🔀"
       - "بدون فیلترشکن 🛡️"
-      - "خودکار (بهترین پینگ) 🤖"
+      - "خودکار 🤖"
       - "دستی 🤏🏻"
       - "اجازه ندادن 🚫"
       - سوئیس 🇨🇭
@@ -1220,116 +1247,26 @@ rule-providers:
       - اتریش 🇦🇹
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
-  - name: "انیدسک 🔴"
-    type: "select"
-    icon: "https://www.svgrepo.com/show/331289/anydesk.svg"
+
+  - name: بدون فیلترشکن 🛡️
+    type: select
+    icon: https://www.svgrepo.com/show/6318/connection.svg
     proxies:
-      - "بدون فیلترشکن 🛡️"
-      - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
-      - "دستی 🤏🏻"
-      - "اجازه ندادن 🚫"
-  - name: "سایتای سانسوری 🤬"
-    type: "select"
-    icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png"
-    proxies:
-      - "اجازه ندادن 🚫"
-      - "نوع انتخاب پروکسی 🔀"
-      - "خودکار (بهترین پینگ) 🤖"
-      - "دستی 🤏🏻"
-      - "بدون فیلترشکن 🛡️"
-  - name: "بدون فیلترشکن 🛡️"
-    type: "select"
-    icon: "https://www.svgrepo.com/show/6318/connection.svg"
-    proxies:
-      - "DIRECT"
+      - DIRECT
     hidden: true
-  - name: "قطع اینترنت ⛔"
-    type: "select"
-    icon: "https://www.svgrepo.com/show/305372/wifi-off.svg"
+  - name: قطع اینترنت ⛔
+    type: select
+    icon: https://www.svgrepo.com/show/305372/wifi-off.svg
     proxies:
-      - "REJECT"
+      - REJECT
     hidden: true
-  - name: "اجازه ندادن 🚫"
-    type: "select"
-    icon: "https://www.svgrepo.com/show/444307/gui-ban.svg"
+  - name: اجازه ندادن 🚫
+    type: select
+    icon: https://www.svgrepo.com/show/444307/gui-ban.svg
     proxies:
-      - "REJECT"
+      - REJECT
     hidden: true
 
-proxy-providers:
-  Switzerland:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CH.yaml"
-    interval: 1440
-    path: "./Switzerland.yaml"
-
-  Estonia:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/EE.yaml"
-    interval: 1440
-    path: "./Estonia.yaml"
-
-  Finland:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/FI.yaml"
-    interval: 1440
-    path: "./Finland.yaml"
-
-  Norway:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NO.yaml"
-    interval: 1440
-    path: "./Norway.yaml"
-
-  Netherlands:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NL.yaml"
-    interval: 1440
-    path: "./Netherlands.yaml"
-
-  Luxembourg:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LU.yaml"
-    interval: 1440
-    path: "./Luxembourg.yaml"
-
-  NewZealand:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NZ.yaml"
-    interval: 1440
-    path: "./NewZealand.yaml"
-
-  Denmark:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/DK.yaml"
-    interval: 1440
-    path: "./Denmark.yaml"
-
-  Canada:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CA.yaml"
-    interval: 1440
-    path: "./Canada.yaml"
-
-  Austria:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AT.yaml"
-    interval: 1440
-    path: "./Austria.yaml"
-
-  Belgium:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BE.yaml"
-    interval: 1440
-    path: "./Belgium.yaml"
-
-  Lithuania:
-    type: http
-    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LT.yaml"
-    interval: 1440
-    path: "./Lithuania.yaml"
-    
 rules:
   - "RULE-SET,DownloadManagers,دانلود منیجر 📥"
   - "RULE-SET,Download,دانلود منیجر 📥"

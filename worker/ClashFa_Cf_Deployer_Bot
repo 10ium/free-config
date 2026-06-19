@@ -1,0 +1,1977 @@
+/**
+ * Advanced Cloudflare Orchestrator & Telegram Bot (Clean Service-Worker Mode)
+ * Language: Persian (Farsi)
+ * 
+ * Required Bindings:
+ * - BOT_KV (KV Namespace)
+ * 
+ * Required Environment Variables:
+ * - TELEGRAM_BOT_TOKEN (String)
+ * - SECRET_TOKEN (String, optional for webhook protection)
+ */
+
+// Standards definitions from the original Go template
+const CharsetAlphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const CharsetSpecialCharacters = "!@#$%^&*()_+[]{}|;:',.<>?";
+const CharsetTrojanPassword = CharsetAlphaNumeric + CharsetSpecialCharacters;
+const CharsetURIPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&*_-+;:,.";
+
+const PRESETS = [
+  // Config Category
+  {
+    id: "bpb",
+    name: "BPB Worker 🛰️",
+    url: "https://github.com/bia-pain-bache/BPB-Worker-Panel/releases/latest/download/worker.js",
+    isLegacy: true,
+    kvBindings: ["kv"],
+    vars: ["UUID", "TR_PASS", "SUB_PATH", "PROXY_IP", "PREFIX", "FALLBACK"],
+    description: "پنل همه‌کاره و قدرتمند VLESS/Trojan بر روی وب‌سایت کلادفلر ورکرز.",
+    category: "config"
+  },
+  {
+    id: "irnova",
+    name: "IRNova (Nova-Proxy) 🛡️",
+    url: "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",
+    isLegacy: false,
+    kvBindings: ["KV"],
+    vars: ["D1_ID_DB"],
+    description: "پروکسی قدرتمند نوا مبتنی بر دیتابیس D1 (با نام DB) و دیتابیس KV (با نام KV).",
+    category: "config"
+  },
+  {
+    id: "nahan",
+    name: "Nahan Project (itsyebekhe) 🛡️",
+    url: "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["D1_ID_IOT_DB"],
+    description: "پروژه نهان (Nahan) - توزیع ترافیک و پروکسی معکوس بدون سرور مبتنی بر دیتابیس D1 (با نام متغیر IOT_DB).\nپس از دپلو، با وارد کردن مسیر /sync/dash و رمز عبور پیشفرض admin وارد پنل شوید.",
+    category: "config"
+  },
+  {
+    id: "edgetunnel",
+    name: "EdgeTunnel (cmliu) 🚀",
+    url: "https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js",
+    isLegacy: false,
+    kvBindings: ["KV"],
+    vars: ["ADMIN", "KEY", "UUID", "PROXYIP"],
+    description: "تونل عبور ترافیک پیشرفته edgetunnel مبتنی بر پروتکل‌های VLESS/Trojan/Shadowsocks.",
+    category: "config"
+  },
+  // ClashFa Category
+  {
+    id: "clashfa_mirror",
+    name: "ClashFa Mirror Pro ⚡",
+    url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.txt",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "ابزاری همه کاره برای میرور کردن لینک ها.",
+    category: "clashfa"
+  },
+  {
+    id: "mihomo_converter",
+    name: "great mihomo converter 🛠️",
+    url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "مبدل فوق‌العاده لینک‌های اشتراک همراه با رابط کاربری وب اختصاصی (Mihomo/Clash).",
+    category: "clashfa"
+  },
+  {
+    id: "tg_proxy_assistant",
+    name: "TG Proxy Assistant 🤖",
+    url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/TG-Proxy_Assistant",
+    isLegacy: false,
+    kvBindings: ["PROXY_KV"],
+    vars: ["BOT_TOKEN", "ADMIN_PASSWORD"],
+    description: "ربات دستیار و کنترل‌کننده پروکسی‌ و کانفیگ.",
+    category: "clashfa"
+  },
+  {
+    id: "iran_proxy",
+    name: "iran proxy 🛡️",
+    url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "ابزاری برای جمع آوری پروکسی های ساکس آیپی ایران.",
+    category: "clashfa"
+  },
+  {
+    id: "iptv_player",
+    name: "IPTV Player 📺",
+    url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند بر روی ورکرز کلادفلر.",
+    category: "clashfa"
+  },
+  // DNS Category
+  {
+    id: "doh_4n0nymou3",
+    name: "Cloudflare DoH Proxy (4n0nymou3) 🌐",
+    url: "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "پروکسی ایمن و سبک DNS over HTTPS (DoH) بر روی کلادفلر ورکرز.",
+    category: "dns"
+  },
+  {
+    id: "doh_thegreatazizi",
+    name: "Secure DoH (TheGreatAzizi) 🔒",
+    url: "https://raw.githubusercontent.com/TheGreatAzizi/Secure-DNS-over-HTTPS-Cloudflare-Worker/main/Worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "پروکسی دی‌ان‌اس اختصاصی با امنیت پیشرفته و تاخیر کم.",
+    category: "dns"
+  },
+  {
+    id: "doh_code3_dev",
+    name: "DoH Proxy (code3-dev) ⚡",
+    url: "https://raw.githubusercontent.com/code3-dev/doh-proxy-worker/master/workers.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "پروکسی ساده و فوق‌العاده سریع DNS-over-HTTPS.",
+    category: "dns"
+  },
+  {
+    id: "doh_seramo",
+    name: "DoH Proxy (seramo) 🌐",
+    url: "https://raw.githubusercontent.com/seramo/doh-proxy-worker/main/worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    description: "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
+    category: "dns"
+  }
+];
+
+// --- SERVICE WORKER LISTENERS ---
+addEventListener("fetch", event => {
+  event.respondWith(handleFetch(event.request, event));
+});
+
+addEventListener("scheduled", event => {
+  event.waitUntil(handleScheduled(event));
+});
+
+// --- ENVIRONMENT LOADER HELPER ---
+function getEnv() {
+  return {
+    BOT_KV: typeof BOT_KV !== "undefined" ? BOT_KV : null,
+    TELEGRAM_BOT_TOKEN: typeof TELEGRAM_BOT_TOKEN !== "undefined" ? TELEGRAM_BOT_TOKEN : null,
+    SECRET_TOKEN: typeof SECRET_TOKEN !== "undefined" ? SECRET_TOKEN : null
+  };
+}
+
+// --- FETCH HANDLER ---
+async function handleFetch(request, event) {
+  const url = new URL(request.url);
+  const env = getEnv();
+
+  // Setup endpoint
+  if (url.pathname === "/setup") {
+    return await handleWebhookSetup(url.origin, env);
+  }
+
+  // Handle Telegram Webhooks
+  if (request.method === "POST") {
+    if (env.SECRET_TOKEN) {
+      const xTelegramToken = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+      if (xTelegramToken !== env.SECRET_TOKEN) {
+        return new Response("Unauthorized", { status: 403 });
+      }
+    }
+
+    try {
+      const update = await request.json();
+      event.waitUntil(handleTelegramUpdate(update, env));
+    } catch (err) {
+      await logEvent(env, `Error parsing TG update: ${err.message}`, "error");
+    }
+    return new Response("OK", { status: 200 });
+  }
+
+  return new Response("Service Running (Telegram Bot Only Mode)", { status: 200 });
+}
+
+// --- SCHEDULED CRON HANDLER ---
+async function handleScheduled(event) {
+  const env = getEnv();
+  await logEvent(env, "سرویس دوره‌ای بررسی و ذخیره‌سازی نسخه‌های جدید ورکرها آغاز شد.", "info");
+  await cacheAllPresets(env);
+}
+
+// --- SYSTEM LOGGER HELPER ---
+async function logEvent(env, message, type = "info") {
+  if (!env || !env.BOT_KV) {
+    console.log(`[${type}] ${message}`);
+    return;
+  }
+  try {
+    const logs = await env.BOT_KV.get("system:logs", { type: "json" }) || [];
+    const newLog = {
+      timestamp: new Date().toLocaleString("fa-IR", { timeZone: "Asia/Tehran" }),
+      message,
+      type
+    };
+    logs.unshift(newLog);
+    if (logs.length > 50) logs.pop();
+    await env.BOT_KV.put("system:logs", JSON.stringify(logs));
+  } catch (err) {
+    console.error("Logging error: ", err);
+  }
+}
+
+// --- AUTOMATIC PRESET CACHING ENGINE ---
+async function cacheAllPresets(env) {
+  for (let i = 0; i < PRESETS.length; i++) {
+    const preset = PRESETS[i];
+    try {
+      const response = await fetch(preset.url, {
+        headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const code = await response.text();
+      
+      await env.BOT_KV.put(`cache:code:${preset.id}`, code);
+      await env.BOT_KV.put(`cache:updated:${preset.id}`, new Date().toISOString());
+      await logEvent(env, `کد ورکر [${preset.name}] با موفقیت دانلود و کش شد.`, "info");
+    } catch (err) {
+      await logEvent(env, `خطا در کش کردن ورکر [${preset.name}]: ${err.message}`, "error");
+    }
+  }
+}
+
+// --- FETCH CODE FROM CACHE OR NETWORK ---
+async function getPresetCode(preset, env, customUrl = null) {
+  if (customUrl) {
+    let targetUrl = customUrl.trim();
+    if (targetUrl.includes("github.com") && !targetUrl.includes("raw.githubusercontent.com")) {
+      targetUrl = targetUrl
+        .replace("github.com", "raw.githubusercontent.com")
+        .replace("/blob/", "/");
+      await logEvent(env, `تبدیل لینک گیت‌هاب معمولی به لینک خام صادر شد: ${targetUrl}`, "info");
+    }
+
+    await logEvent(env, `دریافت مستقیم سورس ورکر سفارشی از لینک: ${targetUrl}`, "info");
+    const response = await fetch(targetUrl, {
+      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+    });
+    if (!response.ok) throw new Error("سورس فایل سفارشی از اینترنت قابل دانلود نیست.");
+    return await response.text();
+  }
+
+  let code = await env.BOT_KV.get(`cache:code:${preset.id}`);
+  if (!code) {
+    await logEvent(env, `ورکر [${preset.name}] در کش وجود نداشت. دانلود مستقیم انجام می‌شود...`, "warning");
+    const response = await fetch(preset.url, {
+      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+    });
+    if (!response.ok) throw new Error("سورس فایل از اینترنت قابل دانلود نیست.");
+    code = await response.text();
+    await env.BOT_KV.put(`cache:code:${preset.id}`, code);
+    await env.BOT_KV.put(`cache:updated:${preset.id}`, new Date().toISOString());
+  } else {
+    await logEvent(env, `سورس ورکر [${preset.name}] با موفقیت از سیستم کش محلی بارگذاری شد.`, "info");
+  }
+  return code;
+}
+
+// --- TELEGRAM SETUP ---
+async function handleWebhookSetup(origin, env) {
+  if (!env.TELEGRAM_BOT_TOKEN) {
+    return new Response("Error: TELEGRAM_BOT_TOKEN is missing.", { status: 500 });
+  }
+
+  const webhookUrl = `${origin}/`;
+  const tgUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setWebhook`;
+  
+  const payload = { url: webhookUrl, allowed_updates: ["message", "callback_query"] };
+  if (env.SECRET_TOKEN) payload.secret_token = env.SECRET_TOKEN;
+
+  const response = await fetch(tgUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const resData = await response.json();
+  if (resData.ok) {
+    await logEvent(env, "وب‌هوک تلگرام با موفقیت ثبت گردید.", "info");
+    return new Response(`🎉 Webhook registered successfully!\nURL: ${webhookUrl}`, { status: 200 });
+  } else {
+    await logEvent(env, `خطا در ثبت وب‌هوک: ${JSON.stringify(resData)}`, "error");
+    return new Response(`❌ Failed to set Webhook.\nError: ${JSON.stringify(resData)}`, { status: 400 });
+  }
+}
+
+// --- SUBDOMAIN EXTRACTION FALLBACK UTILITY ---
+function deriveFallbackSubdomain(accountName) {
+  if (!accountName) return "";
+  let prefix = accountName;
+  if (accountName.includes("@")) {
+    prefix = accountName.split("@")[0];
+  } else if (accountName.includes("'s Account")) {
+    prefix = accountName.split("'s Account")[0];
+  }
+  return prefix.toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-") 
+    .replace(/-+/g, "-")        
+    .replace(/^-+|-+$/g, "");   
+}
+
+// --- STANDARD RANDOM STRING GENERATOR ---
+function generateRandomString(charSet, length) {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += charSet.charAt(Math.floor(Math.random() * charSet.length));
+  }
+  return result;
+}
+
+// --- SMART AUTO-VARIABLE GENERATOR (With UUIDv4 Support for D1 Databases) ---
+function autoGenerateVars(varsList, manualOverrides = {}) {
+  const generated = {};
+  
+  varsList.forEach(v => {
+    if (manualOverrides[v]) {
+      generated[v] = manualOverrides[v];
+      return;
+    }
+
+    if (v === "UUID") {
+      generated[v] = crypto.randomUUID();
+    } else if (v.startsWith("D1_ID_")) {
+      // Return "auto" to tell deployment engine to physically create the database on cloudflare
+      generated[v] = "auto";
+    } else if (v === "TR_PASS") {
+      generated[v] = generateRandomString(CharsetTrojanPassword, 12);
+    } else if (v === "SUB_PATH") {
+      generated[v] = generateRandomString(CharsetURIPath, 16);
+    } else if (v === "ADMIN_PASSWORD") {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 12);
+    } else if (v === "ADMIN") {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 12);
+    } else if (v === "PROXY_IP") {
+      generated[v] = "bpb.yousef.isegaro.com";
+    } else if (v === "FALLBACK") {
+      generated[v] = "speed.cloudflare.com";
+    } else if (v === "PREFIX") {
+      generated[v] = "";
+    } else {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 10);
+    }
+  });
+
+  return generated;
+}
+
+// --- TELEGRAM UPDATE HANDLER ---
+async function handleTelegramUpdate(update, env) {
+  if (update.message) {
+    await handleTelegramMessage(update.message, env);
+  } else if (update.callback_query) {
+    await handleTelegramCallback(update.callback_query, env);
+  }
+}
+
+function pushHistory(session, currentState) {
+  if (!session.history) session.history = [];
+  session.history.push(currentState);
+}
+
+function popHistory(session) {
+  if (!session.history || session.history.length === 0) return "IDLE";
+  return session.history.pop();
+}
+
+async function handleTelegramMessage(msg, env) {
+  const chatId = msg.chat.id.toString();
+  const text = msg.text ? msg.text.trim() : "";
+  
+  let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
+  if (!userSession.accounts) userSession.accounts = [];
+  if (!userSession.history) userSession.history = [];
+
+  if (text === "/start" || text === "🔙 بازگشت به منوی اصلی") {
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendMainMenu(chatId, env);
+  }
+
+  // --- STATE: AWAITING CF API TOKEN ---
+  if (userSession.state === "AWAITING_CF_TOKEN") {
+    if (!text) {
+      return sendMessage(chatId, "⚠️ لطفاً یک توکن API معتبر ارسال کنید.", env);
+    }
+
+    await sendMessage(chatId, "⏳ در حال بررسی اطلاعات حساب کلادفلر...", env);
+    const isValid = await verifyCloudflareToken(text);
+    if (!isValid) {
+      await logEvent(env, `تلاش ناموفق برای افزودن توکن نامعتبر در تلگرام برای کاربر ${chatId}`, "warning");
+      return sendMessage(chatId, "❌ توکن نامعتبر است یا دسترسی‌های کافی ندارد. مجدداً اقدام فرمایید.", env, true);
+    }
+
+    const accounts = await getCloudflareAccounts(text);
+    if (!accounts || accounts.length === 0) {
+      return sendMessage(chatId, "❌ حساب کاربری یافت نشد. مجوز Account Settings: Read توکن را بررسی کنید.", env, true);
+    }
+
+    const newAccount = { token: text, id: accounts[0].id, name: accounts[0].name };
+    userSession.accounts.push(newAccount);
+    userSession.state = "IDLE";
+    userSession.history = [];
+    
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    await logEvent(env, `حساب جدید (${newAccount.name}) از طریق تلگرام اضافه شد.`, "info");
+    await sendMessage(chatId, `✅ حساب کلادفلر با موفقیت متصل شد:\n\n👤 نام حساب: <b>${newAccount.name}</b>`, env);
+    return sendMainMenu(chatId, env);
+  }
+
+  // --- STATE: AWAITING MANUAL SUBDOMAIN ENTRY ---
+  if (userSession.state.startsWith("AWAITING_SUBDOMAIN_INPUT_")) {
+    const accIdx = parseInt(userSession.state.replace("AWAITING_SUBDOMAIN_INPUT_", ""), 10);
+    const account = userSession.accounts[accIdx];
+    
+    if (!text || text.length > 50) {
+      return sendMessage(chatId, "⚠️ فرمت ساب‌دومین نامعتبر است. مجدداً تلاش کنید:", env);
+    }
+
+    await env.BOT_KV.put(`subdomain:${account.id}`, text.toLowerCase().trim());
+    await logEvent(env, `ساب‌دومین دستی برای حساب ${account.name} ذخیره شد: ${text}`, "info");
+
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    await sendMessage(chatId, `✅ ساب‌دومین ورکرز حساب <b>${account.name}</b> با موفقیت به <code>${text}</code> تنظیم شد.`, env);
+    return sendMainMenu(chatId, env);
+  }
+
+  // --- STATE: AWAITING CUSTOM URL ---
+  if (userSession.state === "AWAITING_CUSTOM_URL") {
+    if (!text.startsWith("http://") && !text.startsWith("https://")) {
+      return sendMessage(chatId, "⚠️ لطفاً یک لینک معتبر شروع شده با http یا https ارسال کنید:", env, false, [getNavKeyboardRow()]);
+    }
+
+    userSession.deployPayload = userSession.deployPayload || {};
+    userSession.deployPayload.templateIdx = "custom";
+    userSession.deployPayload.templateUrl = text;
+    userSession.deployPayload.templateName = "ورکر سفارشی 🛠️";
+    userSession.deployPayload.isLegacy = false;
+    userSession.deployPayload.kvBindings = [];
+    userSession.deployPayload.vars = {};
+
+    pushHistory(userSession, "AWAITING_CUSTOM_URL");
+    userSession.state = "CHOOSE_CUSTOM_VAR_OPTION";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return sendCustomVarOptionSelection(chatId, env);
+  }
+
+  // --- STATE: AWAITING CUSTOM RESOURCES COUNTS ---
+  if (userSession.state === "AWAITING_CUSTOM_RESOURCES_COUNT") {
+    const lines = text.split("\n").map(l => l.trim());
+    const kvCount = parseInt(lines[0] || "0", 10);
+    const d1Count = parseInt(lines[1] || "0", 10);
+    const varCount = parseInt(lines[2] || "0", 10);
+
+    if (isNaN(kvCount) || isNaN(d1Count) || isNaN(varCount)) {
+      return sendMessage(chatId, "⚠️ ساختار ورودی صحیح نیست. لطفاً تعداد ۳ لایه از منابع را به صورت سه عدد در سه خط جداگانه ارسال کنید:", env, false, [getNavKeyboardRow()]);
+    }
+
+    const queue = [];
+    for (let i = 1; i <= kvCount; i++) {
+      queue.push({ type: "kv", index: i, step: "NAME", name: "", id: "" });
+    }
+    for (let i = 1; i <= d1Count; i++) {
+      queue.push({ type: "d1", index: i, step: "NAME", name: "", id: "" });
+    }
+    for (let i = 1; i <= varCount; i++) {
+      queue.push({ type: "var", index: i, step: "NAME", name: "", val: "" });
+    }
+
+    userSession.deployPayload = userSession.deployPayload || {};
+    userSession.deployPayload.resourceQueue = queue;
+    userSession.deployPayload.resourceIndex = 0;
+
+    pushHistory(userSession, "AWAITING_CUSTOM_RESOURCES_COUNT");
+
+    if (queue.length > 0) {
+      userSession.state = "COLLECTING_RESOURCES";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return promptCurrentResource(chatId, userSession, env);
+    } else {
+      return proceedToAccountStep(chatId, userSession, env);
+    }
+  }
+
+  // --- STATE: COLLECTING CUSTOM RESOURCE DETAILS ---
+  if (userSession.state === "COLLECTING_RESOURCES") {
+    const queue = userSession.deployPayload.resourceQueue;
+    const idx = userSession.deployPayload.resourceIndex;
+    const item = queue[idx];
+
+    if (item.type === "kv") {
+      if (item.step === "NAME") {
+        const cleanName = text.replace(/[^a-zA-Z0-9_]/g, "");
+        if (!cleanName) {
+          return sendMessage(chatId, "⚠️ نام متغیر نامعتبر است. فقط حروف و اعداد انگلیسی مجاز است. مجدد بنویسید:", env);
+        }
+        item.name = cleanName;
+        item.step = "ID";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return promptCurrentResource(chatId, userSession, env);
+      } else if (item.step === "ID") {
+        item.id = text;
+        return advanceResourceIndex(chatId, userSession, env);
+      }
+    } else if (item.type === "d1") {
+      if (item.step === "NAME") {
+        const cleanName = text.replace(/[^a-zA-Z0-9_]/g, "");
+        if (!cleanName) {
+          return sendMessage(chatId, "⚠️ نام متغیر نامعتبر است. فقط حروف و اعداد انگلیسی مجاز است. مجدد بنویسید:", env);
+        }
+        item.name = cleanName;
+        item.step = "ID";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return promptCurrentResource(chatId, userSession, env);
+      } else if (item.step === "ID") {
+        item.id = text;
+        return advanceResourceIndex(chatId, userSession, env);
+      }
+    } else if (item.type === "var") {
+      if (item.step === "NAME") {
+        const cleanName = text.replace(/[^a-zA-Z0-9_]/g, "");
+        if (!cleanName) {
+          return sendMessage(chatId, "⚠️ نام متغیر نامعتبر است. فقط حروف و اعداد انگلیسی مجاز است. مجدد بنویسید:", env);
+        }
+        item.name = cleanName;
+        item.step = "VAL";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return promptCurrentResource(chatId, userSession, env);
+      } else if (item.step === "VAL") {
+        item.val = text;
+        return advanceResourceIndex(chatId, userSession, env);
+      }
+    }
+  }
+
+  // --- STATE: AWAITING PROJECT NAME ---
+  if (userSession.state === "AWAITING_PROJECT_NAME") {
+    const validNameRegex = /^[a-z0-9-]+$/;
+    if (!validNameRegex.test(text) || text.length > 63) {
+      return sendMessage(chatId, "⚠️ نام پروژه فقط شامل حروف انگلیسی کوچک، اعداد و خط تیره (-) است. دوباره تلاش کنید:", env, false, [getNavKeyboardRow()]);
+    }
+
+    userSession.deployPayload = userSession.deployPayload || {};
+    userSession.deployPayload.name = text;
+
+    pushHistory(userSession, "AWAITING_PROJECT_NAME");
+
+    const presetIdx = userSession.deployPayload.templateIdx;
+    
+    if (presetIdx === "custom") {
+      return proceedToAccountStep(chatId, userSession, env);
+    } else {
+      const preset = PRESETS[presetIdx];
+      const hasVars = (preset.vars && preset.vars.length > 0);
+
+      if (hasVars) {
+        userSession.state = "CHOOSE_VAR_MODE";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return sendVarModeSelection(chatId, env);
+      } else {
+        return proceedToAccountStep(chatId, userSession, env);
+      }
+    }
+  }
+
+  // --- STATE: VAR_COLLECT_[varName] ---
+  if (userSession.state.startsWith("VAR_COLLECT_")) {
+    const varName = userSession.state.replace("VAR_COLLECT_", "");
+    return proceedToNextVarOrDeploy(chatId, userSession, env, varName, text);
+  }
+
+  return sendMessage(chatId, "🤖 لطفاً یکی از گزینه‌های منو را انتخاب کنید:", env);
+}
+
+// --- STATE MACHINE FOR VARIABLE FLOWS ---
+async function proceedToNextVarOrDeploy(chatId, session, env, currentVarName, val) {
+  session.deployPayload = session.deployPayload || {};
+  session.deployPayload.vars = session.deployPayload.vars || {};
+  session.deployPayload.vars[currentVarName] = val;
+
+  const currentPreset = PRESETS[session.deployPayload.templateIdx];
+  const collectedKeys = Object.keys(session.deployPayload.vars);
+  const missingVar = currentPreset.vars.find(v => !collectedKeys.includes(v));
+
+  pushHistory(session, `VAR_COLLECT_${currentVarName}`);
+
+  if (missingVar) {
+    session.state = `VAR_COLLECT_${missingVar}`;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return sendVariablePrompt(chatId, missingVar, env);
+  } else {
+    return proceedToAccountStep(chatId, session, env);
+  }
+}
+
+// --- PROCEED TO ACCOUNT STEP ---
+async function proceedToAccountStep(chatId, session, env) {
+  if (!session.accounts || session.accounts.length === 0) {
+    return sendMessage(chatId, "⚠️ شما هنوز هیچ حساب کلادفلری به ربات اضافه نکرده‌اید. لطفاً ابتدا حساب اضافه کنید.", env);
+  }
+
+  if (session.accounts.length === 1) {
+    session.deployPayload.account = session.accounts[0];
+    session.state = "EXECUTING_DEPLOY";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    await sendMessage(chatId, `👤 تنها یک حساب کاربری یافت شد. استقرار به طور خودکار بر روی حساب <b>${session.accounts[0].name}</b> آغاز می‌شود...`, env);
+    return executeTelegramDeployment(chatId, session, env);
+  } else {
+    session.state = "SELECT_ACCOUNT_DEST";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return sendAccountSelection(chatId, session, env);
+  }
+}
+
+// --- TELEGRAM CALLBACK ACTIONS ---
+async function handleTelegramCallback(cb, env) {
+  const chatId = cb.message.chat.id.toString();
+  const data = cb.data;
+  const messageId = cb.message.message_id;
+
+  let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
+  if (!userSession.accounts) userSession.accounts = [];
+  if (!userSession.history) userSession.history = [];
+
+  await answerCallbackQuery(cb.id, env);
+
+  // --- BACK NAVIGATION LOGIC ---
+  if (data === "step_back") {
+    // Custom Resource Back Navigation
+    if (userSession.state === "COLLECTING_RESOURCES") {
+      const queue = userSession.deployPayload.resourceQueue;
+      let idx = userSession.deployPayload.resourceIndex;
+      let item = queue[idx];
+
+      if (item.step === "ID" || item.step === "VAL") {
+        item.step = "NAME";
+      } else {
+        if (idx > 0) {
+          idx -= 1;
+          userSession.deployPayload.resourceIndex = idx;
+          item = queue[idx];
+          item.step = item.type === "var" ? "VAL" : "ID";
+        } else {
+          userSession.state = "AWAITING_CUSTOM_RESOURCES_COUNT";
+          await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+          return sendCustomResourcesPrompt(chatId, env);
+        }
+      }
+
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return promptCurrentResource(chatId, userSession, env);
+    }
+
+    const prevState = popHistory(userSession);
+    userSession.state = prevState;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    if (prevState === "IDLE") {
+      return sendMainMenu(chatId, env);
+    }
+    if (prevState === "SELECT_PLATFORM_TYPE") {
+      return sendPlatformTypeSelection(chatId, env);
+    }
+    if (prevState === "SELECT_CATEGORY") {
+      return sendCategorySelection(chatId, env);
+    }
+    if (prevState === "SELECT_TEMPLATE") {
+      return sendTemplateSelection(chatId, env, userSession.deployPayload.type, userSession.deployPayload.category);
+    }
+    if (prevState === "AWAITING_CUSTOM_URL") {
+      return sendMessage(chatId, "🔗 لطفاً لینک خام سورس ورکر سفارشی را ارسال کنید (شروع با HTTP یا HTTPS):", env, false, [getNavKeyboardRow()]);
+    }
+    if (prevState === "CHOOSE_CUSTOM_VAR_OPTION") {
+      return sendCustomVarOptionSelection(chatId, env);
+    }
+    if (prevState === "AWAITING_CUSTOM_RESOURCES_COUNT") {
+      return sendCustomResourcesPrompt(chatId, env);
+    }
+    if (prevState === "AWAITING_PROJECT_NAME") {
+      return sendProjectNamePrompt(chatId, env);
+    }
+    if (prevState === "CHOOSE_VAR_MODE") {
+      userSession.deployPayload.vars = {};
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendVarModeSelection(chatId, env);
+    }
+    if (prevState.startsWith("VAR_COLLECT_")) {
+      const varName = prevState.replace("VAR_COLLECT_", "");
+      if (userSession.deployPayload && userSession.deployPayload.vars) {
+        delete userSession.deployPayload.vars[varName];
+      }
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendVariablePrompt(chatId, varName, env);
+    }
+    return sendMainMenu(chatId, env);
+  }
+
+  if (data === "manage_accounts") {
+    return sendAccountsManagement(chatId, userSession, env, messageId);
+  }
+
+  if (data === "add_cf_token") {
+    userSession.state = "AWAITING_CF_TOKEN";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return editMessageText(chatId, messageId, "🔑 لطفاً **API Token** خود را با دسترسی‌های کامل ارسال نمایید.", env, true);
+  }
+
+  if (data === "del_all_acc") {
+    userSession.accounts = [];
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    await logEvent(env, `خروج همزمان از تمامی حساب‌ها توسط کاربر ${chatId}`, "warning");
+    await sendMessage(chatId, "🔒 خروج با موفقیت انجام شد. تمامی حساب‌ها از حافظه ربات پاک شدند.", env);
+    return sendMainMenu(chatId, env);
+  }
+
+  if (data.startsWith("del_acc_")) {
+    const idx = parseInt(data.replace("del_acc_", ""), 10);
+    if (userSession.accounts && userSession.accounts[idx]) {
+      const removed = userSession.accounts.splice(idx, 1);
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      await logEvent(env, `حذف حساب کلادفلر: ${removed[0].name}`, "info");
+      await sendMessage(chatId, "🗑️ حساب کلادفلر انتخاب شده با موفقیت برکنار شد.", env);
+      return sendAccountsManagement(chatId, userSession, env);
+    }
+  }
+
+  if (data.startsWith("view_acc_")) {
+    const idx = parseInt(data.replace("view_acc_", ""), 10);
+    const acc = userSession.accounts[idx];
+    const sub = await env.BOT_KV.get(`subdomain:${acc.id}`) || "ثبت نشده (تلاش برای دریافت خودکار)";
+    return sendMessage(chatId, `👤 <b>جزئیات حساب کلادفلر:</b>\n\n🔹 نام: <code>${acc.name}</code>\n🔹 شناسه: <code>${acc.id}</code>\n🔹 ساب‌دومین دستی: <code>${sub}</code>\n🔹 توکن: <code>${acc.token.substring(0, 8)}***</code>`, env);
+  }
+
+  if (data.startsWith("set_sub_")) {
+    const idx = parseInt(data.replace("set_sub_", ""), 10);
+    userSession.state = `AWAITING_SUBDOMAIN_INPUT_${idx}`;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendMessage(chatId, "✍️ لطفاً ساب‌دومین ورکرز اکانت خود (به عنوان مثال `leo-10-10`) را بدون پیشوند یا پسوند اضافه ارسال کنید:", env, true);
+  }
+
+  // --- FLOW START: SELECT DEPLOY TYPE ---
+  if (data === "start_deploy") {
+    userSession.deployPayload = {};
+    userSession.state = "SELECT_PLATFORM_TYPE";
+    userSession.history = ["IDLE"];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendPlatformTypeSelection(chatId, env);
+  }
+
+  if (data.startsWith("platform_")) {
+    const type = data.replace("platform_", "");
+    userSession.deployPayload.type = type;
+    
+    pushHistory(userSession, "SELECT_PLATFORM_TYPE");
+    userSession.state = "SELECT_CATEGORY";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return sendCategorySelection(chatId, env);
+  }
+
+  if (data.startsWith("cat_")) {
+    const category = data.replace("cat_", "");
+    userSession.deployPayload.category = category;
+
+    pushHistory(userSession, "SELECT_CATEGORY");
+    userSession.state = "SELECT_TEMPLATE";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return sendTemplateSelection(chatId, env, userSession.deployPayload.type, category);
+  }
+
+  if (data.startsWith("tpl_idx_")) {
+    const idxStr = data.replace("tpl_idx_", "");
+    pushHistory(userSession, userSession.state);
+
+    if (idxStr === "custom") {
+      userSession.deployPayload.templateIdx = "custom";
+      userSession.state = "AWAITING_CUSTOM_URL";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendMessage(chatId, "🔗 لطفاً لینک سورس ورکر سفارشی را ارسال کنید. (لینک گیت‌هاب غیر خام به صورت خودکار تصحیح می‌شود):", env, false, [getNavKeyboardRow()]);
+    } else {
+      const idx = parseInt(idxStr, 10);
+      const selectedPreset = PRESETS[idx];
+      userSession.deployPayload.templateIdx = idx;
+      userSession.deployPayload.templateName = selectedPreset.name;
+      userSession.deployPayload.templateUrl = selectedPreset.url;
+      userSession.deployPayload.isLegacy = selectedPreset.isLegacy;
+      userSession.deployPayload.kvBindings = selectedPreset.kvBindings;
+      userSession.deployPayload.vars = {};
+
+      userSession.state = "AWAITING_PROJECT_NAME";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendProjectNamePrompt(chatId, env);
+    }
+  }
+
+  if (data === "custom_vars_none") {
+    userSession.deployPayload.vars = {};
+    pushHistory(userSession, "CHOOSE_CUSTOM_VAR_OPTION");
+    userSession.state = "AWAITING_PROJECT_NAME";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendProjectNamePrompt(chatId, env);
+  }
+
+  if (data === "custom_vars_yes") {
+    pushHistory(userSession, "CHOOSE_CUSTOM_VAR_OPTION");
+    userSession.state = "AWAITING_CUSTOM_RESOURCES_COUNT";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendCustomResourcesPrompt(chatId, env);
+  }
+
+  if (data === "var_mode_auto") {
+    const preset = PRESETS[userSession.deployPayload.templateIdx];
+    const needsBotToken = preset.vars.includes("BOT_TOKEN");
+    
+    if (needsBotToken) {
+      await sendMessage(chatId, "⚙️ حالت نیمه خودکار فعال شد. متغیرهای ساختاری به صورت رندوم ایجاد خواهند شد. لطفاً توکن ربات تلگرام را ارسال کنید تا فرآیند ادامه یابد:", env, false, [getNavKeyboardRow()]);
+      userSession.deployPayload.autoGenTemplate = true;
+      userSession.state = "VAR_COLLECT_BOT_TOKEN";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    } else {
+      userSession.deployPayload.vars = autoGenerateVars(preset.vars);
+      pushHistory(userSession, "CHOOSE_VAR_MODE");
+      return proceedToAccountStep(chatId, userSession, env);
+    }
+  }
+
+  if (data === "var_mode_manual") {
+    const preset = PRESETS[userSession.deployPayload.templateIdx];
+    const firstVar = preset.vars[0];
+
+    pushHistory(userSession, "CHOOSE_VAR_MODE");
+    userSession.state = `VAR_COLLECT_${firstVar}`;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendVariablePrompt(chatId, firstVar, env);
+  }
+
+  // --- SINGLE VARIABLE INLINE AUTO-GENERATOR ---
+  if (data.startsWith("auto_gen_var_")) {
+    const varName = data.replace("auto_gen_var_", "");
+    const singleVarObj = autoGenerateVars([varName]);
+    const generatedVal = singleVarObj[varName] || "";
+    return proceedToNextVarOrDeploy(chatId, userSession, env, varName, generatedVal);
+  }
+
+  // --- INLINE ACTION FOR AUTO-CREATING KV DURING CUSTOM FLOW ---
+  if (data === "res_auto_kv") {
+    const idx = userSession.deployPayload.resourceIndex;
+    const item = userSession.deployPayload.resourceQueue[idx];
+    item.id = "auto";
+    return advanceResourceIndex(chatId, userSession, env);
+  }
+
+  // --- INLINE ACTION FOR AUTO-GENERATING VAR DURING CUSTOM FLOW ---
+  if (data === "res_auto_val") {
+    const idx = userSession.deployPayload.resourceIndex;
+    const item = userSession.deployPayload.resourceQueue[idx];
+    if (item.name === "UUID") {
+      item.val = crypto.randomUUID();
+    } else if (item.name === "TR_PASS" || item.name === "ADMIN_PASSWORD" || item.name === "ADMIN") {
+      item.val = generateRandomString(CharsetTrojanPassword, 12);
+    } else {
+      item.val = generateRandomString(CharsetAlphaNumeric, 12);
+    }
+    return advanceResourceIndex(chatId, userSession, env);
+  }
+
+  if (data.startsWith("deploy_to_")) {
+    const accIdx = parseInt(data.replace("deploy_to_", ""), 10);
+    const selectedAccount = userSession.accounts[accIdx];
+    userSession.deployPayload.account = selectedAccount;
+
+    userSession.state = "EXECUTING_DEPLOY";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return executeTelegramDeployment(chatId, userSession, env);
+  }
+
+  if (data === "list_projects") {
+    if (!userSession.accounts || userSession.accounts.length === 0) {
+      return sendMessage(chatId, "⚠️ ابتدا باید اکانت کلادفلر اضافه کنید.", env);
+    }
+    return handleTelegramListProjects(chatId, userSession, env);
+  }
+
+  if (data.startsWith("list_opts_")) {
+    const accIdx = parseInt(data.replace("list_opts_", ""), 10);
+    const account = userSession.accounts[accIdx];
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  // --- PROJECT DELETION HANDLERS ---
+  if (data.startsWith("conf_del_wrk_")) {
+    const parts = data.replace("conf_del_wrk_", "").split("_");
+    const accIdx = parseInt(parts[0], 10);
+    const projectName = parts.slice(1).join("_");
+    
+    const keyboard = [
+      [
+        { text: "✅ بله، حذف شود", callback_data: `exec_del_wrk_${accIdx}_${projectName}` },
+        { text: "❌ لغو عملیات", callback_data: `list_opts_${accIdx}` }
+      ]
+    ];
+    return sendMessage(chatId, `⚠️ آیا از حذف ورکر <code>${projectName}</code> اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`, env, false, keyboard);
+  }
+
+  if (data.startsWith("exec_del_wrk_")) {
+    const parts = data.replace("exec_del_wrk_", "").split("_");
+    const accIdx = parseInt(parts[0], 10);
+    const projectName = parts.slice(1).join("_");
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال حذف ورکر <code>${projectName}</code> از کلادفلر...`, env);
+    try {
+      await deleteWorkerScript(account.token, account.id, projectName);
+      await logEvent(env, `ورکر ${projectName} با موفقیت حذف شد.`, "warning");
+      await sendMessage(chatId, `✅ ورکر <code>${projectName}</code> با موفقیت حذف گردید.`, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف ورکر:\n<code>${err.message}</code>`, env);
+    }
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  if (data.startsWith("conf_del_all_wrk_")) {
+    const accIdx = parseInt(data.replace("conf_del_all_wrk_", ""), 10);
+    const keyboard = [
+      [
+        { text: "💥 بله، همه ورکرها حذف شوند", callback_data: `exec_del_all_wrk_${accIdx}` },
+        { text: "❌ انصراف", callback_data: `list_opts_${accIdx}` }
+      ]
+    ];
+    return sendMessage(chatId, `⚠️⚠️⚠️ **هشدار جدی**\n\nآیا از حذف **تمامی** ورکرهای موجود بر روی این اکانت اطمینان دارید؟ تمامی اسکریپت‌های شما پاک خواهند شد!`, env, false, keyboard);
+  }
+
+  if (data.startsWith("exec_del_all_wrk_")) {
+    const accIdx = parseInt(data.replace("exec_del_all_wrk_", ""), 10);
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال حذف دسته جمعی تمام ورکرها... لطفاً صبور باشید.`, env);
+    try {
+      const workers = await listWorkerScripts(account.token, account.id);
+      let deletedCount = 0;
+      for (const w of workers) {
+        try {
+          await deleteWorkerScript(account.token, account.id, w.id);
+          deletedCount++;
+        } catch (e) {
+          await logEvent(env, `خطا در حذف ورکر ${w.id}: ${e.message}`, "error");
+        }
+      }
+      await logEvent(env, `تعداد ${deletedCount} ورکر از اکانت ${account.name} حذف دسته‌جمعی شدند.`, "warning");
+      await sendMessage(chatId, `✅ عملیات پایان یافت. تعداد <code>${deletedCount}</code> ورکر با موفقیت حذف شدند.`, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف دسته جمعی:\n<code>${err.message}</code>`, env);
+    }
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  // --- NEW WORKER DETAILED MENU HANDLERS ---
+  if (data.startsWith("wk_menu_")) {
+    const idx = parseInt(data.replace("wk_menu_", ""), 10);
+    if (userSession.listedWorkers && userSession.listedWorkers[idx]) {
+      const workerName = userSession.listedWorkers[idx];
+      userSession.activeWorker = workerName;
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+      const keyboard = [
+        [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }],
+        [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
+        [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${userSession.activeAccIdx}` }]
+      ];
+
+      return sendMessage(chatId, `🛠️ **منوی مدیریت ورکر:** <code>${workerName}</code>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:`, env, false, keyboard);
+    }
+  }
+
+  if (data === "wk_menu_back") {
+    if (userSession.listedWorkers && userSession.activeWorker) {
+      const idx = userSession.listedWorkers.indexOf(userSession.activeWorker);
+      if (idx !== -1) {
+        const keyboard = [
+          [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }],
+          [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
+          [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${userSession.activeAccIdx}` }]
+        ];
+        return sendMessage(chatId, `🛠️ **منوی مدیریت ورکر:** <code>${userSession.activeWorker}</code>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:`, env, false, keyboard);
+      }
+    }
+    return sendMainMenu(chatId, env);
+  }
+
+  if (data === "manage_binds") {
+    return displayWorkerBindings(chatId, userSession, env);
+  }
+
+  if (data.startsWith("del_b_")) {
+    const idx = parseInt(data.replace("del_b_", ""), 10);
+    const bindings = userSession.activeBindings || [];
+    if (bindings[idx]) {
+      const targetBinding = bindings[idx];
+      const filteredBindings = bindings.filter((_, i) => i !== idx);
+
+      const workerName = userSession.activeWorker;
+      const accIdx = userSession.activeAccIdx;
+      const account = userSession.accounts[accIdx];
+
+      await sendMessage(chatId, `⏳ در حال حذف بایندینگ <code>${targetBinding.name}</code> از ورکر...`, env);
+
+      try {
+        await updateWorkerBindings(account.token, account.id, workerName, filteredBindings);
+        await logEvent(env, `بایندینگ ${targetBinding.name} از ورکر ${workerName} حذف شد.`, "warning");
+        await sendMessage(chatId, `✅ بایندینگ <code>${targetBinding.name}</code> با موفقیت حذف شد.`, env);
+        
+        userSession.activeBindings = filteredBindings;
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return displayWorkerBindings(chatId, userSession, env);
+      } catch (err) {
+        await sendMessage(chatId, `❌ خطای حذف بایندینگ:\n<code>${err.message}</code>`, env);
+        return displayWorkerBindings(chatId, userSession, env);
+      }
+    }
+  }
+
+  if (data === "del_all_b") {
+    const workerName = userSession.activeWorker;
+    const keyboard = [
+      [
+        { text: "💥 بله، همه حذف شوند", callback_data: "exec_del_all_b" },
+        { text: "❌ لغو عملیات", callback_data: "manage_binds" }
+      ]
+    ];
+    return sendMessage(chatId, `⚠️ آیا مطمئن هستید که می‌خواهید **تمامی** بایندینگ‌های ورکر <code>${workerName}</code> را حذف کنید؟ این عمل بلافاصله دسترسی ورکر به منابع را قطع می‌کند.`, env, false, keyboard);
+  }
+
+  if (data === "exec_del_all_b") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال حذف تمامی بایندینگ‌های ورکر...`, env);
+
+    try {
+      await updateWorkerBindings(account.token, account.id, workerName, []);
+      await logEvent(env, `تمامی بایندینگ‌های ورکر ${workerName} حذف شدند.`, "warning");
+      await sendMessage(chatId, `✅ تمامی بایندینگ‌ها با موفقیت حذف شدند.`, env);
+      
+      userSession.activeBindings = [];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return displayWorkerBindings(chatId, userSession, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف تمامی بایندینگ‌ها:\n<code>${err.message}</code>`, env);
+      return displayWorkerBindings(chatId, userSession, env);
+    }
+  }
+
+  if (data === "conf_del_wrk_sess") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const keyboard = [
+      [
+        { text: "✅ بله، حذف شود", callback_data: `exec_del_wrk_sess` },
+        { text: "❌ لغو عملیات", callback_data: `wk_menu_back` }
+      ]
+    ];
+    return sendMessage(chatId, `⚠️ آیا از حذف ورکر <code>${workerName}</code> اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`, env, false, keyboard);
+  }
+
+  if (data === "exec_del_wrk_sess") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال حذف ورکر <code>${workerName}</code> از کلادفلر...`, env);
+    try {
+      await deleteWorkerScript(account.token, account.id, workerName);
+      await logEvent(env, `ورکر ${workerName} با موفقیت حذف شد.`, "warning");
+      await sendMessage(chatId, `✅ ورکر <code>${workerName}</code> با موفقیت حذف گردید.`, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف ورکر:\n<code>${err.message}</code>`, env);
+    }
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  if (data === "go_main") {
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendMainMenu(chatId, env);
+  }
+}
+
+// --- RESOURCE NAVIGATION FOR CUSTOM WIZARD ---
+async function advanceResourceIndex(chatId, session, env) {
+  session.deployPayload.resourceIndex += 1;
+  pushHistory(session, "COLLECTING_RESOURCES");
+
+  if (session.deployPayload.resourceIndex < session.deployPayload.resourceQueue.length) {
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return promptCurrentResource(chatId, session, env);
+  } else {
+    return proceedToAccountStep(chatId, session, env);
+  }
+}
+
+async function promptCurrentResource(chatId, session, env) {
+  const queue = session.deployPayload.resourceQueue;
+  const idx = session.deployPayload.resourceIndex;
+  const item = queue[idx];
+
+  const keyboard = [getNavKeyboardRow()];
+
+  if (item.type === "kv") {
+    if (item.step === "NAME") {
+      return sendMessage(chatId, `📦 <b>دیتابیس KV (شماره ${item.index}):</b>\n\nنام متغیر بایندینگ (Binding Name) را وارد کنید (مثال: <code>KV</code>):`, env, false, keyboard);
+    } else if (item.step === "ID") {
+      const customKb = [
+        [{ text: "🎲 ساخت خودکار توسط ربات", callback_data: "res_auto_kv" }],
+        getNavKeyboardRow()
+      ];
+      return sendMessage(chatId, `📦 <b>دیتابیس KV (شماره ${item.index}):</b>\n\nشناسه Namespace ID دیتابیس KV خود را وارد کنید، یا روی دکمه ساخت خودکار کلیک کنید تا ربات دیتابیس را برای شما بسازد:`, env, false, customKb);
+    }
+  } else if (item.type === "d1") {
+    if (item.step === "NAME") {
+      return sendMessage(chatId, `🗄 <b>دیتابیس D1 (شماره ${item.index}):</b>\n\nنام متغیر بایندینگ (Binding Name) را وارد کنید (مثال: <code>DB</code> یا <code>IOT_DB</code>):`, env, false, keyboard);
+    } else if (item.step === "ID") {
+      return sendMessage(chatId, `🗄 <b>دیتابیس D1 (شماره ${item.index}):</b>\n\nلطفاً شناسه دیتابیس D1 (Database ID) خود را وارد کنید (مثال: <code>xxxx-xxxx-xxxx</code>):`, env, false, keyboard);
+    }
+  } else if (item.type === "var") {
+    if (item.step === "NAME") {
+      return sendMessage(chatId, `⚙️ <b>متغیر معمولی (شماره ${item.index}):</b>\n\nنام متغیر (Environment Variable Name) را وارد کنید (مثال: <code>ADMIN</code>):`, env, false, keyboard);
+    } else if (item.step === "VAL") {
+      const customKb = [
+        [{ text: "🎲 تولید خودکار مقدار رندوم", callback_data: "res_auto_val" }],
+        getNavKeyboardRow()
+      ];
+      return sendMessage(chatId, `⚙️ <b>متغیر معمولی (شماره ${item.index}):</b>\n\nمقدار متغیر <code>${item.name}</code> را وارد کنید، یا روی دکمه تولید خودکار کلیک کنید:`, env, false, customKb);
+    }
+  }
+}
+
+// --- TELEGRAM DEPLOYMENT EXECUTOR ---
+async function executeTelegramDeployment(chatId, session, env) {
+  const { account, name, templateIdx, templateUrl, isLegacy, kvBindings, vars, type, autoGenTemplate } = session.deployPayload;
+
+  await sendMessage(chatId, "⚡ در حال خواندن سورس کد قالب...", env);
+  let sourceCode = "";
+  try {
+    if (templateIdx === "custom") {
+      sourceCode = await getPresetCode(null, env, templateUrl);
+    } else {
+      const preset = PRESETS[templateIdx];
+      sourceCode = await getPresetCode(preset, env);
+    }
+  } catch (err) {
+    session.state = "IDLE";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return sendMessage(chatId, `❌ خطا در دریافت سورس کد:\n<code>${err.message}</code>`, env);
+  }
+
+  sourceCode += `\n\n/* Signed: ${generateRandomString(CharsetAlphaNumeric, 24)} */`;
+
+  await sendMessage(chatId, "🛠️ در حال ساخت دیتابیس‌ها و تنظیم منابع اختصاصی شما...", env);
+  try {
+    const activeBindings = [];
+
+    // Process presets' default KVs
+    if (kvBindings && kvBindings.length > 0) {
+      for (const kvName of kvBindings) {
+        await sendMessage(chatId, `📦 در حال ایجاد دیتابیس KV با نام <code>${kvName}</code>...`, env);
+        const kvNamespaceId = await createKVNamespace(account.token, account.id, `${name}-${kvName}`);
+        if (kvNamespaceId) {
+          activeBindings.push({ name: kvName, namespace_id: kvNamespaceId, type: "kv_namespace" });
+        }
+      }
+    }
+
+    // Process presets' variables & DB mappings
+    let finalVars = { ...vars };
+    if (autoGenTemplate && templateIdx !== "custom") {
+      const preset = PRESETS[templateIdx];
+      finalVars = autoGenerateVars(preset.vars, vars);
+    }
+
+    if (finalVars) {
+      for (let [key, val] of Object.entries(finalVars)) {
+        if (key.startsWith("D1_ID_")) {
+          const bindingName = key.replace("D1_ID_", "");
+          let dbId = val;
+          if (dbId === "auto" || !dbId) {
+            await sendMessage(chatId, `🗄 در حال ایجاد فیزیکی دیتابیس D1 با نام <code>${bindingName}</code>...`, env);
+            const sanitizedDbName = `${name}-${bindingName}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            dbId = await createD1Database(account.token, account.id, sanitizedDbName);
+            finalVars[key] = dbId; // Update final variables with the real database ID!
+          }
+          activeBindings.push({ name: bindingName, database_id: dbId, type: "d1" });
+        } else {
+          activeBindings.push({ name: key, text: val, type: "plain_text" });
+        }
+      }
+    }
+
+    // Process Custom resources queue
+    if (session.deployPayload.resourceQueue) {
+      for (const item of session.deployPayload.resourceQueue) {
+        if (item.type === "kv") {
+          if (item.id === "auto" || !item.id) {
+            await sendMessage(chatId, `📦 در حال ایجاد دیتابیس KV با نام <code>${item.name}</code>...`, env);
+            const kvId = await createKVNamespace(account.token, account.id, `${name}-${item.name}`);
+            activeBindings.push({ name: item.name, namespace_id: kvId, type: "kv_namespace" });
+          } else {
+            activeBindings.push({ name: item.name, namespace_id: item.id, type: "kv_namespace" });
+          }
+        } else if (item.type === "d1") {
+          let dbId = item.id;
+          if (dbId === "auto" || !dbId) {
+            await sendMessage(chatId, `🗄 در حال ایجاد فیزیکی دیتابیس D1 با نام <code>${item.name}</code>...`, env);
+            const sanitizedDbName = `${name}-${item.name}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            dbId = await createD1Database(account.token, account.id, sanitizedDbName);
+            item.id = dbId;
+          }
+          activeBindings.push({ name: item.name, database_id: dbId, type: "d1" });
+        } else if (item.type === "var") {
+          activeBindings.push({ name: item.name, text: item.val, type: "plain_text" });
+        }
+      }
+    }
+
+    if (type === "worker") {
+      await sendMessage(chatId, "🚀 در حال آپلود و پیاده‌سازی ورکر شما بر روی شبکه لبه کلادفلر...", env);
+      await deployWorkerScript(account.token, account.id, name, sourceCode, activeBindings);
+      await enableWorkerSubdomain(account.token, account.id, name);
+
+      let sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
+      sub = sub ? sub.trim().replace(/^\.+|\.+$/g, "") : "";
+
+      // Dynamic path suffix resolution
+      let pathSuffix = "";
+      if (templateIdx !== "custom") {
+        const preset = PRESETS[templateIdx];
+        if (preset.id === "nahan") {
+          pathSuffix = "/sync/dash";
+        } else if (preset.id === "edgetunnel") {
+          pathSuffix = "/admin";
+        } else if (isLegacy) {
+          pathSuffix = "/panel";
+        }
+      }
+      
+      const panelURL = sub ? `https://${name}.${sub}.workers.dev${pathSuffix}` : `https://${name}.workers.dev${pathSuffix}`;
+
+      session.state = "IDLE";
+      session.history = [];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+
+      // Build precise success variable list output
+      let varsMsg = "";
+      if (finalVars && Object.keys(finalVars).length > 0) {
+        varsMsg += "\n\n🔑 <b>مشخصات و متغیرهای ثبت‌شده:</b>\n";
+        for (const [k, v] of Object.entries(finalVars)) {
+          const displayKey = k.startsWith("D1_ID_") ? k.replace("D1_ID_", "D1_DATABASE_") : k;
+          varsMsg += `🔸 <code>${displayKey}</code>: <code>${v}</code>\n`;
+        }
+      }
+
+      if (session.deployPayload.resourceQueue && session.deployPayload.resourceQueue.length > 0) {
+        varsMsg += "\n\n📦 <b>منابع متصل شده سفارشی:</b>\n";
+        for (const item of session.deployPayload.resourceQueue) {
+          if (item.type === "kv") {
+            varsMsg += `🔸 دیتابیس [KV] با متغیر: <code>${item.name}</code>\n`;
+          } else if (item.type === "d1") {
+            varsMsg += `🔸 دیتابیس [D1] با متغیر: <code>${item.name}</code> (شناسه: <code>${item.id}</code>)\n`;
+          } else if (item.type === "var") {
+            varsMsg += `🔸 متغیر [Plain] با نام <code>${item.name}</code>: <code>${item.val}</code>\n`;
+          }
+        }
+      }
+
+      await logEvent(env, `پروژه ورکر (${name}) با موفقیت دپلو شد. ساب‌دومین نهایی: ${sub}`, "info");
+      return sendMessage(chatId, `🎉 <b>ورکر با موفقیت فعال شد!</b>\n\n🔗 لینک دسترسی:\n<code>${panelURL}</code>${varsMsg}`, env);
+    } else {
+      await sendMessage(chatId, "🚀 در حال ایجاد و بارگذاری صفحات پروژه (Pages)...", env);
+      const project = await createPagesProject(account.token, account.id, name, activeBindings);
+      await deployPagesAsset(account.token, account.id, name, sourceCode);
+
+      const pagesHost = project && project.subdomain ? project.subdomain : `${name}.pages.dev`;
+
+      session.state = "IDLE";
+      session.history = [];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+
+      let varsMsg = "";
+      if (finalVars && Object.keys(finalVars).length > 0) {
+        varsMsg += "\n\n🔑 <b>مشخصات و متغیرهای ثبت‌شده:</b>\n";
+        for (const [k, v] of Object.entries(finalVars)) {
+          const displayKey = k.startsWith("D1_ID_") ? k.replace("D1_ID_", "D1_DATABASE_") : k;
+          varsMsg += `🔸 <code>${displayKey}</code>: <code>${v}</code>\n`;
+        }
+      }
+
+      await logEvent(env, `پروژه Pages (${name}) با موفقیت دپلو شد.`, "info");
+      return sendMessage(chatId, `🎉 <b>صفحه (Pages) با موفقیت دپلو شد!</b>\n\n🔗 لینک دسترسی:\n<code>https://${pagesHost}${isLegacy ? "/panel" : ""}/</code>${varsMsg}`, env);
+    }
+  } catch (err) {
+    session.state = "IDLE";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    await logEvent(env, `خطا در اجرای دپلو در تلگرام: ${err.message}`, "error");
+    return sendMessage(chatId, `❌ خطای فرآیند دپلو کلادفلر:\n<code>${err.message}</code>`, env);
+  }
+}
+
+// --- CLOUDFLARE D1 DATABASE CREATION ENGINE ---
+async function createD1Database(token, accountId, name) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: JSON.stringify({ name })
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to create D1 Database.");
+  }
+  return data.result.uuid; // Return the valid UUIDv4 of the newly created database
+}
+
+// --- TELEGRAM RENDER SYSTEM ---
+async function sendMainMenu(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🚀 آغاز ساخت پروژه جدید", callback_data: "start_deploy" }
+    ],
+    [
+      { text: "🔑 مدیریت اکانت‌ها", callback_data: "manage_accounts" },
+      { text: "📂 لیست پروژه‌ها", callback_data: "list_projects" }
+    ]
+  ];
+
+  await sendMessage(
+    chatId, 
+    "<b>⚡ دستیار استقرار کلادفلر </b>\n\nربات آماده به کار است.\n\n👇 یکی از گزینه‌های زیر را انتخاب کنید:", 
+    env, 
+    false, 
+    keyboard
+  );
+}
+
+function getNavKeyboardRow() {
+  return [
+    { text: "🔙 مرحله قبل", callback_data: "step_back" },
+    { text: "🏠 منوی اصلی", callback_data: "go_main" }
+  ];
+}
+
+async function sendPlatformTypeSelection(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🚀 کلادفلر ورکرز (Workers)", callback_data: "platform_worker" },
+      { text: "📦 کلادفلر پیج‌ها (Pages)", callback_data: "platform_pages" }
+    ],
+    [
+      { text: "🔙 بازگشت به منوی اصلی", callback_data: "step_back" }
+    ]
+  ];
+
+  return sendMessage(chatId, "💻 <b>گام اول:</b> نوع بستر استقرار پروژه خود را مشخص کنید:", env, false, keyboard);
+}
+
+async function sendCategorySelection(chatId, env) {
+  const keyboard = [
+    [{ text: "🚀 ورکر‌های کلش‌فا (ClashFa)", callback_data: "cat_clashfa" }],
+    [{ text: "🌐 ورکر‌های دی‌ان‌اس (DNS)", callback_data: "cat_dns" }],
+    [{ text: "🛰️ ورکر‌های کانفیگ (Config)", callback_data: "cat_config" }],
+    [{ text: "🔗 ورکر سفارشی (لینک سورس)", callback_data: "tpl_idx_custom" }],
+    getNavKeyboardRow()
+  ];
+  return sendMessage(chatId, "🗂️ <b>گام دوم:</b> دسته‌بندی پروژه مورد نظر خود را انتخاب کنید:", env, false, keyboard);
+}
+
+async function sendTemplateSelection(chatId, env, type, category) {
+  const keyboard = [];
+  PRESETS.forEach((preset, index) => {
+    if (preset.category === category) {
+      keyboard.push([{ text: preset.name, callback_data: `tpl_idx_${index}` }]);
+    }
+  });
+  keyboard.push(getNavKeyboardRow());
+
+  const catNames = {
+    clashfa: "کلش‌فا 🚀",
+    dns: "دی‌ان‌اس 🌐",
+    config: "کانفیگ 🛰|"
+  };
+
+  const currentCatName = catNames[category] || "پروژه";
+
+  return sendMessage(chatId, `🛰️ <b>گام سوم:</b> الگوی اسکریپت آماده جهت دپلو روی <b>${type === "worker" ? "ورکر" : "پیج"}</b> از بخش <b>${currentCatName}</b> را انتخاب کنید:`, env, false, keyboard);
+}
+
+async function sendCustomVarOptionSelection(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🚫 دپلو ورکر بدون متغیر", callback_data: "custom_vars_none" },
+      { text: "✍️ پیاده‌سازی با متغیرهای سفارشی", callback_data: "custom_vars_yes" }
+    ],
+    getNavKeyboardRow()
+  ];
+
+  return sendMessage(chatId, "⚙️ <b>ورکر سفارشی:</b> آیا این ورکر نیاز به تنظیم متغیرهای محیطی خاصی دارد؟", env, false, keyboard);
+}
+
+async function sendCustomResourcesPrompt(chatId, env) {
+  const keyboard = [getNavKeyboardRow()];
+  const text = `💡 <b>تعریف بایندینگ‌ها و منابع اسکریپت سفارشی:</b>\n\n` +
+               `لطفاً تعداد مورد نیاز خود از هر منبع را به ترتیب در ۳ خط جداگانه ارسال کنید:\n` +
+               `<b>خط اول:</b> تعداد دیتابیس KV\n` +
+               `<b>خط دوم:</b> تعداد دیتابیس D1\n` +
+               `<b>خط سوم:</b> تعداد متغیرهای معمولی (Plain Var)\n\n` +
+               `<i>مثال: برای ۲ دیتابیس KV، ۱ دیتابیس D1 و ۳ متغیر معمولی بنویسید:</i>\n` +
+               `<code>2\n1\n3</code>`;
+  return sendMessage(chatId, text, env, false, keyboard);
+}
+
+async function sendProjectNamePrompt(chatId, env) {
+  const keyboard = [
+    getNavKeyboardRow()
+  ];
+  return sendMessage(chatId, "📝 <b>تعیین نام:</b> یک نام انگلیسی دلخواه برای پروژه خود انتخاب و ارسال کنید (مثال: my-speed-vpn):", env, false, keyboard);
+}
+
+async function sendVarModeSelection(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🎲 تولید کاملاً خودکار (پیشنهادی)", callback_data: "var_mode_auto" },
+      { text: "✍️ وارد کردن دستی پارامترها", callback_data: "var_mode_manual" }
+    ],
+    getNavKeyboardRow()
+  ];
+
+  return sendMessage(chatId, "⚙️ <b>تنظیم متغیرها:</b> تمایل دارید متغیرهای محیطی پروژه به چه صورت تنظیم شوند؟", env, false, keyboard);
+}
+
+async function sendVariablePrompt(chatId, varName, env) {
+  const keyboard = [
+    [{ text: `🎲 تولید خودکار ${varName}`, callback_data: `auto_gen_var_${varName}` }],
+    getNavKeyboardRow()
+  ];
+  let promptText = `✍️ لطفاً مقدار متغیر محیطی <code>${varName}</code> را وارد کنید:`;
+  if (varName.startsWith("D1_ID_")) {
+    const bindingName = varName.replace("D1_ID_", "");
+    promptText = `✍️ الگوی انتخابی نیاز به دیتابیس D1 با نام متغیر <code>${bindingName}</code> دارد.\n\nلطفاً شناسه دیتابیس D1 (Database ID) خود را وارد کنید (مثال: <code>xxxx-xxxx-xxxx</code>):`;
+  }
+  return sendMessage(chatId, promptText, env, false, keyboard);
+}
+
+async function sendAccountsManagement(chatId, session, env, editMsgId = null) {
+  const keyboard = [];
+  const accounts = session.accounts || [];
+
+  accounts.forEach((acc, index) => {
+    keyboard.push([
+      { text: `👤 ${acc.name}`, callback_data: `view_acc_${index}` },
+      { text: "✏️ ساب‌دومین دستی", callback_data: `set_sub_${index}` }
+    ]);
+    keyboard.push([
+      { text: `🗑️ حذف حساب: ${acc.name}`, callback_data: `del_acc_${index}` }
+    ]);
+  });
+
+  if (accounts.length > 0) {
+    keyboard.push([{ text: "🔒 خروج و حذف تمامی حساب‌ها", callback_data: "del_all_acc" }]);
+  }
+  keyboard.push([{ text: "➕ افزودن توکن جدید", callback_data: "add_cf_token" }]);
+  keyboard.push([{ text: "🔙 منوی اصلی", callback_data: "go_main" }]);
+
+  const text = `🔑 <b>مدیریت حساب‌های متصل کلادفلر</b>\n\nتعداد حساب‌های فعال: ${accounts.length}\nجهت اتصال حساب جدید دکمه زیر را لمس کنید:`;
+  
+  if (editMsgId) {
+    await editMessageText(chatId, editMsgId, text, env);
+  }
+  await sendMessage(chatId, text, env, false, keyboard);
+}
+
+async function sendAccountSelection(chatId, session, env) {
+  const keyboard = [];
+  session.accounts.forEach((acc, index) => {
+    keyboard.push([{ text: `👤 ${acc.name}`, callback_data: `deploy_to_${index}` }]);
+  });
+  keyboard.push(getNavKeyboardRow());
+
+  return sendMessage(chatId, `👤 <b>انتخاب حساب کلادفلر:</b> حساب مقصد جهت استقرار پروژه را انتخاب کنید:`, env, false, keyboard);
+}
+
+async function handleTelegramListProjects(chatId, session, env) {
+  const keyboard = [];
+  session.accounts.forEach((acc, index) => {
+    keyboard.push([{ text: `📂 ${acc.name}`, callback_data: `list_opts_${index}` }]);
+  });
+  keyboard.push([{ text: "🔙 منوی اصلی", callback_data: "go_main" }]);
+
+  return sendMessage(chatId, "🗂️ برای بررسی پروژه‌های موجود، حساب هدف را انتخاب کنید:", env, false, keyboard);
+}
+
+async function displayTelegramProjects(chatId, account, env, accIdx) {
+  await sendMessage(chatId, `⏳ در حال لود اطلاعات پروژه از سرورهای کلادفلر...`, env);
+
+  try {
+    const workers = await listWorkerScripts(account.token, account.id);
+    const pages = await listPagesProjects(account.token, account.id);
+
+    // Save fetched workers list in user session to prevent Telegram's 64-character callback_data limit
+    let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
+    userSession.listedWorkers = workers.map(w => w.id);
+    userSession.activeAccIdx = accIdx;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    let output = `👤 حساب متصل: <b>${account.name}</b>\n\n`;
+
+    output += `<b>🚀 اسکریپت‌های ورکر (${workers.length}):</b>\n`;
+    
+    const keyboard = [];
+
+    if (workers.length > 0) {
+      workers.forEach((w, idx) => {
+        output += `${idx + 1}. <code>${w.id}</code> (بروزرسانی: ${new Date(w.modified_on).toLocaleDateString("fa-IR")})\n`;
+        keyboard.push([{ text: `🛠️ مدیریت ورکر ${w.id}`, callback_data: `wk_menu_${idx}` }]);
+      });
+      
+      // Add bulk delete button
+      keyboard.push([{ text: "⚠️ حذف تمامی ورکرها ⚠️", callback_data: `conf_del_all_wrk_${accIdx}` }]);
+    } else {
+      output += "موردی ثبت نشده است.\n";
+    }
+
+    output += `\n<b>📦 پروژه‌های صفحات (${pages.length}):</b>\n`;
+    if (pages.length > 0) {
+      pages.forEach((p, idx) => {
+        output += `${idx + 1}. <code>${p.name}</code> (ساب‌دومین: ${p.subdomain})\n`;
+      });
+    } else {
+      output += "موردی ثبت نشده است.\n";
+    }
+
+    keyboard.push([{ text: "🔙 بازگشت به لیست حساب‌ها", callback_data: "list_projects" }]);
+
+    return sendMessage(chatId, output, env, false, keyboard);
+  } catch (err) {
+    return sendMessage(chatId, `❌ خطا در دریافت اطلاعات از کلادفلر:\n<code>${err.message}</code>`, env);
+  }
+}
+
+// --- NEW VIEW & MANAGE WORKER BINDINGS ENGINE ---
+async function displayWorkerBindings(chatId, userSession, env) {
+  const workerName = userSession.activeWorker;
+  const accIdx = userSession.activeAccIdx;
+  const account = userSession.accounts[accIdx];
+
+  await sendMessage(chatId, `⏳ در حال لود لیست بایندینگ‌ها از کلادفلر...`, env);
+
+  try {
+    const settings = await getWorkerSettings(account.token, account.id, workerName);
+    const bindings = settings.bindings || [];
+
+    userSession.activeBindings = bindings;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    let output = `⚙️ **لیست بایندینگ‌های ورکر:** <code>${workerName}</code>\n\n`;
+
+    if (bindings.length === 0) {
+      output += "⚠️ هیچ بایندینگی (KV، D1 یا متغیر محیطی) برای این ورکر ثبت نشده است.";
+      const keyboard = [
+        [{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]
+      ];
+      return sendMessage(chatId, output, env, false, keyboard);
+    }
+
+    const keyboard = [];
+
+    bindings.forEach((b, idx) => {
+      let typeLabel = "";
+      let detail = "";
+
+      if (b.type === "kv_namespace") {
+        typeLabel = "📦 [KV]";
+        detail = `شناسه: <code>${b.namespace_id}</code>`;
+      } else if (b.type === "d1") {
+        typeLabel = "🗄 [D1]";
+        detail = `شناسه: <code>${b.database_id}</code>`;
+      } else if (b.type === "plain_text") {
+        typeLabel = "⚙️ [Var]";
+        detail = `مقدار: <code>${b.text}</code>`;
+      } else if (b.type === "secret_text") {
+        typeLabel = "🔒 [Secret]";
+        detail = `مقدار: <code>(مخفی)</code>`;
+      } else {
+        typeLabel = `🔌 [${b.type}]`;
+        detail = `سایر منابع`;
+      }
+
+      output += `${idx + 1}. ${typeLabel} <b>${b.name}</b>\n   └─ ${detail}\n\n`;
+      keyboard.push([{ text: `🗑️ حذف بایندینگ ${b.name}`, callback_data: `del_b_${idx}` }]);
+    });
+
+    keyboard.push([{ text: "💥 حذف همه بایندینگ‌ها با هم", callback_data: "del_all_b" }]);
+    keyboard.push([{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]);
+
+    return sendMessage(chatId, output, env, false, keyboard);
+  } catch (err) {
+    return sendMessage(chatId, `❌ خطا در دریافت اطلاعات بایندینگ‌ها:\n<code>${err.message}</code>`, env);
+  }
+}
+
+// --- OPTIMIZED CLOUDFLARE API LAYER ---
+async function verifyCloudflareToken(token) {
+  try {
+    const res = await fetch("https://api.cloudflare.com/client/v4/accounts", {
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "ClashFa-Deployer-Bot"
+      }
+    });
+    const data = await res.json();
+    return data.success === true && data.result && data.result.length > 0;
+  } catch (_) { 
+    return false; 
+  }
+}
+
+async function getCloudflareAccounts(token) {
+  try {
+    const res = await fetch("https://api.cloudflare.com/client/v4/accounts", {
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "ClashFa-Deployer-Bot"
+      }
+    });
+    const data = await res.json();
+    return data.success ? data.result : [];
+  } catch (_) { 
+    return []; 
+  }
+}
+
+async function createKVNamespace(token, accountId, title) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: JSON.stringify({ title })
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to create KV.");
+  }
+  return data.result.id;
+}
+
+// --- SMART WRITER COMPILING METADATA AS MODULE OR SERVICE WORKER ---
+async function deployWorkerScript(token, accountId, scriptName, code, bindings) {
+  // Comprehensive module syntax detector to cover compiled imports/exports
+  const isModule = code.includes("export default") || 
+                   code.includes("export {") || 
+                   code.includes("export{") || 
+                   code.includes("import ") || 
+                   code.includes("import{");
+  
+  const formData = new FormData();
+  const metadata = {
+    bindings: bindings,
+    compatibility_date: new Date().toISOString().split("T")[0],
+    compatibility_flags: ["nodejs_compat"]
+  };
+
+  if (isModule) {
+    metadata.main_module = "worker.js";
+    formData.append("metadata", JSON.stringify(metadata));
+    formData.append("worker.js", new Blob([code], { type: "application/javascript+module" }), "worker.js");
+  } else {
+    metadata.body_part = "script";
+    formData.append("metadata", JSON.stringify(metadata));
+    formData.append("script", new Blob([code], { type: "application/javascript" }), "script");
+  }
+
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+    method: "PUT",
+    headers: { 
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: formData
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to deploy Worker.");
+  }
+  return data.result;
+}
+
+async function deleteWorkerScript(token, accountId, scriptName) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+    method: "DELETE",
+    headers: { 
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    }
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to delete worker script.");
+  }
+  return data.success;
+}
+
+async function getWorkerSettings(token, accountId, scriptName) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/settings`, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    }
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to fetch Worker settings.");
+  }
+  return data.result;
+}
+
+async function updateWorkerBindings(token, accountId, scriptName, bindings) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/settings`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: JSON.stringify({ bindings: bindings })
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to update bindings.");
+  }
+  return data.success;
+}
+
+async function enableWorkerSubdomain(token, accountId, scriptName) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/subdomain`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: JSON.stringify({ enabled: true })
+  });
+  return res.ok;
+}
+
+async function getWorkerSubdomain(token, accountId, env, accountName = "") {
+  if (env && env.BOT_KV) {
+    const cached = await env.BOT_KV.get(`subdomain:${accountId}`);
+    if (cached) return cached;
+  }
+
+  try {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/subdomains`, {
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "ClashFa-Deployer-Bot"
+      }
+    });
+    const data = await res.json();
+    if (data.success && data.result && data.result.subdomain) {
+      const sub = data.result.subdomain.trim();
+      if (env && env.BOT_KV) {
+        await env.BOT_KV.put(`subdomain:${accountId}`, sub);
+      }
+      return sub;
+    }
+  } catch (err) {
+    if (env) await logEvent(env, `خطا در دریافت ساب‌دومین: ${err.message}`, "error");
+  }
+
+  // Robust parsing as requested
+  if (accountName) {
+    const fallbackSub = deriveFallbackSubdomain(accountName);
+    if (env && env.BOT_KV && fallbackSub) {
+      await env.BOT_KV.put(`subdomain:${accountId}`, fallbackSub);
+    }
+    return fallbackSub;
+  }
+  return "";
+}
+
+async function getPagesProject(token, accountId, name) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${name}`, {
+    headers: { 
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    }
+  });
+  const data = await res.json();
+  return data.success ? data.result : null;
+}
+
+async function createPagesProject(token, accountId, name, bindings) {
+  const kvBindingsObj = {};
+  const envVarsObj = {};
+
+  bindings.forEach(b => {
+    if (b.type === "kv_namespace") {
+      kvBindingsObj[b.name] = { namespace_id: b.namespace_id };
+    } else if (b.type === "plain_text") {
+      envVarsObj[b.name] = { type: "plain_text", value: b.text };
+    }
+  });
+
+  const payload = {
+    name: name,
+    production_branch: "main",
+    deployment_configs: {
+      production: {
+        compatibility_date: new Date().toISOString().split("T")[0],
+        compatibility_flags: ["nodejs_compat"],
+        kv_namespaces: kvBindingsObj,
+        env_vars: envVarsObj
+      }
+    }
+  };
+
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    if (data.errors?.[0]?.code === 8000000) {
+      return await getPagesProject(token, accountId, name);
+    }
+    throw new Error(data.errors?.[0]?.message || "Failed to create Pages.");
+  }
+  return data.result;
+}
+
+async function deployPagesAsset(token, accountId, projectName, code) {
+  const formData = new FormData();
+  formData.append("manifest", "{}");
+  formData.append("branch", "main");
+  formData.append("_worker.js", new Blob([code], { type: "application/javascript" }), "_worker.js");
+
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/deployments`, {
+    method: "POST",
+    headers: { 
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    },
+    body: formData
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to deploy Pages assets.");
+  }
+  return data.result;
+}
+
+async function listWorkerScripts(token, accountId) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
+    headers: { 
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    }
+  });
+  const data = await res.json();
+  return data.success ? data.result : [];
+}
+
+async function listPagesProjects(token, accountId) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`, {
+    headers: { 
+      "Authorization": `Bearer ${token}`,
+      "User-Agent": "ClashFa-Deployer-Bot"
+    }
+  });
+  const data = await res.json();
+  return data.success ? data.result : [];
+}
+
+async function sendMessage(chatId, text, env, useReplyMarkup = false, customKeyboard = null) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+  let replyMarkup = {};
+  if (useReplyMarkup) {
+    replyMarkup = { keyboard: [[{ text: "🔙 بازگشت به منوی اصلی" }]], resize_keyboard: true };
+  } else if (customKeyboard) {
+    replyMarkup = { inline_keyboard: customKeyboard };
+  }
+
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: text,
+      parse_mode: "HTML",
+      reply_markup: (useReplyMarkup || customKeyboard) ? replyMarkup : undefined
+    })
+  });
+}
+
+async function editMessageText(chatId, messageId, text, env, forceKeyboard = false) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: text,
+      parse_mode: "HTML",
+      reply_markup: forceKeyboard ? {
+        inline_keyboard: [[{ text: "🔙 بازگشت به منوی اصلی", callback_data: "go_main" }]]
+      } : undefined
+    })
+  });
+}
+
+async function answerCallbackQuery(callbackQueryId, env) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId })
+  });
+}

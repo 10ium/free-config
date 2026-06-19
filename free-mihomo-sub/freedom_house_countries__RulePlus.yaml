@@ -141,6 +141,7 @@ tun:
   dns-hijack:
     - "any:53"
     - "tcp://any:53"
+    
 rule-providers:
   category_public_tracker:
     type: "http"

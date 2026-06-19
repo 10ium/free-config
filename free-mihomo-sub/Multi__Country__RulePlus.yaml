@@ -1,475 +1,508 @@
-global-client-fingerprint: chrome 
-port: 7890 
-socks-port: 7891 
-redir-port: 7892 
-mixed-port: 7893 
-tproxy-port: 7894 
-allow-lan: true 
-tcp-concurrent: true 
-enable-process: true 
-find-process-mode: strict 
-ipv6: true 
-log-level: debug 
-geo-auto-update: true 
-geo-update-interval: 168 
-secret: '' 
-bind-address: '*' 
-unified-delay: false 
-disable-keep-alive: false 
-keep-alive-idle: 30 
-keep-alive-interval: 30 
-profile: 
-  store-selected: true 
-  store-fake-ip: true 
-dns: 
-  enable: true 
-  ipv6: true 
-  respect-rules: false 
-  prefer-h3: true 
-  cache-algorithm: arc    
-  use-system-hosts: true 
-  use-host: true 
-  listen: 0.0.0.0:53 
-  enhanced-mode: fake-ip 
-  fake-ip-filter-mode: blacklist 
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter: 
-    - '*.lan'              
-    - '*.localdomain'      
-    - '*.invalid'          
-    - '*.localhost'        
-    - '*.test'             
-    - '*.local'            
-    - '*.home.arpa' 
-    - 'time.*.com' 
-    - 'ntp.*.com' 
-    - '*.ir' 
- 
-  default-nameserver: 
-    - 8.8.8.8 
-    - 8.8.4.4 
-    - 1.0.0.1 
-    - 1.1.1.1 
-    - 9.9.9.9 
-    - 9.9.9.11 
-    - 9.9.9.10 
-    - 94.140.14.15 
-    - 94.140.15.15 
-    - 223.5.5.5 
-    - 77.88.8.8
+global-client-fingerprint: "chrome"
+keep-alive-interval: 5
+keep-alive-idle: 10
+disable-keep-alive: false
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+tcp-concurrent: true
+enable-process: true
+find-process-mode: "always"
+ipv6: false
+log-level: "info"
+geo-auto-update: true
+geo-update-interval: 168
+secret: ""
+bind-address: "*"
+unified-delay: false
+
+dns:
+  enable: true
+  ipv6: false
+  prefer-h3: false
+  cache-algorithm: "arc"
+  use-system-hosts: true
+  use-host: true
+  listen: "0.0.0.0:53"
+  enhanced-mode: "fake-ip"
+  fake-ip-filter-mode: "blacklist"
+  fake-ip-range: "198.18.0.1/16"
+  fake-ip-filter:
+    - "*.lan"
+    - "*.localdomain"
+    - "*.invalid"
+    - "*.localhost"
+    - "*.test"
+    - "*.local"
+    - "*.home.arpa"
+    - "time.*.com"
+    - "ntp.*.com"
+    - "*.ir"
+  default-nameserver:
+    - "1.1.1.1"
+    - "8.8.8.8"
+    - "9.9.9.9"
   nameserver:
-    - 'https://sky.rethinkdns.com/1:-J8AGH8C7_2-___f3_vZ3f_z-f9KagBI'
-    - 'tls://1-7cpqagd7alx73px777p5766z3x77h6p7jjvaasa.max.rethinkdns.com'
+    - "tcp://1.1.1.1"
+    - "tcp://1.0.0.1"
+    - "tcp://8.8.8.8"
+    - "tcp://8.8.4.4"
+    - "tcp://9.9.9.9"
+    - "tcp://149.112.112.112"
+    - "tcp://208.67.222.222"
+    - "tcp://208.67.220.222"
+  fallback:
+    - "tcp://76.76.19.19"
+    - "tcp://76.223.122.150"
+    - "tcp://185.228.168.9"
+    - "tcp://185.228.169.9"
+    - "tcp://8.26.56.26"
+    - "tcp://8.20.247.20"
+    - "tcp://76.76.2.11"
+    - "tcp://76.76.10.11"
+    - "tcp://84.200.69.80"
+    - "tcp://84.200.70.40"
+    - "tcp://45.33.97.5"
+    - "tcp://37.235.1.177"
+    - "tcp://209.244.0.3"
+    - "tcp://209.244.0.4"
+    - "tcp://156.154.70.5"
+    - "tcp://156.154.71.5"
+    - "tcp://103.86.96.100"
+    - "tcp://103.86.99.100"
+    - "tcp://199.85.126.10"
+    - "tcp://199.85.127.10"
+    - "tcp://129.250.35.250"
+    - "tcp://129.250.35.251"
+    - "tcp://94.16.114.254"
+    - "tcp://94.247.43.254"
+    - "tcp://208.67.222.20"
+    - "tcp://195.46.39.39"
+    - "tcp://195.46.39.40"
+    - "tcp://204.117.214.10"
+    - "tcp://199.2.252.10"
+    - "tcp://194.169.169.169"
+    - "tcp://156.154.70.1"
+    - "tcp://156.154.71.1"
+    - "tcp://91.239.100.100"
+    - "tcp://89.233.43.71"
+    - "tcp://64.6.64.6"
+    - "tcp://64.6.65.6"
+    - "tcp://77.88.8.8"
+    - "tcp://77.88.8.1"
+  fallback-filter:
+    geoip: true
+    geoip-code: "IR"
+    geosite:
+      - "gfw"
+    ipcidr:
+      - "240.0.0.0/4"
+    domain:
+      - "+.google.com"
+      - "+.facebook.com"
+      - "+.youtube.com"
+  proxy-server-nameserver:
+    - "tcp://1.1.1.1"
+    - "tcp://8.8.8.8"
   direct-nameserver:
-    - '78.157.42.100'
-    - '78.157.42.101' 
-  proxy-server-nameserver: 
-    - '2606:4700:4700::1111' 
-    - '2606:4700:4700::1001' 
-    - '2001:4860:4860::8888' 
-    - '2001:4860:4860::8844' 
-    - '1.1.1.1' 
-    - '8.8.8.8' 
-    - '8.8.4.4' 
-    - '9.9.9.9' 
-    - '223.5.5.5' 
-    - '77.88.8.8' 
-    - '2400:3200::1' 
-    - '2a02:6b8::feed:0ff' 
-    - '2620:fe::fe' 
+    - "78.157.42.100"
+    - "78.157.42.101"
 
-sniffer: 
-  enable: true 
-  force-dns-mapping: true 
-  parse-pure-ip: true 
-  override-destination: false 
-  sniff: 
-    HTTP: 
-      ports: [80, 8080, 8880, 2052, 2082, 2086, 2095] 
-    TLS: 
-      ports: [443, 8443, 2053, 2083, 2087, 2096] 
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 8080
+        - 8880
+        - 2052
+        - 2082
+        - 2086
+        - 2095
+    TLS:
+      ports:
+        - 443
+        - 8443
+        - 2053
+        - 2083
+        - 2087
+        - 2096
 
-tun: 
-  enable: true 
-  stack: mixed 
-  auto-route: true 
-  auto-detect-interface: true 
-  auto-redir: true 
-  dns-hijack: 
-    - "any:53" 
-    - "tcp://any:53" 
+tun:
+  enable: true
+  stack: "mixed"
+  auto-route: true
+  auto-detect-interface: true
+  auto-redir: true
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
 
-rule-providers: 
-  category_public_tracker: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml 
-    interval: 86400 
-    path: ./ruleset/category_public_tracker.yaml 
-  iran_ads: 
-    type: http 
-    behavior: domain 
-    url: https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml 
-    interval: 86400 
-    path: ./ruleset/iran_ads.yaml 
-  PersianBlocker: 
-    type: http 
-    behavior: domain 
-    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml" 
-    path: ./ruleset/PersianBlocker.yaml 
-    interval: 86400 
-  youtube: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml 
-    interval: 86400 
-    path: ./ruleset/youtube.yaml 
-  telegram: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml 
-    interval: 86400 
-    path: ./ruleset/telegram.yaml 
-  twitch: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml 
-    interval: 86400 
-    path: ./ruleset/twitch.yaml 
-  censor: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml 
-    interval: 86400 
-    path: ./ruleset/tahrim.yaml 
-  local_ips: 
-    type: http 
-    behavior: ipcidr 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml 
-    interval: 86400 
-    path: ./ruleset/local_ips.yaml 
-  private: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml 
-    interval: 86400 
-    path: ./ruleset/private.yaml 
-  category_ir: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml 
-    interval: 86400 
-    path: ./ruleset/category_ir.yaml 
-  iran: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml 
-    interval: 86400 
-    path: ./ruleset/iran.yaml 
-  steam: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml 
-    interval: 86400 
-    path: ./ruleset/steam.yaml 
-  game: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml 
-    interval: 86400 
-    path: ./ruleset/game.yaml 
-  category-games: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml 
-    interval: 86400 
-    path: ./ruleset/category-games.yaml 
-  ir: 
-    type: http 
-    format: yaml 
-    behavior: domain 
-    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml" 
-    path: ./ruleset/ir.yaml 
-    interval: 86400 
-  apps: 
-    type: http 
-    format: yaml 
-    behavior: classical 
-    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml" 
-    path: ./ruleset/apps.yaml 
-    interval: 86400 
-  ircidr: 
-    type: http 
-    format: yaml 
-    behavior: ipcidr 
-    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml" 
-    path: ./ruleset/ircidr.yaml 
-    interval: 86400 
-  irasn: 
-    type: http 
-    format: yaml 
-    behavior: classical 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml" 
-    path: ./ruleset/irasn.yaml 
-    interval: 86400 
-  arvancloud: 
-    type: http 
-    format: yaml 
-    behavior: ipcidr 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml" 
-    path: ./ruleset/arvancloud.yaml 
-    interval: 86400 
-  derakcloud: 
-    type: http 
-    format: yaml 
-    behavior: ipcidr 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml" 
-    path: ./ruleset/derakcloud.yaml 
-    interval: 86400 
-  iranserver: 
-    type: http 
-    format: yaml 
-    behavior: ipcidr 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml" 
-    path: ./ruleset/iranserver.yaml 
-    interval: 86400 
-  parspack: 
-    type: http 
-    format: yaml 
-    behavior: ipcidr 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml" 
-    path: ./ruleset/parspack.yaml 
-    interval: 86400 
-  malware: 
-    type: http 
-    format: yaml 
-    behavior: domain 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml" 
-    path: ./ruleset/malware.yaml 
-    interval: 86400 
-  phishing: 
-    type: http 
-    format: yaml 
-    behavior: domain 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml" 
-    path: ./ruleset/phishing.yaml 
-    interval: 86400 
-  cryptominers: 
-    type: http 
-    format: yaml 
-    behavior: domain 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml" 
-    path: ./ruleset/cryptominers.yaml 
-    interval: 86400 
-  ads: 
-    type: http 
-    format: yaml 
-    behavior: domain 
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.yaml" 
-    path: ./ruleset/ads.yaml 
-    interval: 86400 
-  DownloadManagers: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml 
-    interval: 86400 
-    path: ./ruleset/DownloadManagers.yaml 
-  BanProgramAD: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml 
-    interval: 86400 
-    path: ./ruleset/BanProgramAD.yaml 
-  BanAD: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml 
-    interval: 86400 
-    path: ./ruleset/BanAD.yaml 
-  PrivateTracker: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml 
-    interval: 86400 
-    path: ./ruleset/PrivateTracker.yaml 
-  BanEasyList: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml 
-    interval: 86400 
-    path: ./ruleset/BanEasyList.yaml 
-  Download: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml 
-    interval: 86400 
-    path: ./ruleset/Download.yaml 
-  GameDownload: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml 
-    interval: 86400 
-    path: ./ruleset/GameDownload.yaml 
-  SteamRegionCheck: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml 
-    interval: 86400 
-    path: ./ruleset/SteamRegionCheck.yaml 
-  Xbox: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml 
-    interval: 86400 
-    path: ./ruleset/Xbox.yaml 
-  YouTubeMusic: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml 
-    interval: 86400 
-    path: ./ruleset/YouTubeMusic.yaml 
-  YouTube: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml 
-    interval: 86400 
-    path: ./ruleset/YouTube.yaml 
-  Ponzi: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml 
-    interval: 86400 
-    path: ./ruleset/Ponzi.yaml 
-  warninglist: 
-    type: http 
-    behavior: classical 
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml 
-    interval: 86400 
-    path: ./ruleset/warninglist.yaml 
-  google: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml 
-    interval: 86400 
-    path: ./ruleset/google.yaml 
-  google-play: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml 
-    interval: 86400 
-    path: ./ruleset/google-play.yaml 
-  xiaomi-ads: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/xiaomi-ads.yaml 
-    interval: 86400 
-    path: ./ruleset/xiaomi-ads.yaml 
-  xiaomi_block_list: 
-    type: http 
-    format: yaml 
-    behavior: domain 
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml" 
-    path: ./ruleset/xiaomi_block_list.yaml 
-    interval: 86400 
-  xiaomi_white_list: 
-    type: http 
-    behavior: classical 
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml" 
-    path: ./ruleset/xiaomi_white_list.yaml 
-    interval: 86400 
-  cloudflare: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml 
-    interval: 86400 
-    path: ./ruleset/cloudflare.yaml 
-  github: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml 
-    interval: 86400 
-    path: ./ruleset/xgithub.yaml 
-  whatsapp: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml 
-    interval: 86400 
-    path: ./ruleset/whatsapp.yaml 
-  LiteAds: 
-    type: http 
-    behavior: classical 
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml" 
-    path: ./ruleset/LiteAds.yaml 
-    interval: 86400 
-  discord: 
-    type: http 
-    behavior: classical 
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml" 
-    path: ./ruleset/discord.yaml 
-    interval: 86400 
-  instagram: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml 
-    interval: 86400 
-    path: ./ruleset/instagram.yaml 
-  category-ai: 
-    type: http 
-    behavior: domain 
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml 
-    interval: 86400 
-    path: ./ruleset/category-ai.yaml 
-  stremio: 
-    type: http 
-    behavior: classical 
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml" 
-    path: ./ruleset/stremio.yaml 
-    interval: 86400 
-  windows: 
-    type: http 
-    behavior: classical 
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml" 
-    path: ./ruleset/windows.yaml 
+rule-providers:
+  category_public_tracker:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml"
     interval: 86400
+    path: "./ruleset/category_public_tracker.yaml"
+  iran_ads:
+    type: "http"
+    behavior: "domain"
+    url: "https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"
+    interval: 86400
+    path: "./ruleset/iran_ads.yaml"
+  PersianBlocker:
+    type: "http"
+    behavior: "domain"
+    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"
+    interval: 86400
+    path: "./ruleset/PersianBlocker.yaml"
+  youtube:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml"
+    interval: 86400
+    path: "./ruleset/youtube.yaml"
+  telegram:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml"
+    interval: 86400
+    path: "./ruleset/telegram.yaml"
+  twitch:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml"
+    interval: 86400
+    path: "./ruleset/twitch.yaml"
+  censor:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml"
+    interval: 86400
+    path: "./ruleset/censor.yaml"
+  local_ips:
+    type: "http"
+    behavior: "ipcidr"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml"
+    interval: 86400
+    path: "./ruleset/local_ips.yaml"
+  private:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml"
+    interval: 86400
+    path: "./ruleset/private.yaml"
+  category_ir:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml"
+    interval: 86400
+    path: "./ruleset/category_ir.yaml"
+  iran:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml"
+    interval: 86400
+    path: "./ruleset/iran.yaml"
+  steam:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml"
+    interval: 86400
+    path: "./ruleset/steam.yaml"
+  game:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml"
+    interval: 86400
+    path: "./ruleset/game.yaml"
+  category-games:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml"
+    interval: 86400
+    path: "./ruleset/category-games.yaml"
+  ir:
+    type: "http"
+    format: "yaml"
+    behavior: "domain"
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml"
+    interval: 86400
+    path: "./ruleset/ir.yaml"
+  apps:
+    type: "http"
+    format: "yaml"
+    behavior: "classical"
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"
+    interval: 86400
+    path: "./ruleset/apps.yaml"
+  ircidr:
+    type: "http"
+    format: "yaml"
+    behavior: "ipcidr"
+    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml"
+    interval: 86400
+    path: "./ruleset/ircidr.yaml"
+  irasn:
+    type: "http"
+    format: "yaml"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml"
+    interval: 86400
+    path: "./ruleset/irasn.yaml"
+  arvancloud:
+    type: "http"
+    format: "yaml"
+    behavior: "ipcidr"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml"
+    interval: 86400
+    path: "./ruleset/arvancloud.yaml"
+  derakcloud:
+    type: "http"
+    format: "yaml"
+    behavior: "ipcidr"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml"
+    interval: 86400
+    path: "./ruleset/derakcloud.yaml"
+  iranserver:
+    type: "http"
+    format: "yaml"
+    behavior: "ipcidr"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml"
+    interval: 86400
+    path: "./ruleset/iranserver.yaml"
+  parspack:
+    type: "http"
+    format: "yaml"
+    behavior: "ipcidr"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml"
+    interval: 86400
+    path: "./ruleset/parspack.yaml"
+  malware:
+    type: "http"
+    format: "yaml"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml"
+    interval: 86400
+    path: "./ruleset/malware.yaml"
+  phishing:
+    type: "http"
+    format: "yaml"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml"
+    interval: 86400
+    path: "./ruleset/phishing.yaml"
+  cryptominers:
+    type: "http"
+    format: "yaml"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml"
+    interval: 86400
+    path: "./ruleset/cryptominers.yaml"
+  ads:
+    type: "http"
+    format: "yaml"
+    behavior: "domain"
+    url: "https://github.com/Chocolate4U/Iran-clash-rules/releases/download/202606060815/category-ads-all.yaml"
+    interval: 86400
+    path: "./ruleset/ads.yaml"
+  DownloadManagers:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml"
+    interval: 86400
+    path: "./ruleset/DownloadManagers.yaml"
+  BanProgramAD:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml"
+    interval: 86400
+    path: "./ruleset/BanProgramAD.yaml"
+  BanAD:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml"
+    interval: 86400
+    path: "./ruleset/BanAD.yaml"
+  PrivateTracker:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml"
+    interval: 86400
+    path: "./ruleset/PrivateTracker.yaml"
+  BanEasyList:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml"
+    interval: 86400
+    path: "./ruleset/BanEasyList.yaml"
+  Download:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml"
+    interval: 86400
+    path: "./ruleset/Download.yaml"
+  GameDownload:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml"
+    interval: 86400
+    path: "./ruleset/GameDownload.yaml"
+  SteamRegionCheck:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml"
+    interval: 86400
+    path: "./ruleset/SteamRegionCheck.yaml"
+  Xbox:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml"
+    interval: 86400
+    path: "./ruleset/Xbox.yaml"
+  YouTubeMusic:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml"
+    interval: 86400
+    path: "./ruleset/YouTubeMusic.yaml"
+  YouTube:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml"
+    interval: 86400
+    path: "./ruleset/YouTube.yaml"
+  Ponzi:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml"
+    interval: 86400
+    path: "./ruleset/Ponzi.yaml"
+  warninglist:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml"
+    interval: 86400
+    path: "./ruleset/warninglist.yaml"
+  google:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml"
+    interval: 86400
+    path: "./ruleset/google.yaml"
+  google-play:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml"
+    interval: 86400
+    path: "./ruleset/google-play.yaml"
+  xiaomi_block_list:
+    type: "http"
+    format: "yaml"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml"
+    interval: 86400
+    path: "./ruleset/xiaomi_block_list.yaml"
+  xiaomi_white_list:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml"
+    interval: 86400
+    path: "./ruleset/xiaomi_white_list.yaml"
+  cloudflare:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml"
+    interval: 86400
+    path: "./ruleset/cloudflare.yaml"
+  github:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml"
+    interval: 86400
+    path: "./ruleset/xgithub.yaml"
+  whatsapp:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml"
+    interval: 86400
+    path: "./ruleset/whatsapp.yaml"
+  LiteAds:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml"
+    interval: 86400
+    path: "./ruleset/LiteAds.yaml"
+  discord:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"
+    interval: 86400
+    path: "./ruleset/discord.yaml"
+  instagram:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml"
+    interval: 86400
+    path: "./ruleset/instagram.yaml"
+  category-ai:
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml"
+    interval: 86400
+    path: "./ruleset/category-ai.yaml"
+  stremio:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml"
+    interval: 86400
+    path: "./ruleset/stremio.yaml"
+  windows:
+    type: "http"
+    behavior: "classical"
+    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"
+    interval: 86400
+    path: "./ruleset/windows.yaml"
   Chotwitter:
-    type: http
-    format: yaml
-    behavior: ipcidr
+    type: "http"
+    format: "yaml"
+    behavior: "ipcidr"
     url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"
-    path: ./ruleset/Chotwitter.yaml
     interval: 86400
+    path: "./ruleset/Chotwitter.yaml"
   mihTwitter:
-    type: http
-    behavior: classical
+    type: "http"
+    behavior: "classical"
     url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"
-    path: ./ruleset/mihTwitter.yaml
     interval: 86400
+    path: "./ruleset/mihTwitter.yaml"
   Domtwitter:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml"
     interval: 86400
-    path: ./ruleset/Domtwitter.yaml
-  spotifyads:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify-ads.yaml
-    interval: 86400
-    path: ./ruleset/spotifyads.yaml
+    path: "./ruleset/Domtwitter.yaml"
   DomainSpotify:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml"
     interval: 86400
-    path: ./ruleset/DomainSpotify.yaml
+    path: "./ruleset/DomainSpotify.yaml"
   mihspotify:
-    type: http
-    behavior: domain
-    url: https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml
+    type: "http"
+    behavior: "domain"
+    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml"
     interval: 86400
-    path: ./ruleset/mihSpotify.yaml
+    path: "./ruleset/mihSpotify.yaml"
 
-# Proxy Groups
 proxy-groups:
   - name: نوع انتخاب پروکسی 🔀
     icon: https://www.svgrepo.com/show/412721/choose.svg
@@ -484,467 +517,166 @@ proxy-groups:
     type: select
     icon: https://www.svgrepo.com/show/372331/cursor-hand-click.svg
     proxies:
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
       - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
+      - استونی 🇪🇪
       - هلند 🇳🇱
-      - بلژیک 🇧🇪
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
       - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
       - فرانسه 🇫🇷
       - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
       - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
       - کانادا 🇨🇦
-      - آمریکا 🇺🇸
       - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
       - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
 
   - name: خودکار 🤖
     type: fallback
-    icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg
-    url: https://www.gstatic.com/generate_204
-    interval: 60
-    timeout: 30000
-    tolerance: 400
+    url: 'https://www.gstatic.com/generate_204'
+    interval: 300
     lazy: true
+    timeout: 5000
+    max-failed-times: 8
+    expected-status: 204
+    icon: https://www.svgrepo.com/show/415208/backup-cloud-document.svg
     proxies:
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
       - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
+      - استونی 🇪🇪
       - هلند 🇳🇱
-      - بلژیک 🇧🇪
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
       - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
       - فرانسه 🇫🇷
       - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
       - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
       - کانادا 🇨🇦
-      - آمریکا 🇺🇸
       - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
       - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
 
   # --- Country Specific Groups ---
-  - name: ارمنستان 🇦🇲
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/2/2f/Flag_of_Armenia.svg
-    proxies:
-      - خودکار ارمنستان
-    use:
-      - Armenia
-  - name: خودکار ارمنستان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Armenia
-
-  - name: ترکیه 🇹🇷
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/b/b4/Flag_of_Turkey.svg
-    proxies:
-      - خودکار ترکیه
-    use:
-      - Turkey
-  - name: خودکار ترکیه
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Turkey
-
-  - name: عراق 🇮🇶
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/f/f6/Flag_of_Iraq.svg
-    proxies:
-      - خودکار عراق
-    use:
-      - Iraq
-  - name: خودکار عراق
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Iraq
-
-  - name: بحرین 🇧🇭
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/2/2c/Flag_of_Bahrain.svg
-    proxies:
-      - خودکار بحرین
-    use:
-      - Bahrain
-  - name: خودکار بحرین
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Bahrain
-
-  - name: امارات 🇦🇪
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/c/cb/Flag_of_the_United_Arab_Emirates.svg
-    proxies:
-      - خودکار امارات
-    use:
-      - UAE
-  - name: خودکار امارات
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - UAE
-
-  - name: اردن 🇯🇴
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_Jordan.svg
-    proxies:
-      - خودکار اردن
-    use:
-      - Jordan
-  - name: خودکار اردن
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Jordan
-
-  - name: عمان 🇴🇲
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/dd/Flag_of_Oman.svg
-    proxies:
-      - خودکار عمان
-    use:
-      - Oman
-  - name: خودکار عمان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Oman
-
-  - name: ازبکستان 🇺🇿
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/8/84/Flag_of_Uzbekistan.svg
-    proxies:
-      - خودکار ازبکستان
-    use:
-      - Uzbekistan
-  - name: خودکار ازبکستان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Uzbekistan
-
-  - name: ایران 🇮🇷
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Civil_flag_of_Iran_%281964%E2%80%931980%29.svg/120px-Civil_flag_of_Iran_%281964%E2%80%931980%29.svg.png
-    proxies:
-      - خودکار ایران
-    use:
-      - Iran
-  - name: خودکار ایران
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Iran
-
-  - name: اسرائیل 🇮🇱
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Israel.svg
-    proxies:
-      - خودکار اسرائیل
-    use:
-      - Israel
-  - name: خودکار اسرائیل
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Israel
-
-  - name: قبرس 🇨🇾
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Cyprus.svg
-    proxies:
-      - خودکار قبرس
-    use:
-      - Cyprus
-  - name: خودکار قبرس
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Cyprus
-
-  - name: پاکستان 🇵🇰
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/3/32/Flag_of_Pakistan.svg
-    proxies:
-      - خودکار پاکستان
-    use:
-      - Pakistan
-  - name: خودکار پاکستان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Pakistan
-
-  - name: یونان 🇬🇷
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/5/5c/Flag_of_Greece.svg
-    proxies:
-      - خودکار یونان
-    use:
-      - Greece
-  - name: خودکار یونان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Greece
-
-  - name: بلغارستان 🇧🇬
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Bulgaria.svg
-    proxies:
-      - خودکار بلغارستان
-    use:
-      - Bulgaria
-  - name: خودکار بلغارستان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Bulgaria
-
-  - name: اوکراین 🇺🇦
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Ukraine.svg
-    proxies:
-      - خودکار اوکراین
-    use:
-      - Ukraine
-  - name: خودکار اوکراین
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Ukraine
-
-  - name: رومانی 🇷🇴
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/7/73/Flag_of_Romania.svg
-    proxies:
-      - خودکار رومانی
-    use:
-      - Romania
-  - name: خودکار رومانی
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Romania
-
-  - name: روسیه 🇷🇺
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/f/f3/Flag_of_Russia.svg
-    proxies:
-      - خودکار روسیه
-    use:
-      - Russia
-  - name: خودکار روسیه
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Russia
-
-  - name: صربستان 🇷🇸
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/f/ff/Flag_of_Serbia.svg
-    proxies:
-      - خودکار صربستان
-    use:
-      - Serbia
-  - name: خودکار صربستان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Serbia
-
-  - name: اتریش 🇦🇹
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/4/41/Flag_of_Austria.svg
-    proxies:
-      - خودکار اتریش
-    use:
-      - Austria
-  - name: خودکار اتریش
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Austria
-
-  - name: لهستان 🇵🇱
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/1/12/Flag_of_Poland.svg
-    proxies:
-      - خودکار لهستان
-    use:
-      - Poland
-  - name: خودکار لهستان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Poland
-
-  - name: لیتوانی 🇱🇹
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/1/11/Flag_of_Lithuania.svg
-    proxies:
-      - خودکار لیتوانی
-    use:
-      - Lithuania
-  - name: خودکار لیتوانی
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Lithuania
-
-  - name: فنلاند 🇫🇮
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Finland.svg
-    proxies:
-      - خودکار فنلاند
-    use:
-      - Finland
-  - name: خودکار فنلاند
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Finland
-
   - name: استونی 🇪🇪
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/8/8f/Flag_of_Estonia.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ee.svg
     proxies:
       - خودکار استونی
     use:
@@ -954,61 +686,16 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Estonia
 
-  - name: ایتالیا 🇮🇹
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg
-    proxies:
-      - خودکار ایتالیا
-    use:
-      - Italy
-  - name: خودکار ایتالیا
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Italy
-
-  - name: سوئد 🇸🇪
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/4/4c/Flag_of_Sweden.svg
-    proxies:
-      - خودکار سوئد
-    use:
-      - Sweden
-  - name: خودکار سوئد
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Sweden
-
-  - name: آلمان 🇩🇪
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg
-    proxies:
-      - خودکار آلمان
-    use:
-      - Germany
-  - name: خودکار آلمان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Germany
-
   - name: سوئیس 🇨🇭
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Switzerland.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ch.svg
     proxies:
       - خودکار سوئیس
     use:
@@ -1018,45 +705,16 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Switzerland
 
-  - name: دانمارک 🇩🇰
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/9/9c/Flag_of_Denmark.svg
-    proxies:
-      - خودکار دانمارک
-    use:
-      - Denmark
-  - name: خودکار دانمارک
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Denmark
-
-  - name: نروژ 🇳🇴
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Norway.svg
-    proxies:
-      - خودکار نروژ
-    use:
-      - Norway
-  - name: خودکار نروژ
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Norway
-
   - name: هلند 🇳🇱
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/2/20/Flag_of_the_Netherlands.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/nl.svg
     proxies:
       - خودکار هلند
     use:
@@ -1066,29 +724,92 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Netherlands
 
-  - name: بلژیک 🇧🇪
+  - name: نروژ 🇳🇴
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/6/65/Flag_of_Belgium.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/no.svg
     proxies:
-      - خودکار بلژیک
+      - خودکار نروژ
     use:
-      - Belgium
-  - name: خودکار بلژیک
+      - Norway
+  - name: خودکار نروژ
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - Belgium
+      - Norway
+
+  - name: دانمارک 🇩🇰
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/dk.svg
+    proxies:
+      - خودکار دانمارک
+    use:
+      - Denmark
+  - name: خودکار دانمارک
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Denmark
+
+  - name: فنلاند 🇫🇮
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/fi.svg
+    proxies:
+      - خودکار فنلاند
+    use:
+      - Finland
+  - name: خودکار فنلاند
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Finland
+
+  - name: نیوزیلند 🇳🇿
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/nz.svg
+    proxies:
+      - خودکار نیوزیلند
+    use:
+      - NewZealand
+  - name: خودکار نیوزیلند
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - NewZealand
 
   - name: لوکزامبورگ 🇱🇺
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/da/Flag_of_Luxembourg.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/lu.svg
     proxies:
       - خودکار لوکزامبورگ
     use:
@@ -1098,61 +819,301 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Luxembourg
 
-  - name: فرانسه 🇫🇷
+  - name: ایرلند 🇮🇪
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ie.svg
     proxies:
-      - خودکار فرانسه
+      - خودکار ایرلند
     use:
-      - France
-  - name: خودکار فرانسه
+      - Ireland
+  - name: خودکار ایرلند
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - France
+      - Ireland
 
-  - name: انگلیس 🇬🇧
+  - name: اتریش 🇦🇹
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/at.svg
     proxies:
-      - خودکار انگلیس
+      - خودکار اتریش
     use:
-      - UK
-  - name: خودکار انگلیس
+      - Austria
+  - name: خودکار اتریش
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - UK
+      - Austria
 
-  - name: اسپانیا 🇪🇸
+  - name: بلژیک 🇧🇪
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/9/9a/Flag_of_Spain.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/be.svg
     proxies:
-      - خودکار اسپانیا
+      - خودکار بلژیک
     use:
-      - Spain
-  - name: خودکار اسپانیا
+      - Belgium
+  - name: خودکار بلژیک
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - Spain
+      - Belgium
+
+  - name: لیتوانی 🇱🇹
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/lt.svg
+    proxies:
+      - خودکار لیتوانی
+    use:
+      - Lithuania
+  - name: خودکار لیتوانی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Lithuania
+
+  - name: لتونی 🇱🇻
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/lv.svg
+    proxies:
+      - خودکار لتونی
+    use:
+      - Latvia
+  - name: خودکار لتونی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Latvia
+
+  - name: ایران 🇮🇷
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ir.svg
+    proxies:
+      - خودکار ایران
+    use:
+      - Iran
+  - name: خودکار ایران
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Iran
+
+  - name: عراق 🇮🇶
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/iq.svg
+    proxies:
+      - خودکار عراق
+    use:
+      - Iraq
+  - name: خودکار عراق
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Iraq
+
+  - name: ارمنستان 🇦🇲
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/am.svg
+    proxies:
+      - خودکار ارمنستان
+    use:
+      - Armenia
+  - name: خودکار ارمنستان
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Armenia
+
+  - name: آذربایجان 🇦🇿
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/az.svg
+    proxies:
+      - خودکار آذربایجان
+    use:
+      - Azerbaijan
+  - name: خودکار آذربایجان
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Azerbaijan
+
+  - name: امارات 🇦🇪
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ae.svg
+    proxies:
+      - خودکار امارات
+    use:
+      - UAE
+  - name: خودکار امارات
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - UAE
+
+  - name: قطر 🇶🇦
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/qa.svg
+    proxies:
+      - خودکار قطر
+    use:
+      - Qatar
+  - name: خودکار قطر
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Qatar
+
+  - name: بحرین 🇧🇭
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/bh.svg
+    proxies:
+      - خودکار بحرین
+    use:
+      - Bahrain
+  - name: خودکار بحرین
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Bahrain
+
+  - name: قبرس 🇨🇾
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cy.svg
+    proxies:
+      - خودکار قبرس
+    use:
+      - Cyprus
+  - name: خودکار قبرس
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Cyprus
+
+  - name: قزاقستان 🇰🇿
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/kz.svg
+    proxies:
+      - خودکار قزاقستان
+    use:
+      - Kazakhstan
+  - name: خودکار قزاقستان
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Kazakhstan
+
+  - name: اسرائیل 🇮🇱
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/il.svg
+    proxies:
+      - خودکار اسرائیل
+    use:
+      - Israel
+  - name: خودکار اسرائیل
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Israel
 
   - name: چین 🇨🇳
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_the_People%27s_Republic_of_China.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg
     proxies:
       - خودکار چین
     use:
@@ -1162,109 +1123,73 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - China
 
-  - name: تایلند 🇹🇭
+  - name: آلمان 🇩🇪
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_Thailand.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/de.svg
     proxies:
-      - خودکار تایلند
+      - خودکار آلمان
     use:
-      - Thailand
-  - name: خودکار تایلند
+      - Germany
+  - name: خودکار آلمان
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - Thailand
+      - Germany
 
-  - name: هنگ کنگ 🇭🇰
+  - name: فرانسه 🇫🇷
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/5/5b/Flag_of_Hong_Kong.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/fr.svg
     proxies:
-      - خودکار هنگ کنگ
+      - خودکار فرانسه
     use:
-      - HongKong
-  - name: خودکار هنگ کنگ
+      - France
+  - name: خودکار فرانسه
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - HongKong
+      - France
 
-  - name: کره جنوبی 🇰🇷
+  - name: انگلیس 🇬🇧
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg
     proxies:
-      - خودکار کره جنوبی
+      - خودکار انگلیس
     use:
-      - SouthKorea
-  - name: خودکار کره جنوبی
+      - UnitedKingdom
+  - name: خودکار انگلیس
     type: url-test
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
-      - SouthKorea
-
-  - name: مالزی 🇲🇾
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/6/66/Flag_of_Malaysia.svg
-    proxies:
-      - خودکار مالزی
-    use:
-      - Malaysia
-  - name: خودکار مالزی
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Malaysia
-
-  - name: سنگاپور 🇸🇬
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/4/48/Flag_of_Singapore.svg
-    proxies:
-      - خودکار سنگاپور
-    use:
-      - Singapore
-  - name: خودکار سنگاپور
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Singapore
-
-  - name: تایوان 🇹🇼
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/7/72/Flag_of_the_Republic_of_China.svg
-    proxies:
-      - خودکار تایوان
-    use:
-      - Taiwan
-  - name: خودکار تایوان
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - Taiwan
+      - UnitedKingdom
 
   - name: ژاپن 🇯🇵
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/9/9e/Flag_of_Japan.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/jp.svg
     proxies:
       - خودکار ژاپن
     use:
@@ -1274,13 +1199,35 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Japan
 
+  - name: کره جنوبی 🇰🇷
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/kr.svg
+    proxies:
+      - خودکار کره جنوبی
+    use:
+      - SouthKorea
+  - name: خودکار کره جنوبی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - SouthKorea
+
   - name: کانادا 🇨🇦
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Canada_%28Pantone%29.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ca.svg
     proxies:
       - خودکار کانادا
     use:
@@ -1290,29 +1237,16 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Canada
 
-  - name: آمریکا 🇺🇸
-    type: select
-    icon: https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg
-    proxies:
-      - خودکار آمریکا
-    use:
-      - USA
-  - name: خودکار آمریکا
-    type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 600
-    lazy: true
-    hidden: true
-    use:
-      - USA
-
   - name: استرالیا 🇦🇺
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Flag_of_Australia.svg/960px-Flag_of_Australia.svg.png?20211007161007
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/au.svg
     proxies:
       - خودکار استرالیا
     use:
@@ -1322,13 +1256,168 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Australia
 
+  - name: هند 🇮🇳
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/in.svg
+    proxies:
+      - خودکار هند
+    use:
+      - India
+  - name: خودکار هند
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - India
+
+  - name: برزیل 🇧🇷
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/br.svg
+    proxies:
+      - خودکار برزیل
+    use:
+      - Brazil
+  - name: خودکار برزیل
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Brazil
+
+  - name: ایتالیا 🇮🇹
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/it.svg
+    proxies:
+      - خودکار ایتالیا
+    use:
+      - Italy
+  - name: خودکار ایتالیا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Italy
+
+  - name: اسپانیا 🇪🇸
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/es.svg
+    proxies:
+      - خودکار اسپانیا
+    use:
+      - Spain
+  - name: خودکار اسپانیا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Spain
+
+  - name: لهستان 🇵🇱
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/pl.svg
+    proxies:
+      - خودکار لهستان
+    use:
+      - Poland
+  - name: خودکار لهستان
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Poland
+
+  - name: آمریکا 🇺🇸
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/refs/heads/main/flags/1x1/us.svg
+    proxies:
+      - خودکار آمریکا
+    use:
+      - US
+  - name: خودکار آمریکا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - US
+
+  - name: آلبانی 🇦🇱
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/al.svg
+    proxies:
+      - خودکار آلبانی
+    use:
+      - Albania
+  - name: خودکار آلبانی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Albania
+
+  - name: قطب جنوب 🇦🇶
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/aq.svg
+    proxies:
+      - خودکار قطب جنوب
+    use:
+      - Antarctica
+  - name: خودکار قطب جنوب
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Antarctica
+
   - name: آرژانتین 🇦🇷
     type: select
-    icon: https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_Argentina.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ar.svg
     proxies:
       - خودکار آرژانتین
     use:
@@ -1338,1357 +1427,2115 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 600
     lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
     hidden: true
     use:
       - Argentina
 
-  - name: دانلود منیجر 📥 
-    type: select 
-    icon: https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: تلگرام 💬 
-    type: select 
-    icon: https://www.svgrepo.com/show/354443/telegram.svg 
-    proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: یوتیوب ▶️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/475700/youtube-color.svg 
-    proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: گوگل 🌍 
-    type: select 
-    icon: https://www.svgrepo.com/show/475656/google-color.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: واتس آپ 🟢 
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: هوش مصنوعی 🤖 
-    type: select 
-    icon: https://www.svgrepo.com/show/306500/openai.svg 
-    proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - انگلیس 🇬🇧
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: توییتر 🐦
+  - name: بوسنی 🇧🇦
     type: select
-    icon: https://www.svgrepo.com/show/475689/twitter-color.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ba.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - سوئد 🇸🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-      - اسپانیا 🇪🇸
-      - آلمان 🇩🇪
-      - ایتالیا 🇮🇹
-      - آمریکا 🇺🇸
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-  - name: اسپاتیفای 🎵
+      - خودکار بوسنی
+    use:
+      - Bosnia
+  - name: خودکار بوسنی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Bosnia
+
+  - name: بنگلادش 🇧🇩
     type: select
-    icon: https://www.svgrepo.com/show/475684/spotify-color.svg
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/bd.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: اینستاگرام 📸 
-    type: select 
-    icon: https://www.svgrepo.com/show/452229/instagram-1.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: تبلیغات 🆎 
-    type: select 
-    icon: https://www.svgrepo.com/show/336358/ad.svg 
+      - خودکار بنگلادش
+    use:
+      - Bangladesh
+  - name: خودکار بنگلادش
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Bangladesh
+
+  - name: بلغارستان 🇧🇬
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/bg.svg
     proxies:
-      - اجازه ندادن 🚫
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: تبلیغات اپ ها 🍃 
-    type: select 
-    icon: https://www.svgrepo.com/show/12172/smartphone-ad.svg 
+      - خودکار بلغارستان
+    use:
+      - Bulgaria
+  - name: خودکار بلغارستان
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Bulgaria
+
+  - name: بولیوی 🇧🇴
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/bo.svg
     proxies:
-      - اجازه ندادن 🚫
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: رهگیری جهانی 🛑 
-    type: select 
-    icon: https://www.svgrepo.com/show/298725/tracking-track.svg 
+      - خودکار بولیوی
+    use:
+      - Bolivia
+  - name: خودکار بولیوی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Bolivia
+
+  - name: بلاروس 🇧🇾
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/by.svg
     proxies:
-      - اجازه ندادن 🚫
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: سایتای مخرب ⚠️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg 
+      - خودکار بلاروس
+    use:
+      - Belarus
+  - name: خودکار بلاروس
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Belarus
+
+  - name: بلیز 🇧🇿
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/bz.svg
     proxies:
-      - اجازه ندادن 🚫
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: استیم 🖥️ 
-    type: select 
-    icon: https://www.svgrepo.com/show/452107/steam.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: گیم 🎮 
-    type: select 
-    icon: https://www.svgrepo.com/show/167729/game-controller.svg 
+      - خودکار بلیز
+    use:
+      - Belize
+  - name: خودکار بلیز
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Belize
+
+  - name: شیلی 🇨🇱
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cl.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: توییچ 📡 
-    type: select 
-    icon: https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg 
+      - خودکار شیلی
+    use:
+      - Chile
+  - name: خودکار شیلی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Chile
+
+  - name: کلمبیا 🇨🇴
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/co.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: سایتای ایرانی 🇮🇷 
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: ویندوز 🧊 
-    type: select 
-    icon: https://icon.icepanel.io/Technology/svg/Windows-11.svg 
+      - خودکار کلمبیا
+    use:
+      - Colombia
+  - name: خودکار کلمبیا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Colombia
+
+  - name: جمهوری چک 🇨🇿
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: کلودفلر ☁️ 
-    type: select 
-    icon: https://icon.icepanel.io/Technology/svg/Cloudflare.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: گیتهاب 🐙 
-    type: select 
-    icon: https://www.svgrepo.com/show/355033/github.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: دیسکورد 🗣️ 
-    type: select 
-    icon: https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg 
-    proxies: 
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: انی‌دسک 🔴
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/6/60/AnyDesk-logo.svg 
-    proxies: 
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: استریمیو 🎬 
-    type: select 
-    icon: https://stremio.github.io/stremio-addon-guide/img/stremio.svg 
+      - خودکار جمهوری چک
+    use:
+      - CzechRepublic
+  - name: خودکار جمهوری چک
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - CzechRepublic
+
+  - name: اکوادور 🇪🇨
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ec.svg
     proxies:
-      - نوع انتخاب پروکسی 🔀
-      - بدون فیلترشکن 🛡️
-      - اجازه ندادن 🚫
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
-  - name: سایتای سانسوری 🤬 
-    type: select 
-    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png 
+      - خودکار اکوادور
+    use:
+      - Ecuador
+  - name: خودکار اکوادور
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Ecuador
+
+  - name: گواتمالا 🇬🇹
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gt.svg
     proxies:
-      - اجازه ندادن 🚫
-      - بدون فیلترشکن 🛡️
-      - نوع انتخاب پروکسی 🔀
-      - خودکار 🤖
-      - دستی 🤏🏻
-      - ارمنستان 🇦🇲
-      - ترکیه 🇹🇷
-      - عراق 🇮🇶
-      - بحرین 🇧🇭
-      - امارات 🇦🇪
-      - اردن 🇯🇴
-      - عمان 🇴🇲
-      - ازبکستان 🇺🇿
-      - ایران 🇮🇷
-      - اسرائیل 🇮🇱
-      - قبرس 🇨🇾
-      - پاکستان 🇵🇰
-      - یونان 🇬🇷
-      - بلغارستان 🇧🇬
-      - اوکراین 🇺🇦
-      - رومانی 🇷🇴
-      - روسیه 🇷🇺
-      - صربستان 🇷🇸
-      - اتریش 🇦🇹
-      - لهستان 🇵🇱
-      - لیتوانی 🇱🇹
-      - فنلاند 🇫🇮
-      - استونی 🇪🇪
-      - ایتالیا 🇮🇹
-      - سوئد 🇸🇪
-      - آلمان 🇩🇪
-      - سوئیس 🇨🇭
-      - دانمارک 🇩🇰
-      - نروژ 🇳🇴
-      - هلند 🇳🇱
-      - بلژیک 🇧🇪
-      - لوکزامبورگ 🇱🇺
-      - فرانسه 🇫🇷
-      - انگلیس 🇬🇧
-      - اسپانیا 🇪🇸
-      - چین 🇨🇳
-      - تایلند 🇹🇭
-      - هنگ کنگ 🇭🇰
-      - کره جنوبی 🇰🇷
-      - مالزی 🇲🇾
-      - سنگاپور 🇸🇬
-      - تایوان 🇹🇼
-      - ژاپن 🇯🇵
-      - کانادا 🇨🇦
-      - آمریکا 🇺🇸
-      - استرالیا 🇦🇺
-      - آرژانتین 🇦🇷
+      - خودکار گواتمالا
+    use:
+      - Guatemala
+  - name: خودکار گواتمالا
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Guatemala
+
+  - name: هنگ کنگ 🇭🇰
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/hk.svg
+    proxies:
+      - خودکار هنگ کنگ
+    use:
+      - HongKong
+  - name: خودکار هنگ کنگ
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - HongKong
+
+  - name: کرواسی 🇭🇷
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/hr.svg
+    proxies:
+      - خودکار کرواسی
+    use:
+      - Croatia
+  - name: خودکار کرواسی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Croatia
+
+  - name: مجارستان 🇭🇺
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/hu.svg
+    proxies:
+      - خودکار مجارستان
+    use:
+      - Hungary
+  - name: خودکار مجارستان
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Hungary
+
+  - name: اندونزی 🇮🇩
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/id.svg
+    proxies:
+      - خودکار اندونزی
+    use:
+      - Indonesia
+  - name: خودکار اندونزی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Indonesia
+
+  - name: جزیره من 🇮🇲
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/im.svg
+    proxies:
+      - خودکار جزیره من
+    use:
+      - IsleOfMan
+  - name: خودکار جزیره من
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - IsleOfMan
+
+  - name: کامبوج 🇰🇭
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/kh.svg
+    proxies:
+      - خودکار کامبوج
+    use:
+      - Cambodia
+  - name: خودکار کامبوج
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Cambodia
+
+  - name: مراکش 🇲🇦
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ma.svg
+    proxies:
+      - خودکار مراکش
+    use:
+      - Morocco
+  - name: خودکار مراکش
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Morocco
+
+  - name: مولداوی 🇲🇩
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/md.svg
+    proxies:
+      - خودکار مولداوی
+    use:
+      - Moldova
+  - name: خودکار مولداوی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Moldova
+
+  - name: مقدونیه 🇲🇰
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/mk.svg
+    proxies:
+      - خودکار مقدونیه
+    use:
+      - NorthMacedonia
+  - name: خودکار مقدونیه
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - NorthMacedonia
+
+  - name: ماکائو 🇲🇴
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/mo.svg
+    proxies:
+      - خودکار ماکائو
+    use:
+      - Macau
+  - name: خودکار ماکائو
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Macau
+
+  - name: مالت 🇲🇹
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/mt.svg
+    proxies:
+      - خودکار مالت
+    use:
+      - Malta
+  - name: خودکار مالت
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Malta
+
+  - name: مکزیک 🇲🇽
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/mx.svg
+    proxies:
+      - خودکار مکزیک
+    use:
+      - Mexico
+  - name: خودکار مکزیک
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Mexico
+
+  - name: مالزی 🇲🇾
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/my.svg
+    proxies:
+      - خودکار مالزی
+    use:
+      - Malaysia
+  - name: خودکار مالزی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Malaysia
+
+  - name: نیجریه 🇳🇬
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ng.svg
+    proxies:
+      - خودکار نیجریه
+    use:
+      - Nigeria
+  - name: خودکار نیجریه
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Nigeria
+
+  - name: پاناما 🇵🇦
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/pa.svg
+    proxies:
+      - خودکار پاناما
+    use:
+      - Panama
+  - name: خودکار پاناما
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Panama
+
+  - name: پرو 🇵🇪
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/pe.svg
+    proxies:
+      - خودکار پرو
+    use:
+      - Peru
+  - name: خودکار پرو
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Peru
+
+  - name: فیلیپین 🇵🇭
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ph.svg
+    proxies:
+      - خودکار فیلیپین
+    use:
+      - Philippines
+  - name: خودکار فیلیپین
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Philippines
+
+  - name: پورتوریکو 🇵🇷
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/pr.svg
+    proxies:
+      - خودکار پورتوریکو
+    use:
+      - PuertoRico
+  - name: خودکار پورتوریکو
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - PuertoRico
+
+  - name: پرتغال 🇵🇹
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/pt.svg
+    proxies:
+      - خودکار پرتغال
+    use:
+      - Portugal
+  - name: خودکار پرتغال
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Portugal
+
+  - name: پاراگوئه 🇵🇾
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/py.svg
+    proxies:
+      - خودکار پاراگوئه
+    use:
+      - Paraguay
+  - name: خودکار پاراگوئه
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Paraguay
+
+  - name: رومانی 🇷🇴
+    type: select
+    icon: https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/ro.svg
+    proxies:
+      - خودکار رومانی
+    use:
+      - Romania
+  - name: خودکار رومانی
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: true
+    timeout: 3000
+    max-failed-times: 3
+    expected-status: 204
+    hidden: true
+    use:
+      - Romania
 
 
-  # --- Utility Groups ---
+  - name: "المنت 💬"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/353655/matrix-icon.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+
+  - name: "تیماسپیک 🎧"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/331567/teamspeak.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+
+  - name: "دلتاچت ✉️"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/373771/mail.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+
+  - name: "دانلود منیجر 📥"
+    type: "select"
+    icon: "https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "تلگرام 💬"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/354443/telegram.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "یوتیوب ▶️"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/475700/youtube-color.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "گوگل 🌍"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/475656/google-color.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "واتس آپ 🟢"
+    type: "select"
+    icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "هوش مصنوعی 🤖"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/306500/openai.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "توییتر 🐦"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/475689/twitter-color.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "اسپاتیفای 🎵"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/475684/spotify-color.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "اینستاگرام 📸"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/452229/instagram-1.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "تبلیغات 🆎"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/336358/ad.svg"
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+
+  - name: "تبلیغات اپ ها 🍃"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/12172/smartphone-ad.svg"
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+
+  - name: "رهگیری جهانی 🛑"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/298725/tracking-track.svg"
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+
+  - name: "سایتای مخرب ⚠️"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg"
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "بدون فیلترشکن 🛡️"
+
+  - name: "استیم 🖥️"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/452107/steam.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "گیم 🎮"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/167729/game-controller.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "توییچ 📡"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "سایتای ایرانی 🇮🇷"
+    type: "select"
+    icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+
+  - name: "ویندوز 🧊"
+    type: "select"
+    icon: "https://icon.icepanel.io/Technology/svg/Windows-11.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "اجازه ندادن 🚫"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "کلودفلر ☁️"
+    type: "select"
+    icon: "https://icon.icepanel.io/Technology/svg/Cloudflare.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "گیتهاب 🐙"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/355033/github.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "دیسکورد 🗣️"
+    type: "select"
+    icon: "https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "استریمیو 🎬"
+    type: "select"
+    icon: "https://stremio.github.io/stremio-addon-guide/img/stremio.svg"
+    proxies:
+      - "نوع انتخاب پروکسی 🔀"
+      - "بدون فیلترشکن 🛡️"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+      - سوئیس 🇨🇭
+      - استونی 🇪🇪
+      - هلند 🇳🇱
+      - نروژ 🇳🇴
+      - دانمارک 🇩🇰
+      - فنلاند 🇫🇮
+      - نیوزیلند 🇳🇿
+      - لوکزامبورگ 🇱🇺
+      - ایرلند 🇮🇪
+      - اتریش 🇦🇹
+      - بلژیک 🇧🇪
+      - لیتوانی 🇱🇹
+      - لتونی 🇱🇻
+      - عراق 🇮🇶
+      - ارمنستان 🇦🇲
+      - آذربایجان 🇦🇿
+      - امارات 🇦🇪
+      - قطر 🇶🇦
+      - بحرین 🇧🇭
+      - قبرس 🇨🇾
+      - قزاقستان 🇰🇿
+      - اسرائیل 🇮🇱
+      - ایران 🇮🇷
+      - آلمان 🇩🇪
+      - فرانسه 🇫🇷
+      - انگلیس 🇬🇧
+      - ژاپن 🇯🇵
+      - کره جنوبی 🇰🇷
+      - کانادا 🇨🇦
+      - استرالیا 🇦🇺
+      - هند 🇮🇳
+      - برزیل 🇧🇷
+      - ایتالیا 🇮🇹
+      - اسپانیا 🇪🇸
+      - لهستان 🇵🇱
+      - آلبانی 🇦🇱
+      - آمریکا 🇺🇸
+      - قطب جنوب 🇦🇶
+      - آرژانتین 🇦🇷
+      - بوسنی 🇧🇦
+      - بنگلادش 🇧🇩
+      - بلغارستان 🇧🇬
+      - بولیوی 🇧🇴
+      - بلاروس 🇧🇾
+      - بلیز 🇧🇿
+      - شیلی 🇨🇱
+      - کلمبیا 🇨🇴
+      - جمهوری چک 🇨🇿
+      - اکوادور 🇪🇨
+      - گواتمالا 🇬🇹
+      - هنگ کنگ 🇭🇰
+      - کرواسی 🇭🇷
+      - مجارستان 🇭🇺
+      - اندونزی 🇮🇩
+      - چین 🇨🇳
+      - جزیره من 🇮🇲
+      - کامبوج 🇰🇭
+      - مراکش 🇲🇦
+      - مولداوی 🇲🇩
+      - مقدونیه 🇲🇰
+      - ماکائو 🇲🇴
+      - مالت 🇲🇹
+      - مکزیک 🇲🇽
+      - مالزی 🇲🇾
+      - نیجریه 🇳🇬
+      - پاناما 🇵🇦
+      - پرو 🇵🇪
+      - فیلیپین 🇵🇭
+      - پورتوریکو 🇵🇷
+      - پرتغال 🇵🇹
+      - پاراگوئه 🇵🇾
+      - رومانی 🇷🇴
+
+  - name: "انیدسک 🔴"
+    type: "select"
+    icon: "https://www.svgrepo.com/show/331289/anydesk.svg"
+    proxies:
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+      - "اجازه ندادن 🚫"
+  - name: "سایتای سانسوری 🤬"
+    type: "select"
+    icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png"
+    proxies:
+      - "اجازه ندادن 🚫"
+      - "بدون فیلترشکن 🛡️"
+      - "نوع انتخاب پروکسی 🔀"
+      - "خودکار 🤖"
+      - "دستی 🤏🏻"
+
   - name: بدون فیلترشکن 🛡️
     type: select
     icon: https://www.svgrepo.com/show/6318/connection.svg
@@ -2708,512 +3555,473 @@ proxy-groups:
       - REJECT
     hidden: true
 
-# Proxy Providers
 proxy-providers:
-  Armenia:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fam%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Armenia.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Turkey:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Ftr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Turkey.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Iraq:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fiq%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Iraq.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Bahrain:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbh%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Bahrain.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  UAE:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fae%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./UAE.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Jordan:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fjo%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Jordan.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Oman:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fom%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Oman.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Uzbekistan:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fuz%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Uzbekistan.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Iran:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fir%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Iran.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Israel:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fil%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Israel.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Cyprus:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fcy%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Cyprus.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Pakistan:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fpk%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Pakistan.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Greece:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fgr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Greece.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Bulgaria:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbg%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Bulgaria.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Ukraine:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fua%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Ukraine.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Romania:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fro%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Romania.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Russia:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fru%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Russia.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Serbia:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Frs%2Fmixed&target=clash&config=https-A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini"
-    interval: 3600
-    path: "./Serbia.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Austria:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fat%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Austria.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Poland:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fpl%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Poland.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Lithuania:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Flt%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Lithuania.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Finland:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Ffi%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Finland.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
   Estonia:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fee%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/EE.yaml"
+    interval: 1440
     path: "./Estonia.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Italy:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fit%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Italy.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Sweden:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fse%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&list=true&udp=true&tfo=true&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Sweden.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Germany:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fde%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Germany.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
   Switzerland:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fch%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CH.yaml"
+    interval: 1440
     path: "./Switzerland.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Denmark:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fdk%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Denmark.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Norway:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fno%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Norway.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
   Netherlands:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fnl%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NL.yaml"
+    interval: 1440
     path: "./Netherlands.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Belgium:
+  Norway:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fbe%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Belgium.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NO.yaml"
+    interval: 1440
+    path: "./Norway.yaml"
+  Denmark:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/DK.yaml"
+    interval: 1440
+    path: "./Denmark.yaml"
+  Finland:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/FI.yaml"
+    interval: 1440
+    path: "./Finland.yaml"
+  NewZealand:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NZ.yaml"
+    interval: 1440
+    path: "./NewZealand.yaml"
   Luxembourg:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Flu%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LU.yaml"
+    interval: 1440
     path: "./Luxembourg.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  France:
+  Ireland:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Ffr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./France.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  UK:
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IE.yaml"
+    interval: 1440
+    path: "./Ireland.yaml"
+  Austria:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fgb%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./UK.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Spain:
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AT.yaml"
+    interval: 1440
+    path: "./Austria.yaml"
+  Belgium:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fes%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Spain.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BE.yaml"
+    interval: 1440
+    path: "./Belgium.yaml"
+  Lithuania:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LT.yaml"
+    interval: 1440
+    path: "./Lithuania.yaml"
+  Latvia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LV.yaml"
+    interval: 1440
+    path: "./Latvia.yaml"
+  Iran:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IR.yaml"
+    interval: 1440
+    path: "./Iran.yaml"
+  Iraq:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IQ.yaml"
+    interval: 1440
+    path: "./Iraq.yaml"
+  Armenia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AM.yaml"
+    interval: 1440
+    path: "./Armenia.yaml"
+  Azerbaijan:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AZ.yaml"
+    interval: 1440
+    path: "./Azerbaijan.yaml"
+  UAE:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AE.yaml"
+    interval: 1440
+    path: "./UAE.yaml"
+  Qatar:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/QA.yaml"
+    interval: 1440
+    path: "./Qatar.yaml"
+  Bahrain:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BH.yaml"
+    interval: 1440
+    path: "./Bahrain.yaml"
+  Cyprus:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CY.yaml"
+    interval: 1440
+    path: "./Cyprus.yaml"
+  Campuchia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/KH.yaml"
+    interval: 1440
+    path: "./Cambodia.yaml"
+  Kazakhstan:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/KZ.yaml"
+    interval: 1440
+    path: "./Kazakhstan.yaml"
+  Israel:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IL.yaml"
+    interval: 1440
+    path: "./Israel.yaml"
   China:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fcn%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CN.yaml"
+    interval: 1440
     path: "./China.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Thailand:
+  Germany:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fth%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Thailand.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  HongKong:
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/DE.yaml"
+    interval: 1440
+    path: "./Germany.yaml"
+  France:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fhk%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./HongKong.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  SouthKorea:
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/FR.yaml"
+    interval: 1440
+    path: "./France.yaml"
+  UnitedKingdom:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fkr%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./SouthKorea.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Malaysia:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fmy%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Malaysia.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Singapore:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fsg%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Singapore.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  Taiwan:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Ftw%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./Taiwan.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/GB.yaml"
+    interval: 1440
+    path: "./UnitedKingdom.yaml"
   Japan:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fjp%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/JP.yaml"
+    interval: 1440
     path: "./Japan.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
+  SouthKorea:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/KR.yaml"
+    interval: 1440
+    path: "./SouthKorea.yaml"
   Canada:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fca%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CA.yaml"
+    interval: 1440
     path: "./Canada.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
-  USA:
-    type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fus%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
-    path: "./USA.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
   Australia:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Fau%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AU.yaml"
+    interval: 1440
     path: "./Australia.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
+  India:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IN.yaml"
+    interval: 1440
+    path: "./India.yaml"
+  Brazil:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BR.yaml"
+    interval: 1440
+    path: "./Brazil.yaml"
+  Italy:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IT.yaml"
+    interval: 1440
+    path: "./Italy.yaml"
+  Spain:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/ES.yaml"
+    interval: 1440
+    path: "./Spain.yaml"
+  Poland:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PL.yaml"
+    interval: 1440
+    path: "./Poland.yaml"
+  Albania:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AL.yaml"
+    interval: 1440
+    path: "./Albania.yaml"
+  Antarctica:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AQ.yaml"
+    interval: 1440
+    path: "./Antarctica.yaml"
   Argentina:
     type: http
-    url: "https://sub.xeton.dev/sub?url=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Ftelegram-configs-collector%2Fmain%2Fcountries%2Far%2Fmixed&target=clash&config=https%3A%2F%2Fraw.githubusercontent.com%2F10ium%2Fclash_rules%2Frefs%2Fheads%2Fmain%2FACL4SSR%2Fvpnclashfa.ini&exclude=%28%3Fm%29%5E.*%5Cb%28%3F%3ALATEST-UPDATE%7CDEVELOPED-BY%29%5Cb.*%5Cr%3F%5Cn%3F&list=true&udp=true&tfo=false&expand=false&scv=false&fdn=true&new_name=false&insert=false&xudp=true&tls13=false&sort=true&append_type=false&f_un=true&list=true&emoji=true"
-    interval: 3600
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AR.yaml"
+    interval: 1440
     path: "./Argentina.yaml"
-    health-check:
-      enable: true
-      interval: 3600
-      url: "https://www.gstatic.com/generate_204"
+  Bosnia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BA.yaml"
+    interval: 1440
+    path: "./Bosnia.yaml"
+  Bangladesh:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BD.yaml"
+    interval: 1440
+    path: "./Bangladesh.yaml"
+  Bulgaria:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BG.yaml"
+    interval: 1440
+    path: "./Bulgaria.yaml"
+  Bolivia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BO.yaml"
+    interval: 1440
+    path: "./Bolivia.yaml"
+  Belarus:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BY.yaml"
+    interval: 1440
+    path: "./Belarus.yaml"
+  Belize:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BZ.yaml"
+    interval: 1440
+    path: "./Belize.yaml"
+  Chile:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CL.yaml"
+    interval: 1440
+    path: "./Chile.yaml"
+  Colombia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CO.yaml"
+    interval: 1440
+    path: "./Colombia.yaml"
+  CzechRepublic:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CZ.yaml"
+    interval: 1440
+    path: "./CzechRepublic.yaml"
+  Ecuador:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/EC.yaml"
+    interval: 1440
+    path: "./Ecuador.yaml"
+  Guatemala:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/GT.yaml"
+    interval: 1440
+    path: "./Guatemala.yaml"
+  HongKong:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/HK.yaml"
+    interval: 1440
+    path: "./HongKong.yaml"
+  Croatia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/HR.yaml"
+    interval: 1440
+    path: "./Croatia.yaml"
+  Hungary:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/HU.yaml"
+    interval: 1440
+    path: "./Hungary.yaml"
+  Indonesia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/ID.yaml"
+    interval: 1440
+    path: "./Indonesia.yaml"
+  IsleOfMan:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/IM.yaml"
+    interval: 1440
+    path: "./IsleOfMan.yaml"
+  Cambodia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/KH.yaml"
+    interval: 1440
+    path: "./Cambodia.yaml"
+  Morocco:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MA.yaml"
+    interval: 1440
+    path: "./Morocco.yaml"
+  Moldova:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MD.yaml"
+    interval: 1440
+    path: "./Moldova.yaml"
+  NorthMacedonia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MK.yaml"
+    interval: 1440
+    path: "./NorthMacedonia.yaml"
+  Macau:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MO.yaml"
+    interval: 1440
+    path: "./Macau.yaml"
+  Malta:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MT.yaml"
+    interval: 1440
+    path: "./Malta.yaml"
+  Mexico:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MX.yaml"
+    interval: 1440
+    path: "./Mexico.yaml"
+  Malaysia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/MY.yaml"
+    interval: 1440
+    path: "./Malaysia.yaml"
+  Nigeria:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NG.yaml"
+    interval: 1440
+    path: "./Nigeria.yaml"
+  Panama:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PA.yaml"
+    interval: 1440
+    path: "./Panama.yaml"
+  Peru:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PE.yaml"
+    interval: 1440
+    path: "./Peru.yaml"
+  Philippines:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PH.yaml"
+    interval: 1440
+    path: "./Philippines.yaml"
+  PuertoRico:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PR.yaml"
+    interval: 1440
+    path: "./PuertoRico.yaml"
+  Portugal:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PT.yaml"
+    interval: 1440
+    path: "./Portugal.yaml"
+  Paraguay:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/PY.yaml"
+    interval: 1440
+    path: "./Paraguay.yaml"
+  Romania:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/RO.yaml"
+    interval: 1440
+    path: "./Romania.yaml"
+  US:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/US.yaml"
+    interval: 1440
+    path: "./US.yaml"
 
-rules: 
-  - RULE-SET,DownloadManagers,دانلود منیجر 📥 
-  - RULE-SET,Download,دانلود منیجر 📥 
-  - RULE-SET,stremio,استریمیو 🎬
-  - RULE-SET,spotifyads,تبلیغات اپ ها 🍃
-  - RULE-SET,BanProgramAD,تبلیغات اپ ها 🍃 
-  - RULE-SET,BanAD,رهگیری جهانی 🛑 
-  - RULE-SET,PrivateTracker,رهگیری جهانی 🛑 
-  - RULE-SET,category_public_tracker,رهگیری جهانی 🛑 
-  - RULE-SET,malware,سایتای مخرب ⚠️ 
-  - RULE-SET,phishing,سایتای مخرب ⚠️ 
-  - RULE-SET,cryptominers,سایتای مخرب ⚠️ 
-  - RULE-SET,warninglist,سایتای مخرب ⚠️ 
-  - RULE-SET,Ponzi,سایتای مخرب ⚠️ 
-  - RULE-SET,LiteAds,تبلیغات 🆎 
-  - RULE-SET,iran_ads,تبلیغات 🆎 
-  - RULE-SET,PersianBlocker,تبلیغات 🆎 
-  - RULE-SET,ads,تبلیغات 🆎 
-  - RULE-SET,BanEasyList,تبلیغات 🆎 
-  - RULE-SET,twitch,توییچ 📡 
-  - PROCESS-NAME,Telegram.exe,تلگرام 💬 
-  - PROCESS-NAME,org.telegram.messenger,تلگرام 💬 
-  - PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬 
-  - RULE-SET,telegram,تلگرام 💬 
-  - PROCESS-NAME,com.anydesk.anydeskandroid,انی‌دسک 🔴
-  - PROCESS-NAME,AnyDesk.exe,انی‌دسک 🔴
-  - DOMAIN-SUFFIX,anydesk.com,انی‌دسک 🔴
-  - RULE-SET,YouTubeMusic,یوتیوب ▶️
-  - RULE-SET,YouTube,یوتیوب ▶️
-  - RULE-SET,youtube,یوتیوب ▶️
-  - PROCESS-NAME,Twitter.exe,توییتر 🐦
-  - PROCESS-NAME,com.twitter.android,توییتر 🐦
-  - RULE-SET,Chotwitter,توییتر 🐦
-  - RULE-SET,mihTwitter,توییتر 🐦
-  - RULE-SET,Domtwitter,توییتر 🐦
-  - PROCESS-NAME,com.spotify.music,اسپاتیفای 🎵
-  - PROCESS-NAME,Spotify.exe,اسپاتیفای 🎵
-  - RULE-SET,DomainSpotify,اسپاتیفای 🎵
-  - RULE-SET,mihspotify,اسپاتیفای 🎵
-  - PROCESS-NAME,com.instagram.android,اینستاگرام 📸 
-  - RULE-SET,instagram,اینستاگرام 📸 
-  - DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖 
-  - DOMAIN-SUFFIX,qwen.ai,هوش مصنوعی 🤖 
-  - RULE-SET,category-ai,هوش مصنوعی 🤖 
-  - RULE-SET,censor,سایتای سانسوری 🤬 
-  - RULE-SET,apps,سایتای ایرانی 🇮🇷 
-  - RULE-SET,iran,سایتای ایرانی 🇮🇷 
-  - RULE-SET,arvancloud,سایتای ایرانی 🇮🇷 
-  - RULE-SET,derakcloud,سایتای ایرانی 🇮🇷 
-  - RULE-SET,iranserver,سایتای ایرانی 🇮🇷 
-  - RULE-SET,parspack,سایتای ایرانی 🇮🇷 
-  - RULE-SET,irasn,سایتای ایرانی 🇮🇷 
-  - RULE-SET,ircidr,سایتای ایرانی 🇮🇷 
-  - RULE-SET,ir,سایتای ایرانی 🇮🇷 
-  - RULE-SET,category_ir,سایتای ایرانی 🇮🇷 
-  - RULE-SET,whatsapp,واتس آپ 🟢 
-  - RULE-SET,steam,استیم 🖥️ 
-  - RULE-SET,SteamRegionCheck,استیم 🖥️ 
-  - RULE-SET,game,گیم 🎮 
-  - RULE-SET,GameDownload,گیم 🎮 
-  - RULE-SET,category-games,گیم 🎮 
-  - RULE-SET,Xbox,گیم 🎮 
-  - RULE-SET,discord,دیسکورد 🗣️ 
-  - RULE-SET,xiaomi_white_list,نوع انتخاب پروکسی 🔀 
-  - RULE-SET,xiaomi-ads,تبلیغات اپ ها 🍃 
-  - RULE-SET,xiaomi_block_list,تبلیغات اپ ها 🍃 
-  - RULE-SET,windows,ویندوز 🧊 
-  - RULE-SET,cloudflare,کلودفلر ☁️ 
-  - RULE-SET,github,گیتهاب 🐙 
-  - PROCESS-NAME,com.android.vending,نوع انتخاب پروکسی 🔀 
-  - PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀 
-  - RULE-SET,google-play,نوع انتخاب پروکسی 🔀 
-  - RULE-SET,google,گوگل 🌍
-  - IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀 
-  - RULE-SET,local_ips,بدون فیلترشکن 🛡️ 
-  - RULE-SET,private,بدون فیلترشکن 🛡️ 
-  - MATCH,نوع انتخاب پروکسی 🔀 
+rules:
+  - "RULE-SET,DownloadManagers,دانلود منیجر 📥"
+  - "RULE-SET,Download,دانلود منیجر 📥"
+  - "RULE-SET,stremio,استریمیو 🎬"
+  - "PROCESS-NAME,im.vector.app,المنت 💬"
+  - "PROCESS-NAME,io.element.android.x,المنت 💬"
+  - "PROCESS-NAME,Element.exe,المنت 💬"
+  - "DOMAIN-SUFFIX,aklispro.sbs,المنت 💬"
+  - "DOMAIN-SUFFIX,chat.aklispro.sbs,المنت 💬"
+  - "DOMAIN-SUFFIX,site.aklispro.sbs,المنت 💬"
+  - "DOMAIN-SUFFIX,electonet.xyz,المنت 💬"
+  - "DOMAIN-SUFFIX,chat.electonet.xyz,المنت 💬"
+  - "DOMAIN-SUFFIX,rainbuwu.ir,المنت 💬"
+  - "DOMAIN-SUFFIX,cinny.rainbuwu.ir,المنت 💬"
+  - "PROCESS-NAME,chat.delta,دلتاچت ✉️"
+  - "PROCESS-NAME,DeltaChat.exe,دلتاچت ✉️"
+  - "DOMAIN-SUFFIX,arsalandalvand.ir,دلتاچت ✉️"
+  - "DST-PORT,993,دلتاچت ✉️"
+  - "DST-PORT,465,دلتاچت ✉️"
+  - "DST-PORT,587,دلتاچت ✉️"
+  - "PROCESS-NAME,com.teamspeak.ts3client,تیماسپیک 🎧"
+  - "PROCESS-NAME,ts3client_win64.exe,تیماسپیک 🎧"
+  - "PROCESS-NAME,ts3client_win32.exe,تیماسپیک 🎧"
+  - "DOMAIN-SUFFIX,ag.tssq.ir,تیماسپیک 🎧"
+  - "DST-PORT,9987,تیماسپیک 🎧"
+  - "RULE-SET,BanProgramAD,تبلیغات اپ ها 🍃"
+  - "RULE-SET,BanAD,رهگیری جهانی 🛑"
+  - "RULE-SET,PrivateTracker,رهگیری جهانی 🛑"
+  - "RULE-SET,category_public_tracker,رهگیری جهانی 🛑"
+  - "RULE-SET,malware,سایتای مخرب ⚠️"
+  - "RULE-SET,phishing,سایتای مخرب ⚠️"
+  - "RULE-SET,cryptominers,سایتای مخرب ⚠️"
+  - "RULE-SET,warninglist,سایتای مخرب ⚠️"
+  - "RULE-SET,Ponzi,سایتای مخرب ⚠️"
+  - "RULE-SET,LiteAds,تبلیغات 🆎"
+  - "RULE-SET,iran_ads,تبلیغات 🆎"
+  - "RULE-SET,PersianBlocker,تبلیغات 🆎"
+  - "RULE-SET,ads,تبلیغات 🆎"
+  - "RULE-SET,BanEasyList,تبلیغات 🆎"
+  - "RULE-SET,twitch,توییچ 📡"
+  - "PROCESS-NAME,Telegram.exe,تلگرام 💬"
+  - "PROCESS-NAME,org.telegram.messenger,تلگرام 💬"
+  - "PROCESS-NAME,org.telegram.messenger.web,تلگرام 💬"
+  - "RULE-SET,telegram,تلگرام 💬"
+  - "RULE-SET,YouTube,یوتیوب ▶️"
+  - "RULE-SET,youtube,یوتیوب ▶️"
+  - "RULE-SET,YouTubeMusic,یوتیوب ▶️"
+  - "PROCESS-NAME,com.anydesk.anydeskandroid,انیدسک 🔴"
+  - "PROCESS-NAME,AnyDesk.exe,انیدسک 🔴"
+  - "DOMAIN-SUFFIX,anydesk.com,انیدسک 🔴"
+  - "PROCESS-NAME,Twitter.exe,توییتر 🐦"
+  - "PROCESS-NAME,com.twitter.android,توییتر 🐦"
+  - "RULE-SET,Chotwitter,توییتر 🐦"
+  - "RULE-SET,mihTwitter,توییتر 🐦"
+  - "RULE-SET,Domtwitter,توییتر 🐦"
+  - "PROCESS-NAME,com.spotify.music,اسپاتیفای 🎵"
+  - "PROCESS-NAME,Spotify.exe,اسپاتیفای 🎵"
+  - "RULE-SET,DomainSpotify,اسپاتیفای 🎵"
+  - "RULE-SET,mihspotify,اسپاتیفای 🎵"
+  - "PROCESS-NAME,com.instagram.android,اینستاگرام 📸"
+  - "RULE-SET,instagram,اینستاگرام 📸"
+  - "DOMAIN-SUFFIX,deepseek.com,هوش مصنوعی 🤖"
+  - "DOMAIN-SUFFIX,qwen.ai,هوش مصنوعی 🤖"
+  - "RULE-SET,category-ai,هوش مصنوعی 🤖"
+  - "RULE-SET,censor,سایتای سانسوری 🤬"
+  - "RULE-SET,apps,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,iran,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,arvancloud,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,derakcloud,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,iranserver,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,parspack,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,irasn,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,ircidr,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,ir,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,category_ir,سایتای ایرانی 🇮🇷"
+  - "DOMAIN-SUFFIX,unimics.com,سایتای ایرانی 🇮🇷"
+  - "RULE-SET,whatsapp,واتس آپ 🟢"
+  - "RULE-SET,steam,استیم 🖥️"
+  - "RULE-SET,SteamRegionCheck,استیم 🖥️"
+  - "RULE-SET,game,گیم 🎮"
+  - "RULE-SET,GameDownload,گیم 🎮"
+  - "RULE-SET,category-games,گیم 🎮"
+  - "RULE-SET,Xbox,گیم 🎮"
+  - "RULE-SET,discord,دیسکورد 🗣️"
+  - "RULE-SET,xiaomi_white_list,نوع انتخاب پروکسی 🔀"
+  - "RULE-SET,xiaomi_block_list,تبلیغات اپ ها 🍃"
+  - "RULE-SET,windows,ویندوز 🧊"
+  - "RULE-SET,cloudflare,کلودفلر ☁️"
+  - "RULE-SET,github,گیتهاب 🐙"
+  - "PROCESS-NAME,com.android.vending,نوع انتخاب پروکسی 🔀"
+  - "PROCESS-NAME,com.google.android.gms,نوع انتخاب پروکسی 🔀"
+  - "RULE-SET,google-play,نوع انتخاب پروکسی 🔀"
+  - "RULE-SET,google,گوگل 🌍"
+  - "IP-CIDR,10.10.34.0/24,نوع انتخاب پروکسی 🔀"
+  - "RULE-SET,local_ips,بدون فیلترشکن 🛡️"
+  - "RULE-SET,private,بدون فیلترشکن 🛡️"
+  - "MATCH,نوع انتخاب پروکسی 🔀"
 
-ntp: 
-  enable: true 
-  server: "time.apple.com" 
-  port: 123 
+ntp:
+  enable: true
+  server: "time.apple.com"
+  port: 123
   interval: 30

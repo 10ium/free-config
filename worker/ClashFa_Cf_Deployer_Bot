@@ -71,7 +71,7 @@ const PRESETS = [
   },
   {
     id: "mihomo_converter",
-    name: "great mihomo converter 🛠️",
+    name: "Great Mihomo Converter 🛠️",
     url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
     isLegacy: false,
     kvBindings: [],
@@ -91,7 +91,7 @@ const PRESETS = [
   },
   {
     id: "iran_proxy",
-    name: "iran proxy 🛡️",
+    name: "Iran Proxy 🛡️",
     url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
     isLegacy: false,
     kvBindings: [],

@@ -1248,7 +1248,7 @@ proxy-groups:
       - بلژیک 🇧🇪
       - لیتوانی 🇱🇹
 
-  - name: "انیدسک 🔴"
+  - name: "انی دسک 🔴"
     type: "select"
     icon: "https://www.svgrepo.com/show/331289/anydesk.svg"
     proxies:
@@ -1406,9 +1406,9 @@ rules:
   - "RULE-SET,YouTube,یوتیوب ▶️"
   - "RULE-SET,youtube,یوتیوب ▶️"
   - "RULE-SET,YouTubeMusic,یوتیوب ▶️"
-  - "PROCESS-NAME,com.anydesk.anydeskandroid,انیدسک 🔴"
-  - "PROCESS-NAME,AnyDesk.exe,انیدسک 🔴"
-  - "DOMAIN-SUFFIX,anydesk.com,انیدسک 🔴"
+  - "PROCESS-NAME,com.anydesk.anydeskandroid,انی دسک 🔴"
+  - "PROCESS-NAME,AnyDesk.exe,انی دسک 🔴"
+  - "DOMAIN-SUFFIX,anydesk.com,انی دسک 🔴"
   - "PROCESS-NAME,Twitter.exe,توییتر 🐦"
   - "PROCESS-NAME,com.twitter.android,توییتر 🐦"
   - "RULE-SET,Chotwitter,توییتر 🐦"

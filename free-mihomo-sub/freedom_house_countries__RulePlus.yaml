@@ -1267,6 +1267,79 @@ proxy-groups:
       - REJECT
     hidden: true
 
+proxy-providers:
+  Switzerland:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CH.yaml"
+    interval: 1440
+    path: "./Switzerland.yaml"
+
+  Estonia:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/EE.yaml"
+    interval: 1440
+    path: "./Estonia.yaml"
+
+  Finland:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/FI.yaml"
+    interval: 1440
+    path: "./Finland.yaml"
+
+  Norway:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NO.yaml"
+    interval: 1440
+    path: "./Norway.yaml"
+
+  Netherlands:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NL.yaml"
+    interval: 1440
+    path: "./Netherlands.yaml"
+
+  Luxembourg:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LU.yaml"
+    interval: 1440
+    path: "./Luxembourg.yaml"
+
+  NewZealand:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/NZ.yaml"
+    interval: 1440
+    path: "./NewZealand.yaml"
+
+  Denmark:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/DK.yaml"
+    interval: 1440
+    path: "./Denmark.yaml"
+
+  Canada:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/CA.yaml"
+    interval: 1440
+    path: "./Canada.yaml"
+
+  Austria:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/AT.yaml"
+    interval: 1440
+    path: "./Austria.yaml"
+
+  Belgium:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/BE.yaml"
+    interval: 1440
+    path: "./Belgium.yaml"
+
+  Lithuania:
+    type: http
+    url: "https://raw.githubusercontent.com/10Dream/sub-mod/main/sub/clash/split/countries/LT.yaml"
+    interval: 1440
+    path: "./Lithuania.yaml"
+
 rules:
   - "RULE-SET,DownloadManagers,دانلود منیجر 📥"
   - "RULE-SET,Download,دانلود منیجر 📥"

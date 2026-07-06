@@ -1,0 +1,234 @@
+[
+  {
+    "id": "bpb",
+    "name": "BPB Worker 🛰️",
+    "url": "https://github.com/bia-pain-bache/BPB-Worker-Panel/releases/latest/download/worker.js",
+    "pathSuffix": "/panel",
+    "kvBindings": ["kv"],
+    "vars": [
+      { "name": "UUID", "required": true, "autoGenType": "uuid" },
+      { "name": "TR_PASS", "required": true, "autoGenType": "trojan_pass" },
+      { "name": "SUB_PATH", "required": true, "autoGenType": "uri_path" },
+      { "name": "PROXY_IP", "required": false, "autoGenType": "static", "defaultValue": "bpb.yousef.isegaro.com" },
+      { "name": "PREFIX", "required": false, "autoGenType": "empty", "defaultValue": "" },
+      { "name": "FALLBACK", "required": false, "autoGenType": "static", "defaultValue": "speed.cloudflare.com" }
+    ],
+    "description": "پنل همه‌کاره و قدرتمند VLESS/Trojan بر روی وب‌سایت کلادفلر ورکرز.",
+    "category": "config"
+  },
+  {
+    "id": "irnova",
+    "name": "IRNova (Nova-Proxy) 🛡️",
+    "url": "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",
+    "pathSuffix": "",
+    "kvBindings": ["KV"],
+    "vars": [
+      { "name": "D1_ID_DB", "required": true, "autoGenType": "d1_auto" }
+    ],
+    "description": "پروکسی قدرتمند نوا مبتنی بر دیتابیس D1 (با نام DB) و دیتابیس KV (با نام KV).",
+    "category": "config"
+  },
+  {
+    "id": "nahan",
+    "name": "Nahan Project (itsyebekhe) 🛡️",
+    "url": "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
+    "pathSuffix": "/sync/dash",
+    "kvBindings": [],
+    "vars": [
+      { "name": "D1_ID_IOT_DB", "required": true, "autoGenType": "d1_auto" }
+    ],
+    "description": "پروژه نهان (Nahan) - توزیع ترافیک و پروکسی معکوس بدون سرور مبتنی بر دیتابیس D1.",
+    "category": "config"
+  },
+  {
+    "id": "edgetunnel",
+    "name": "EdgeTunnel (cmliu) 🚀",
+    "url": "https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js",
+    "pathSuffix": "/admin",
+    "kvBindings": ["KV"],
+    "vars": [
+      { "name": "ADMIN", "required": true, "autoGenType": "alphanumeric" },
+      { "name": "KEY", "required": true, "autoGenType": "alphanumeric" },
+      { "name": "UUID", "required": true, "autoGenType": "uuid" },
+      { "name": "PROXYIP", "required": false, "autoGenType": "static", "defaultValue": "bpb.yousef.isegaro.com" }
+    ],
+    "description": "تونل عبور ترافیک پیشرفته edgetunnel مبتنی بر پروتکل‌های VLESS/Trojan/Shadowsocks.",
+    "category": "config"
+  },
+  {
+    "id": "clashfa_mirror",
+    "name": "ClashFa Mirror Pro ⚡",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.txt",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "ابزاری همه کاره برای میرور کردن لینک ها.",
+    "category": "clashfa"
+  },
+  {
+    "id": "mihomo_converter",
+    "name": "Great Mihomo Converter 🛠️",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "مبدل فوق‌العاده لینک‌های اشتراک همراه با رابط کاربری وب اختصاصی (Mihomo/Clash).",
+    "category": "clashfa"
+  },
+  {
+    "id": "tg_proxy_assistant",
+    "name": "TG Proxy Assistant 🤖",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/TG-Proxy_Assistant",
+    "pathSuffix": "",
+    "kvBindings": ["PROXY_KV"],
+    "vars": [
+      { "name": "BOT_TOKEN", "required": true, "autoGenType": "manual" },
+      { "name": "ADMIN_PASSWORD", "required": true, "autoGenType": "alphanumeric" }
+    ],
+    "description": "ربات دستیار و کنترل‌کننده پروکسی‌ و کانفیگ.",
+    "category": "clashfa"
+  },
+  {
+    "id": "iran_proxy",
+    "name": "Iran Proxy 🛡️",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "ابزاری برای جمع آوری پروکسی های ساکس آیپی ایران.",
+    "category": "clashfa"
+  },
+  {
+    "id": "iptv_player",
+    "name": "IPTV Player 📺",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند بر روی ورکرز کلادفلر.",
+    "category": "clashfa"
+  },
+  {
+    "id": "doh_4n0nymou3",
+    "name": "Cloudflare DoH Proxy (4n0nymou3) 🌐",
+    "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پروکسی ایمن و سبک DNS over HTTPS (DoH) بر روی کلادفلر ورکرز.",
+    "category": "dns"
+  },
+  {
+    "id": "doh_thegreatazizi",
+    "name": "Secure DoH (TheGreatAzizi) 🔒",
+    "url": "https://raw.githubusercontent.com/TheGreatAzizi/Secure-DNS-over-HTTPS-Cloudflare-Worker/main/Worker.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پروکسی دی‌ان‌اس اختصاصی با امنیت پیشرفته و تاخیر کم.",
+    "category": "dns"
+  },
+  {
+    "id": "doh_code3_dev",
+    "name": "DoH Proxy (code3-dev) ⚡",
+    "url": "https://raw.githubusercontent.com/code3-dev/doh-proxy-worker/master/workers.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پروکسی ساده و فوق‌العاده سریع DNS-over-HTTPS.",
+    "category": "dns"
+  },
+  {
+    "id": "doh_seramo",
+    "name": "DoH Proxy (seramo) 🌐",
+    "url": "https://raw.githubusercontent.com/seramo/doh-proxy-worker/main/worker.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
+    "category": "dns"
+  },
+  {
+    "id": "cf_proxy_eooce",
+    "name": "Cloudflare Proxy (eooce) 🚀",
+    "url": "https://raw.githubusercontent.com/eooce/Cloudflare-proxy/main/_worker.js",
+    "pathSuffix": "/?ed=2560",
+    "kvBindings": [],
+    "vars": [
+      { "name": "PASSWORD", "required": true, "autoGenType": "alphanumeric" },
+      { "name": "UUID", "required": false, "autoGenType": "uuid", "defaultValue": "5dc15e15-f285-4a9d-959b-0e4fbdd77b63" },
+      { "name": "PROXYIP", "required": false, "autoGenType": "static", "defaultValue": "13.230.34.30" },
+      { "name": "SUB_PATH", "required": false, "autoGenType": "uri_path", "defaultValue": "link" },
+      { "name": "DISABLE_TROJAN", "required": false, "autoGenType": "static", "defaultValue": "false" }
+    ],
+    "description": "پروکسی چندپروتکله با کارایی بالا بر روی Cloudflare Workers و Snippets به همراه کنترل دسترسی رمزگذاری‌شده.",
+    "category": "config"
+  },
+  {
+    "id": "foxcloud",
+    "name": "FoxCloud (code3-dev) 🦊",
+    "url": "https://raw.githubusercontent.com/code3-dev/foxcloud/master/worker.js",
+    "pathSuffix": "/sub",
+    "kvBindings": [],
+    "vars": [
+      { "name": "UUID", "required": true, "autoGenType": "uuid" },
+      { "name": "PROXY_IP", "required": false, "autoGenType": "static", "defaultValue": "" }
+    ],
+    "description": "پروکسی پیشرفته VLESS طراحی شده با ساختار عاری از نقص TypeScript برای لبه با مانیتورینگ خودکار کلاینت.",
+    "category": "config"
+  },
+  {
+    "id": "emotional_damage",
+    "name": "Emotional Damage (NiREvil) 🛡️",
+    "url": "https://raw.githubusercontent.com/NiREvil/Emotional-Damage/main/_worker.js",
+    "pathSuffix": "/sub",
+    "kvBindings": [],
+    "vars": [
+      { "name": "UUID", "required": true, "autoGenType": "uuid" },
+      { "name": "PROXYIP", "required": false, "autoGenType": "static", "defaultValue": "" },
+      { "name": "SOCKS5", "required": false, "autoGenType": "static", "defaultValue": "" },
+      { "name": "SOCKS5_RELAY", "required": false, "autoGenType": "static", "defaultValue": "false" }
+    ],
+    "description": "انشعاب بهینه‌سازی شده و مقاوم EDtunnel با پشتیبانی از قابلیت زنجیره‌سازی پروکسی‌های SOCKS5.",
+    "category": "config"
+  },
+  {
+    "id": "cf_vless_trojan_yongge",
+    "name": "CF VLESS & Trojan (yonggekkk) 👑",
+    "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [
+      { "name": "UUID", "required": true, "autoGenType": "uuid" },
+      { "name": "pswd", "required": true, "autoGenType": "trojan_pass", "defaultValue": "trojan" },
+      { "name": "proxyip", "required": false, "autoGenType": "static", "defaultValue": "" }
+    ],
+    "description": "پایدارترین اسکریپت چندپروتکله با قابلیت پردازش مستقل و بومی اطلاعات اتصال کلاینت.",
+    "category": "config"
+  },
+  {
+    "id": "cf_xray_proxy",
+    "name": "CF Xray Proxy (PdYrust) ⚡",
+    "url": "https://raw.githubusercontent.com/PdYrust/cf-xray-proxy/main/src/index.ts",
+    "pathSuffix": "/health",
+    "kvBindings": [],
+    "vars": [
+      { "name": "TRANSPORT", "required": false, "autoGenType": "static", "defaultValue": "xhttp" },
+      { "name": "BACKEND_URL", "required": true, "autoGenType": "static" },
+      { "name": "DEBUG", "required": false, "autoGenType": "static", "defaultValue": "false" },
+      { "name": "HIDE_BACKEND_URLS", "required": false, "autoGenType": "static", "defaultValue": "true" }
+    ],
+    "description": "پروکسی معکوس لبه کلادفلر جهت هدایت اتصالات به سمت پس‌زمینه‌های Xray با پشتیبانی از xhttp و httpupgrade.",
+    "category": "config"
+  },
+  {
+    "id": "zeus_panel",
+    "name": "Zeus Panel (IR-NETLIFY) ⚡",
+    "url": "https://raw.githubusercontent.com/IR-NETLIFY/zeus/main/zeus.js",
+    "pathSuffix": "",
+    "kvBindings": ["KV"],
+    "vars": [],
+    "description": "پنل مدیریتی برای استقرار خودکار بر بستر ورکرز به همراه سیستم کنترل و ربات تلگرام مانیتورینگ ترافیک.",
+    "category": "config"
+  }
+]

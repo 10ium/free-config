@@ -1,51 +1,5 @@
 [
   {
-    "id": "bpb",
-    "name": "BPB Worker 🛰️",
-    "url": "https://github.com/bia-pain-bache/BPB-Worker-Panel/releases/latest/download/worker.js",
-    "pathSuffix": "/panel",
-    "kvBindings": [
-      "kv"
-    ],
-    "vars": [
-      {
-        "name": "UUID",
-        "required": true,
-        "autoGenType": "uuid"
-      },
-      {
-        "name": "TR_PASS",
-        "required": true,
-        "autoGenType": "trojan_pass"
-      },
-      {
-        "name": "SUB_PATH",
-        "required": true,
-        "autoGenType": "uri_path"
-      },
-      {
-        "name": "PROXY_IP",
-        "required": false,
-        "autoGenType": "static",
-        "defaultValue": "bpb.yousef.isegaro.com"
-      },
-      {
-        "name": "PREFIX",
-        "required": false,
-        "autoGenType": "empty",
-        "defaultValue": ""
-      },
-      {
-        "name": "FALLBACK",
-        "required": false,
-        "autoGenType": "static",
-        "defaultValue": "speed.cloudflare.com"
-      }
-    ],
-    "description": "پنل همه‌کاره و قدرتمند VLESS/Trojan بر روی وب‌سایت کلادفلر ورکرز با قابلیت مدیریت اشتراک‌ها.",
-    "category": "config"
-  },
-  {
     "id": "irnova",
     "name": "IRNova (Nova-Proxy) 🛡️",
     "url": "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",

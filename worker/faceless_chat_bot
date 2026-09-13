@@ -1,0 +1,1447 @@
+// src/db.ts
+var Database = class {
+  constructor(db) {
+    this.db = db;
+  }
+  /**
+   * دریافت اطلاعات کاربر با استفاده از هش شناسه
+   */
+  async getUserByHash(hash) {
+    return await this.db.prepare("SELECT * FROM users WHERE user_id_hash = ?").bind(hash).first();
+  }
+  /**
+   * دریافت اطلاعات کاربر با استفاده از توکن لینک اختصاصی
+   */
+  async getUserByLinkToken(token) {
+    return await this.db.prepare("SELECT * FROM users WHERE link_token = ?").bind(token).first();
+  }
+  /**
+   * ایجاد کاربر جدید به همراه فیلترهای رسانه پیش‌فرض
+   */
+  async createUser(hash, encryptedId, nickname, linkToken, deliveryMode = "direct") {
+    await this.db.prepare(
+      `INSERT INTO users (user_id_hash, encrypted_tg_id, nickname, link_token, delivery_mode)
+         VALUES (?, ?, ?, ?, ?)`
+    ).bind(hash, encryptedId, nickname, linkToken, deliveryMode).run();
+    await this.db.prepare(
+      `INSERT OR IGNORE INTO media_filters (user_id_hash)
+         VALUES (?)`
+    ).bind(hash).run();
+    return await this.getUserByHash(hash);
+  }
+  /**
+   * تغییر لقب کاربر
+   */
+  async updateNickname(hash, newNickname) {
+    await this.db.prepare("UPDATE users SET nickname = ?, last_active = CURRENT_TIMESTAMP WHERE user_id_hash = ?").bind(newNickname, hash).run();
+  }
+  /**
+   * تغییر و بازتولید توکن لینک اختصاصی (لینک قبلی باطل می‌شود)
+   */
+  async regenerateLinkToken(hash, newToken) {
+    await this.db.prepare("UPDATE users SET link_token = ?, is_link_active = 1 WHERE user_id_hash = ?").bind(newToken, hash).run();
+  }
+  /**
+   * تغییر وضعیت فعال بودن لینک اختصاصی
+   */
+  async toggleLinkActive(hash, active) {
+    await this.db.prepare("UPDATE users SET is_link_active = ? WHERE user_id_hash = ?").bind(active ? 1 : 0, hash).run();
+  }
+  /**
+   * تغییر وضعیت حالت استراحت (Vacation Mode)
+   */
+  async toggleVacation(hash) {
+    const user = await this.getUserByHash(hash);
+    if (!user)
+      return false;
+    const nextState = user.is_vacation === 1 ? 0 : 1;
+    await this.db.prepare("UPDATE users SET is_vacation = ? WHERE user_id_hash = ?").bind(nextState, hash).run();
+    return nextState === 1;
+  }
+  /**
+   * تغییر حالت تحویل پیام (مستقیم یا پیش‌نمایش با تایید خوانده شدن)
+   */
+  async setDeliveryMode(hash, mode) {
+    await this.db.prepare("UPDATE users SET delivery_mode = ? WHERE user_id_hash = ?").bind(mode, hash).run();
+  }
+  /**
+   * تعیین محدودیت پیام در دقیقه اختصاصی برای کاربر (0 = خاموش)
+   */
+  async setPersonalRateLimit(hash, limit) {
+    await this.db.prepare("UPDATE users SET personal_rate_limit = ? WHERE user_id_hash = ?").bind(limit, hash).run();
+  }
+  /**
+   * بن یا آنبن سراسری کاربر توسط ادمین
+   */
+  async setGlobalBan(hash, banned) {
+    await this.db.prepare("UPDATE users SET is_banned = ? WHERE user_id_hash = ?").bind(banned ? 1 : 0, hash).run();
+  }
+  // ----------------- فیلترهای رسانه -----------------
+  async getMediaFilters(hash) {
+    const row = await this.db.prepare("SELECT * FROM media_filters WHERE user_id_hash = ?").bind(hash).first();
+    if (!row) {
+      await this.db.prepare("INSERT OR IGNORE INTO media_filters (user_id_hash) VALUES (?)").bind(hash).run();
+      return {
+        user_id_hash: hash,
+        allow_photo: 1,
+        allow_video: 1,
+        allow_voice: 1,
+        allow_video_note: 1,
+        allow_audio: 1,
+        allow_document: 1,
+        allow_sticker: 1,
+        allow_web_preview: 1
+      };
+    }
+    return row;
+  }
+  async toggleMediaFilter(hash, field) {
+    const filters = await this.getMediaFilters(hash);
+    const currentValue = filters[field];
+    const newValue = currentValue === 1 ? 0 : 1;
+    await this.db.prepare(`UPDATE media_filters SET ${String(field)} = ? WHERE user_id_hash = ?`).bind(newValue, hash).run();
+    return newValue === 1;
+  }
+  // ----------------- مسدودسازی (بلاک) -----------------
+  async isBlocked(blockerHash, blockedHash) {
+    const row = await this.db.prepare("SELECT 1 FROM blocks WHERE blocker_hash = ? AND blocked_hash = ?").bind(blockerHash, blockedHash).first();
+    return !!row;
+  }
+  async addBlock(blockerHash, blockedHash) {
+    await this.db.prepare("INSERT OR IGNORE INTO blocks (blocker_hash, blocked_hash) VALUES (?, ?)").bind(blockerHash, blockedHash).run();
+  }
+  async removeBlock(blockerHash, blockedHash) {
+    await this.db.prepare("DELETE FROM blocks WHERE blocker_hash = ? AND blocked_hash = ?").bind(blockerHash, blockedHash).run();
+  }
+  // ----------------- یادداشت‌های خصوصی و نام‌گذاری ادمین -----------------
+  async getNote(ownerHash, targetHash) {
+    return await this.db.prepare("SELECT * FROM user_notes WHERE owner_hash = ? AND target_hash = ?").bind(ownerHash, targetHash).first();
+  }
+  async saveNote(ownerHash, targetHash, noteText) {
+    await this.db.prepare(
+      `INSERT INTO user_notes (owner_hash, target_hash, note_text, updated_at)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(owner_hash, target_hash) DO UPDATE SET note_text = excluded.note_text, updated_at = CURRENT_TIMESTAMP`
+    ).bind(ownerHash, targetHash, noteText).run();
+  }
+  async saveAdminAlias(ownerHash, targetHash, alias) {
+    await this.db.prepare(
+      `INSERT INTO user_notes (owner_hash, target_hash, admin_alias, updated_at)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(owner_hash, target_hash) DO UPDATE SET admin_alias = excluded.admin_alias, updated_at = CURRENT_TIMESTAMP`
+    ).bind(ownerHash, targetHash, alias).run();
+  }
+  // ----------------- تاریخچه مکالمات -----------------
+  async recordConversation(u1, u2) {
+    const [first, second] = u1 < u2 ? [u1, u2] : [u2, u1];
+    await this.db.prepare(
+      `INSERT INTO conversations (user1_hash, user2_hash, last_message_at, is_active_for_user1, is_active_for_user2)
+         VALUES (?, ?, CURRENT_TIMESTAMP, 1, 1)
+         ON CONFLICT(user1_hash, user2_hash) DO UPDATE SET last_message_at = CURRENT_TIMESTAMP, is_active_for_user1 = 1, is_active_for_user2 = 1`
+    ).bind(first, second).run();
+  }
+  async getContactsForUser(userHash) {
+    const rows = await this.db.prepare(
+      `SELECT user1_hash, user2_hash FROM conversations
+         WHERE (user1_hash = ? AND is_active_for_user1 = 1)
+            OR (user2_hash = ? AND is_active_for_user2 = 1)
+         ORDER BY last_message_at DESC LIMIT 30`
+    ).bind(userHash, userHash).all();
+    return (rows.results || []).map((r) => r.user1_hash === userHash ? r.user2_hash : r.user1_hash);
+  }
+  async deleteContact(userHash, targetHash) {
+    const [first, second] = userHash < targetHash ? [userHash, targetHash] : [targetHash, userHash];
+    if (userHash === first) {
+      await this.db.prepare("UPDATE conversations SET is_active_for_user1 = 0 WHERE user1_hash = ? AND user2_hash = ?").bind(first, second).run();
+    } else {
+      await this.db.prepare("UPDATE conversations SET is_active_for_user2 = 0 WHERE user1_hash = ? AND user2_hash = ?").bind(first, second).run();
+    }
+  }
+  async clearAllContacts(userHash) {
+    await this.db.prepare("UPDATE conversations SET is_active_for_user1 = 0 WHERE user1_hash = ?").bind(userHash).run();
+    await this.db.prepare("UPDATE conversations SET is_active_for_user2 = 0 WHERE user2_hash = ?").bind(userHash).run();
+  }
+  // ----------------- نگاشت پیام‌ها جهت ویرایش، حذف و ری‌اکشن -----------------
+  async saveMessageMapping(srcChatHash, srcMsgId, destChatHash, destMsgId) {
+    await this.db.prepare(
+      `INSERT INTO message_mappings (src_chat_hash, src_msg_id, dest_chat_hash, dest_msg_id)
+         VALUES (?, ?, ?, ?)`
+    ).bind(srcChatHash, srcMsgId, destChatHash, destMsgId).run();
+  }
+  async getMappingBySource(srcChatHash, srcMsgId) {
+    return await this.db.prepare(
+      "SELECT dest_chat_hash, dest_msg_id FROM message_mappings WHERE src_chat_hash = ? AND src_msg_id = ?"
+    ).bind(srcChatHash, srcMsgId).first();
+  }
+  async getMappingByDest(destChatHash, destMsgId) {
+    return await this.db.prepare(
+      "SELECT src_chat_hash, src_msg_id FROM message_mappings WHERE dest_chat_hash = ? AND dest_msg_id = ?"
+    ).bind(destChatHash, destMsgId).first();
+  }
+  async deleteMappingBySource(srcChatHash, srcMsgId) {
+    const mapping = await this.getMappingBySource(srcChatHash, srcMsgId);
+    if (mapping) {
+      await this.db.prepare("DELETE FROM message_mappings WHERE src_chat_hash = ? AND src_msg_id = ?").bind(srcChatHash, srcMsgId).run();
+    }
+    return mapping;
+  }
+  // ----------------- گروه‌های متصل‌شده کاربران و تاپیک‌های فروم -----------------
+  async connectUserGroup(userHash, groupId) {
+    await this.db.prepare(
+      `INSERT INTO user_groups (user_hash, group_id, is_active)
+         VALUES (?, ?, 1)
+         ON CONFLICT(user_hash) DO UPDATE SET group_id = excluded.group_id, is_active = 1`
+    ).bind(userHash, groupId).run();
+  }
+  async getUserConnectedGroup(userHash) {
+    return await this.db.prepare("SELECT group_id, is_active FROM user_groups WHERE user_hash = ?").bind(userHash).first();
+  }
+  async disconnectUserGroup(userHash) {
+    await this.db.prepare("UPDATE user_groups SET is_active = 0 WHERE user_hash = ?").bind(userHash).run();
+  }
+  async getForumTopic(recipientHash, senderHash, groupId) {
+    const row = await this.db.prepare(
+      "SELECT topic_id FROM forum_topics WHERE recipient_hash = ? AND sender_hash = ? AND group_id = ?"
+    ).bind(recipientHash, senderHash, groupId).first();
+    return row ? row.topic_id : null;
+  }
+  async saveForumTopic(recipientHash, senderHash, topicId, groupId) {
+    await this.db.prepare(
+      `INSERT INTO forum_topics (recipient_hash, sender_hash, topic_id, group_id)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(recipient_hash, sender_hash, group_id) DO UPDATE SET topic_id = excluded.topic_id`
+    ).bind(recipientHash, senderHash, topicId, groupId).run();
+  }
+  async getTopicMapping(groupId, topicId) {
+    return await this.db.prepare(
+      "SELECT recipient_hash, sender_hash FROM forum_topics WHERE group_id = ? AND topic_id = ?"
+    ).bind(groupId, topicId).first();
+  }
+  // ----------------- صف پیام‌های حالت استراحت -----------------
+  async queueMessage(recipientHash, senderHash, fromChatId, messageId) {
+    await this.db.prepare(
+      `INSERT INTO message_queue (recipient_hash, sender_hash, from_chat_id, message_id)
+         VALUES (?, ?, ?, ?)`
+    ).bind(recipientHash, senderHash, fromChatId, messageId).run();
+  }
+  async getAndClearQueuedMessages(recipientHash) {
+    const rows = await this.db.prepare("SELECT * FROM message_queue WHERE recipient_hash = ? ORDER BY id ASC").bind(recipientHash).all();
+    if (rows.results && rows.results.length > 0) {
+      await this.db.prepare("DELETE FROM message_queue WHERE recipient_hash = ?").bind(recipientHash).run();
+    }
+    return rows.results || [];
+  }
+  // ----------------- تنظیمات سراسری سیستم -----------------
+  async getSetting(key, defaultVal = "") {
+    const row = await this.db.prepare("SELECT value FROM system_settings WHERE key = ?").bind(key).first();
+    return row ? row.value : defaultVal;
+  }
+  async setSetting(key, value) {
+    await this.db.prepare(
+      `INSERT INTO system_settings (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    ).bind(key, value).run();
+  }
+  // ----------------- سپر ضد اسپم و ریت لیمیت -----------------
+  async checkRateLimit(senderHash, targetHash, maxPerMinute) {
+    if (maxPerMinute <= 0)
+      return true;
+    const currentMinute = Math.floor(Date.now() / 6e4);
+    const row = await this.db.prepare(
+      "SELECT count FROM rate_limits WHERE sender_hash = ? AND target_hash = ? AND window_minute = ?"
+    ).bind(senderHash, targetHash, currentMinute).first();
+    if (row && row.count >= maxPerMinute) {
+      return false;
+    }
+    await this.db.prepare(
+      `INSERT INTO rate_limits (sender_hash, target_hash, window_minute, count)
+         VALUES (?, ?, ?, 1)
+         ON CONFLICT(sender_hash, target_hash, window_minute) DO UPDATE SET count = count + 1`
+    ).bind(senderHash, targetHash, currentMinute).run();
+    return true;
+  }
+};
+
+// src/telegram.ts
+var TelegramClient = class {
+  constructor(botToken) {
+    this.botToken = botToken;
+    this.baseUrl = `https://api.telegram.org/bot${botToken}`;
+  }
+  baseUrl;
+  async call(method, payload) {
+    const response = await fetch(`${this.baseUrl}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!data.ok) {
+      console.error(`Telegram API error [${method}]:`, data.description, payload);
+      throw new Error(`Telegram API [${method}] failed: ${data.description}`);
+    }
+    return data.result;
+  }
+  /**
+   * ارسال پیام متنی
+   */
+  async sendMessage(chatId, text, options = {}) {
+    return await this.call("sendMessage", {
+      chat_id: chatId,
+      text,
+      parse_mode: options.parse_mode || "HTML",
+      reply_markup: options.reply_markup,
+      message_thread_id: options.message_thread_id,
+      reply_to_message_id: options.reply_to_message_id,
+      disable_web_page_preview: options.disable_web_page_preview
+    });
+  }
+  /**
+   * کپی پیام (انتقال انواع مدیا، متن، ویس و... بدون هدر فوروارد)
+   */
+  async copyMessage(chatId, fromChatId, messageId, options = {}) {
+    return await this.call("copyMessage", {
+      chat_id: chatId,
+      from_chat_id: fromChatId,
+      message_id: messageId,
+      caption: options.caption,
+      parse_mode: options.parse_mode || "HTML",
+      reply_markup: options.reply_markup,
+      message_thread_id: options.message_thread_id,
+      reply_to_message_id: options.reply_to_message_id
+    });
+  }
+  /**
+   * ویرایش متن پیام قبلی
+   */
+  async editMessageText(chatId, messageId, text, options = {}) {
+    return await this.call("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: options.parse_mode || "HTML",
+      reply_markup: options.reply_markup,
+      disable_web_page_preview: options.disable_web_page_preview
+    });
+  }
+  /**
+   * ویرایش کپشن رسانه قبلی
+   */
+  async editMessageCaption(chatId, messageId, caption, options = {}) {
+    return await this.call("editMessageCaption", {
+      chat_id: chatId,
+      message_id: messageId,
+      caption,
+      parse_mode: options.parse_mode || "HTML",
+      reply_markup: options.reply_markup
+    });
+  }
+  /**
+   * حذف یک پیام
+   */
+  async deleteMessage(chatId, messageId) {
+    try {
+      return await this.call("deleteMessage", { chat_id: chatId, message_id: messageId });
+    } catch (e) {
+      console.warn("deleteMessage failed or already deleted", e);
+      return false;
+    }
+  }
+  /**
+   * ثبت ری‌اکشن به پیام (Telegram Bot API 7.0+)
+   */
+  async setMessageReaction(chatId, messageId, reactions, isBig = false) {
+    try {
+      return await this.call("setMessageReaction", {
+        chat_id: chatId,
+        message_id: messageId,
+        reaction: reactions,
+        is_big: isBig
+      });
+    } catch (e) {
+      console.warn("setMessageReaction failed:", e);
+      return false;
+    }
+  }
+  /**
+   * پاسخ به دکمه‌های شیشه‌ای اینلاین
+   */
+  async answerCallbackQuery(callbackQueryId, text, showAlert = false) {
+    return await this.call("answerCallbackQuery", {
+      callback_query_id: callbackQueryId,
+      text,
+      show_alert: showAlert
+    });
+  }
+  /**
+   * ساخت تاپیک اختصاصی در سوپرگروه دارای Forum
+   */
+  async createForumTopic(chatId, name) {
+    return await this.call("createForumTopic", {
+      chat_id: chatId,
+      name
+    });
+  }
+  /**
+   * دریافت تعداد اعضای گروه (برای بررسی امنیت و تعداد اعضای غریبه)
+   */
+  async getChatMemberCount(chatId) {
+    try {
+      return await this.call("getChatMemberCount", { chat_id: chatId });
+    } catch (e) {
+      console.warn("getChatMemberCount failed:", e);
+      return 2;
+    }
+  }
+  /**
+   * دریافت اطلاعات عضویت کاربر در گروه (جهت تایید ادمین/مالک بودن)
+   */
+  async getChatMember(chatId, userId) {
+    return await this.call("getChatMember", { chat_id: chatId, user_id: userId });
+  }
+  /**
+   * تنظیم منوی دستورات رسمی تلگرام (setMyCommands)
+   */
+  async setMyCommands(commands, scope = { type: "default" }) {
+    return await this.call("setMyCommands", {
+      commands,
+      scope
+    });
+  }
+  /**
+   * ثبت وبهوک در سرورهای تلگرام
+   */
+  async setWebhook(url, secretToken) {
+    return await this.call("setWebhook", {
+      url,
+      secret_token: secretToken,
+      allowed_updates: ["message", "edited_message", "callback_query", "message_reaction", "my_chat_member"]
+    });
+  }
+};
+
+// src/crypto.ts
+function toUint8Array(str) {
+  return new TextEncoder().encode(str);
+}
+function toHex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function hashUserId(userId, salt) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    toUint8Array(salt),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, toUint8Array(userId.toString()));
+  return toHex(signature);
+}
+async function getAesKey(rawKeyString) {
+  const keyBuffer = await crypto.subtle.digest("SHA-256", toUint8Array(rawKeyString));
+  return crypto.subtle.importKey("raw", keyBuffer, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+}
+async function encryptTgId(userId, secretKey) {
+  const key = await getAesKey(secretKey);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    toUint8Array(userId.toString())
+  );
+  const combined = new Uint8Array(iv.byteLength + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.byteLength);
+  let binary = "";
+  for (let i = 0; i < combined.byteLength; i++) {
+    binary += String.fromCharCode(combined[i]);
+  }
+  return btoa(binary);
+}
+async function decryptTgId(encryptedBase64, secretKey) {
+  const key = await getAesKey(secretKey);
+  const binary = atob(encryptedBase64);
+  const combined = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    combined[i] = binary.charCodeAt(i);
+  }
+  const iv = combined.slice(0, 12);
+  const data = combined.slice(12);
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data
+  );
+  const decodedStr = new TextDecoder().decode(decrypted);
+  const parsed = parseInt(decodedStr, 10);
+  if (isNaN(parsed)) {
+    throw new Error("\u0631\u0645\u0632\u06AF\u0634\u0627\u06CC\u06CC \u0622\u06CC\u062F\u06CC \u0646\u0627\u0645\u0648\u0641\u0642 \u0628\u0648\u062F.");
+  }
+  return parsed;
+}
+function generateRandomToken(length = 12) {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars[array[i] % chars.length];
+  }
+  return result;
+}
+function generateReportCaseId() {
+  return "rep_" + generateRandomToken(8);
+}
+
+// src/keyboards.ts
+function mainMenuBar() {
+  return {
+    keyboard: [[{ text: "\u{1F3E0} \u0645\u0646\u0648" }]],
+    resize_keyboard: true,
+    is_persistent: false,
+    input_field_placeholder: "\u067E\u06CC\u0627\u0645 \u062E\u0648\u062F \u0631\u0627 \u0628\u0646\u0648\u06CC\u0633\u06CC\u062F \u06CC\u0627 \u0645\u0646\u0648 \u0631\u0627 \u0628\u0627\u0632 \u06A9\u0646\u06CC\u062F\u2026"
+  };
+}
+function mainMenuInlineKeyboard(user, botUsername, isAdmin = false) {
+  const vacationText = user.is_vacation === 1 ? "\u25B6\uFE0F \u067E\u0627\u06CC\u0627\u0646 \u0627\u0633\u062A\u0631\u0627\u062D\u062A (\u0622\u0646\u0644\u0627\u06CC\u0646)" : "\u23F8 \u0634\u0631\u0648\u0639 \u0627\u0633\u062A\u0631\u0627\u062D\u062A (\u0622\u0641\u0644\u0627\u06CC\u0646)";
+  const keyboard = [
+    [
+      { text: "\u{1F517} \u0644\u06CC\u0646\u06A9 \u0646\u0627\u0634\u0646\u0627\u0633 \u0645\u0646", callback_data: "menu:link" },
+      { text: "\u{1F465} \u0645\u062E\u0627\u0637\u0628\u06CC\u0646 \u0645\u0646", callback_data: "menu:contacts" }
+    ],
+    [
+      { text: "\u2699\uFE0F \u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u06A9\u0627\u0631\u0628\u0631\u06CC", callback_data: "menu:settings" },
+      { text: vacationText, callback_data: "menu:vacation" }
+    ],
+    [{ text: "\u2753 \u0631\u0627\u0647\u0646\u0645\u0627 \u0648 \u0627\u0645\u0646\u06CC\u062A", callback_data: "menu:help" }]
+  ];
+  if (isAdmin) {
+    keyboard.push([{ text: "\u{1F6E1} \u067E\u0646\u0644 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0627\u062F\u0645\u06CC\u0646", callback_data: "admin:panel" }]);
+  }
+  return { inline_keyboard: keyboard };
+}
+function linkManagementKeyboard(token, isActive, botUsername) {
+  const linkUrl = `https://t.me/${botUsername}?start=u_${token}`;
+  return {
+    inline_keyboard: [
+      [{ text: "\u{1F4CB} \u0627\u0634\u062A\u0631\u0627\u06A9\u200C\u06AF\u0630\u0627\u0631\u06CC \u062F\u0631 \u062A\u0644\u06AF\u0631\u0627\u0645", url: `https://t.me/share/url?url=${encodeURIComponent(linkUrl)}&text=${encodeURIComponent("\u0628\u0647\u0645 \u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u0628\u0641\u0631\u0633\u062A!")}` }],
+      [
+        { text: "\u{1F504} \u0633\u0627\u062E\u062A \u0644\u06CC\u0646\u06A9 \u062C\u062F\u06CC\u062F (\u0627\u0628\u0637\u0627\u0644 \u0642\u0628\u0644\u06CC)", callback_data: "link:regen" },
+        { text: isActive ? "\u274C \u063A\u06CC\u0631\u0641\u0639\u0627\u0644\u200C\u0633\u0627\u0632\u06CC \u0644\u06CC\u0646\u06A9" : "\u2705 \u0641\u0639\u0627\u0644\u200C\u0633\u0627\u0632\u06CC \u0644\u06CC\u0646\u06A9", callback_data: "link:toggle" }
+      ],
+      [{ text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }]
+    ]
+  };
+}
+function settingsKeyboard(user, filters) {
+  const deliveryIcon = user.delivery_mode === "direct" ? "\u26A1\uFE0F \u0645\u0633\u062A\u0642\u06CC\u0645" : "\u{1F441} \u067E\u06CC\u0634\u200C\u0646\u0645\u0627\u06CC\u0634 + \u0631\u0633\u06CC\u062F";
+  const statusIcon = (val) => val === 1 ? "\u2705" : "\u274C";
+  return {
+    inline_keyboard: [
+      [
+        { text: `\u0644\u0642\u0628 \u0634\u0645\u0627: ${user.nickname} (\u0648\u06CC\u0631\u0627\u06CC\u0634)`, callback_data: "set:nickname" }
+      ],
+      [
+        { text: `\u062D\u0627\u0644\u062A \u062A\u062D\u0648\u06CC\u0644 \u067E\u06CC\u0627\u0645: ${deliveryIcon}`, callback_data: "set:delivery" }
+      ],
+      [
+        { text: `\u{1F4F7} \u0639\u06A9\u0633: ${statusIcon(filters.allow_photo)}`, callback_data: "flt:allow_photo" },
+        { text: `\u{1F3A5} \u0648\u06CC\u062F\u06CC\u0648: ${statusIcon(filters.allow_video)}`, callback_data: "flt:allow_video" }
+      ],
+      [
+        { text: `\u{1F399} \u0648\u06CC\u0633: ${statusIcon(filters.allow_voice)}`, callback_data: "flt:allow_voice" },
+        { text: `\u{1F4F9} \u0648\u06CC\u062F\u06CC\u0648\u0645\u0633\u06CC\u062C: ${statusIcon(filters.allow_video_note)}`, callback_data: "flt:allow_video_note" }
+      ],
+      [
+        { text: `\u{1F3B5} \u0645\u0648\u0632\u06CC\u06A9: ${statusIcon(filters.allow_audio)}`, callback_data: "flt:allow_audio" },
+        { text: `\u{1F4C1} \u0641\u0627\u06CC\u0644: ${statusIcon(filters.allow_document)}`, callback_data: "flt:allow_document" }
+      ],
+      [
+        { text: `\u{1F3AD} \u0627\u0633\u062A\u06CC\u06A9\u0631 \u0648 \u06AF\u06CC\u0641: ${statusIcon(filters.allow_sticker)}`, callback_data: "flt:allow_sticker" },
+        { text: `\u{1F517} \u067E\u06CC\u0634\u200C\u0646\u0645\u0627\u06CC\u0634 \u0648\u0628: ${statusIcon(filters.allow_web_preview)}`, callback_data: "flt:allow_web_preview" }
+      ],
+      [
+        {
+          text: `\u{1F6E1} \u0633\u067E\u0631 \u0636\u062F \u0627\u0633\u067E\u0645 \u0645\u0646: ${user.personal_rate_limit > 0 ? `${user.personal_rate_limit} \u062F\u0631 \u062F\u0642\u06CC\u0642\u0647` : "\u063A\u06CC\u0631\u0641\u0639\u0627\u0644"}`,
+          callback_data: "set:rate_limit"
+        }
+      ],
+      [{ text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }]
+    ]
+  };
+}
+function messageActionsKeyboard(targetToken, messageId, options = {}) {
+  const blockText = options.isBlocked ? "\u{1F513} \u0622\u0646\u0628\u0644\u0627\u06A9" : "\u{1F512} \u0628\u0644\u0627\u06A9";
+  const blockAction = options.isBlocked ? `unblock:${targetToken}` : `block:${targetToken}`;
+  const noteText = options.hasNote ? "\u{1F4DD} \u0648\u06CC\u0631\u0627\u06CC\u0634 \u06CC\u0627\u062F\u062F\u0627\u0634\u062A" : "\u{1F4DD} \u062B\u0628\u062A \u06CC\u0627\u062F\u062F\u0627\u0634\u062A \u0645\u062D\u0631\u0645\u0627\u0646\u0647";
+  return {
+    inline_keyboard: [
+      [
+        { text: "\u2328\uFE0F \u0627\u0631\u0633\u0627\u0644 \u067E\u0627\u0633\u062E", callback_data: `reply:${targetToken}:${messageId}` },
+        { text: blockText, callback_data: blockAction }
+      ],
+      [
+        { text: noteText, callback_data: `note:${targetToken}` },
+        { text: "\u{1F6A8} \u0631\u06CC\u067E\u0648\u0631\u062A \u062A\u062E\u0644\u0641", callback_data: `report:${targetToken}:${messageId}` }
+      ]
+    ]
+  };
+}
+function messageSentConfirmationKeyboard(targetMsgId) {
+  return {
+    inline_keyboard: [
+      [{ text: "\u{1F5D1} \u062D\u0630\u0641 \u067E\u06CC\u0627\u0645 \u0628\u0631\u0627\u06CC \u0637\u0631\u0641 \u0645\u0642\u0627\u0628\u0644", callback_data: `del:${targetMsgId}` }]
+    ]
+  };
+}
+function adminPanelKeyboard(shieldEnabled, shieldRate) {
+  return {
+    inline_keyboard: [
+      [
+        { text: `\u{1F6E1} \u0633\u067E\u0631 \u0633\u0631\u0627\u0633\u0631\u06CC: ${shieldEnabled ? "\u0631\u0648\u0634\u0646 \u2705" : "\u062E\u0627\u0645\u0648\u0634 \u274C"}`, callback_data: "admin:toggle_shield" },
+        { text: `\u0633\u0642\u0641 \u0633\u067E\u0631: ${shieldRate}/\u062F\u0642\u06CC\u0642\u0647`, callback_data: "admin:rate_shield" }
+      ],
+      [
+        { text: "\u{1F4CA} \u0622\u0645\u0627\u0631 \u06A9\u0644\u06CC \u0633\u06CC\u0633\u062A\u0645", callback_data: "admin:stats" },
+        { text: "\u{1F4E2} \u0627\u0631\u0633\u0627\u0644 \u067E\u06CC\u0627\u0645 \u0647\u0645\u06AF\u0627\u0646\u06CC", callback_data: "admin:broadcast" }
+      ],
+      [
+        { text: "\u{1F6AB} \u0645\u062F\u06CC\u0631\u06CC\u062A \u0628\u0646 \u06A9\u0627\u0631\u0628\u0631\u0627\u0646", callback_data: "admin:bans" },
+        { text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }
+      ]
+    ]
+  };
+}
+
+// src/handlers/message.ts
+async function handleMessage(msg, env, db, tg) {
+  const from = msg.from;
+  if (!from || from.is_bot)
+    return;
+  const userHash = await hashUserId(from.id, env.SECRET_SALT);
+  const text = (msg.text || "").trim();
+  const chatType = msg.chat.type;
+  if (chatType === "supergroup" || chatType === "group") {
+    if (text === "/connect" || text === "/setgroup") {
+      try {
+        const member = await tg.getChatMember(msg.chat.id, from.id);
+        if (member.status !== "administrator" && member.status !== "creator") {
+          await tg.sendMessage(msg.chat.id, "\u274C \u0641\u0642\u0637 \u0645\u062F\u06CC\u0631\u0627\u0646 \u06AF\u0631\u0648\u0647 \u0645\u06CC\u200C\u062A\u0648\u0627\u0646\u0646\u062F \u0627\u06CC\u0646 \u062F\u0633\u062A\u0648\u0631 \u0631\u0627 \u0627\u062C\u0631\u0627 \u06A9\u0646\u0646\u062F.");
+          return;
+        }
+        await db.connectUserGroup(userHash, msg.chat.id);
+        const memberCount = await tg.getChatMemberCount(msg.chat.id);
+        let warning = "";
+        if (memberCount > 2) {
+          warning = `
+
+\u26A0\uFE0F <b>\u062A\u0648\u062C\u0647:</b> \u0627\u06CC\u0646 \u06AF\u0631\u0648\u0647 \u062F\u0627\u0631\u0627\u06CC <b>${memberCount} \u0639\u0636\u0648</b> \u0627\u0633\u062A. \u0631\u0628\u0627\u062A \u0642\u0628\u0644 \u0627\u0632 \u0627\u0631\u0633\u0627\u0644 \u067E\u06CC\u0627\u0645 \u062A\u0648\u0633\u0637 \u0627\u0641\u0631\u0627\u062F \u0646\u0627\u0634\u0646\u0627\u0633\u060C \u0628\u0647 \u0622\u0646\u200C\u0647\u0627 \u0627\u0637\u0644\u0627\u0639 \u062E\u0648\u0627\u0647\u062F \u062F\u0627\u062F \u06A9\u0647 \u067E\u06CC\u0627\u0645\u0634\u0627\u0646 \u062F\u0631 \u0627\u06CC\u0646 \u06AF\u0631\u0648\u0647 \u0646\u0645\u0627\u06CC\u0634 \u062F\u0627\u062F\u0647 \u0645\u06CC\u200C\u0634\u0648\u062F.`;
+        }
+        await tg.sendMessage(
+          msg.chat.id,
+          `\u2705 <b>\u0627\u06CC\u0646 \u06AF\u0631\u0648\u0647 \u062A\u0627\u067E\u06CC\u06A9\u200C\u062F\u0627\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0647 \u0644\u06CC\u0646\u06A9 \u0646\u0627\u0634\u0646\u0627\u0633 \u0634\u0645\u0627 \u0645\u062A\u0635\u0644 \u0634\u062F!</b>
+\u0627\u0632 \u0627\u06CC\u0646 \u067E\u0633 \u067E\u06CC\u0627\u0645\u200C\u0647\u0627\u06CC\u06CC \u06A9\u0647 \u0628\u0647 \u0644\u06CC\u0646\u06A9 \u0634\u0645\u0627 \u0627\u0631\u0633\u0627\u0644 \u0634\u0648\u0646\u062F\u060C \u0628\u0647 \u0635\u0648\u0631\u062A \u062A\u0627\u067E\u06CC\u06A9 \u062C\u062F\u0627\u06AF\u0627\u0646\u0647 \u062F\u0631 \u0627\u06CC\u0646 \u06AF\u0631\u0648\u0647 \u062F\u0631\u06CC\u0627\u0641\u062A \u062E\u0648\u0627\u0647\u0646\u062F \u0634\u062F.${warning}`
+        );
+      } catch (e) {
+        console.error("Error connecting group:", e);
+        await tg.sendMessage(
+          msg.chat.id,
+          "\u274C \u0627\u062A\u0635\u0627\u0644 \u06AF\u0631\u0648\u0647 \u0646\u0627\u0645\u0648\u0641\u0642 \u0628\u0648\u062F. \u0644\u0637\u0641\u0627\u064B \u0627\u0637\u0645\u06CC\u0646\u0627\u0646 \u062D\u0627\u0635\u0644 \u06A9\u0646\u06CC\u062F \u0631\u0628\u0627\u062A \u0627\u062F\u0645\u06CC\u0646 \u06AF\u0631\u0648\u0647 \u0627\u0633\u062A \u0648 \u062F\u0633\u062A\u0631\u0633\u06CC \u0645\u062F\u06CC\u0631\u06CC\u062A \u062A\u0627\u067E\u06CC\u06A9\u200C\u0647\u0627 \u0631\u0627 \u062F\u0627\u0631\u062F."
+        );
+      }
+      return;
+    }
+    if (text === "/disconnect") {
+      await db.disconnectUserGroup(userHash);
+      await tg.sendMessage(
+        msg.chat.id,
+        "\u2705 \u0627\u062A\u0635\u0627\u0644 \u06AF\u0631\u0648\u0647 \u0642\u0637\u0639 \u0634\u062F. \u0627\u0632 \u0627\u06CC\u0646 \u067E\u0633 \u067E\u06CC\u0627\u0645\u200C\u0647\u0627\u06CC \u0646\u0627\u0634\u0646\u0627\u0633 \u0645\u062C\u062F\u062F\u0627\u064B \u0628\u0647 \u067E\u06CC\u200C\u0648\u06CC \u0634\u0645\u0627 \u062F\u0631 \u0631\u0628\u0627\u062A \u0627\u0631\u0633\u0627\u0644 \u062E\u0648\u0627\u0647\u0646\u062F \u0634\u062F."
+      );
+      return;
+    }
+    return;
+  }
+  let user = await db.getUserByHash(userHash);
+  if (user && user.is_banned === 1) {
+    await tg.sendMessage(from.id, "\u26D4\uFE0F \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0634\u0645\u0627 \u0628\u0647 \u062F\u0644\u06CC\u0644 \u0646\u0642\u0636 \u0642\u0648\u0627\u0646\u06CC\u0646 \u0645\u0633\u062F\u0648\u062F \u0634\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (!user) {
+    const encryptedId = await encryptTgId(from.id, env.AES_KEY);
+    const initialNickname = from.first_name || "\u0646\u0627\u0634\u0646\u0627\u0633";
+    const linkToken = generateRandomToken(12);
+    user = await db.createUser(
+      userHash,
+      encryptedId,
+      initialNickname,
+      linkToken,
+      env.DEFAULT_DELIVERY_MODE || "direct"
+    );
+  }
+  const adminIds = (env.ADMIN_IDS || "").split(",").map((s) => s.trim());
+  const isAdmin = adminIds.includes(from.id.toString());
+  if (text.startsWith("/start")) {
+    const parts = text.split(" ");
+    if (parts.length > 1 && parts[1].startsWith("u_")) {
+      const targetToken = parts[1].replace("u_", "");
+      await setupAnonymousChat(from.id, user, targetToken, db, tg, env);
+      return;
+    }
+    const welcome = `\u{1F3AD} \u0628\u0647 \u0631\u0628\u0627\u062A \u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 <b>Faceless</b> \u062E\u0648\u0634 \u0622\u0645\u062F\u06CC\u062F!
+
+\u0627\u06CC\u0646\u062C\u0627 \u0647\u06CC\u0686 \u067E\u06CC\u0627\u0645\u06CC \u062F\u0631 \u0633\u0631\u0648\u0631 \u0630\u062E\u06CC\u0631\u0647 \u0646\u0645\u06CC\u200C\u0634\u0648\u062F \u0648 \u0647\u0648\u06CC\u062A \u0634\u0645\u0627 \u06A9\u0627\u0645\u0644\u0627\u064B \u0631\u0645\u0632\u0646\u06AF\u0627\u0631\u06CC \u0634\u062F\u0647 \u0648 \u0627\u0645\u0646 \u0627\u0633\u062A.
+
+\u0644\u0642\u0628 \u0641\u0639\u0644\u06CC \u0634\u0645\u0627: <b>${user.nickname}</b>
+\u0627\u0632 \u0645\u0646\u0648\u06CC \u0632\u06CC\u0631 \u0628\u0631\u0627\u06CC \u0645\u062F\u06CC\u0631\u06CC\u062A \u0648 \u062F\u0631\u06CC\u0627\u0641\u062A \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u06A9\u0646\u06CC\u062F:`;
+    await tg.sendMessage(from.id, welcome, {
+      reply_markup: mainMenuBar()
+    });
+    await tg.sendMessage(from.id, "\u{1F3E0} <b>\u0645\u0646\u0648\u06CC \u0627\u0635\u0644\u06CC:</b>", {
+      reply_markup: mainMenuInlineKeyboard(user, env.BOT_USERNAME, isAdmin)
+    });
+    return;
+  }
+  if (text === "\u{1F3E0} \u0645\u0646\u0648" || text === "/menu") {
+    await tg.sendMessage(from.id, "\u{1F3E0} <b>\u0645\u0646\u0648\u06CC \u0627\u0635\u0644\u06CC:</b>", {
+      reply_markup: mainMenuInlineKeyboard(user, env.BOT_USERNAME, isAdmin)
+    });
+    return;
+  }
+  if (text === "/mylink") {
+    const linkUrl = `https://t.me/${env.BOT_USERNAME}?start=u_${user.link_token}`;
+    const txt = `\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u0634\u0645\u0627:</b>
+
+<code>${linkUrl}</code>
+
+\u0627\u06CC\u0646 \u0644\u06CC\u0646\u06A9 \u0631\u0627 \u062F\u0631 \u0628\u06CC\u0648 \u06CC\u0627 \u06A9\u0627\u0646\u0627\u0644 \u062E\u0648\u062F \u0642\u0631\u0627\u0631 \u062F\u0647\u06CC\u062F \u062A\u0627 \u0628\u0642\u06CC\u0647 \u0628\u062A\u0648\u0627\u0646\u0646\u062F \u0646\u0627\u0634\u0646\u0627\u0633 \u0628\u0647 \u0634\u0645\u0627 \u067E\u06CC\u0627\u0645 \u0628\u0641\u0631\u0633\u062A\u0646\u062F.`;
+    await tg.sendMessage(from.id, txt, {
+      reply_markup: linkManagementKeyboard(user.link_token, user.is_link_active === 1, env.BOT_USERNAME)
+    });
+    return;
+  }
+  if (text === "/settings") {
+    const filters = await db.getMediaFilters(userHash);
+    await tg.sendMessage(from.id, "\u2699\uFE0F <b>\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0648 \u0641\u06CC\u0644\u062A\u0631 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627:</b>", {
+      reply_markup: settingsKeyboard(user, filters)
+    });
+    return;
+  }
+  if (text === "/help") {
+    const helpTxt = `\u{1F4D6} <b>\u0631\u0627\u0647\u0646\u0645\u0627 \u0648 \u0627\u0635\u0648\u0644 \u0627\u0645\u0646\u06CC\u062A \u062F\u0631 Faceless:</b>
+
+\u06F1. <b>\u0627\u0645\u0646\u06CC\u062A \u0645\u0637\u0644\u0642:</b> \u0647\u06CC\u0686 \u067E\u06CC\u0627\u0645\u060C \u0639\u06A9\u0633 \u06CC\u0627 \u0648\u06CC\u0633\u06CC \u062F\u0631 \u062F\u06CC\u062A\u0627\u0628\u06CC\u0633 \u0630\u062E\u06CC\u0631\u0647 \u0646\u0645\u06CC\u200C\u0634\u0648\u062F.
+\u06F2. <b>\u0646\u0627\u0634\u0646\u0627\u0633\u06CC \u06A9\u0627\u0645\u0644:</b> \u0622\u06CC\u062F\u06CC \u062A\u0644\u06AF\u0631\u0627\u0645 \u0634\u0645\u0627 \u0647\u0634 \u0634\u062F\u0647 \u0648 \u062D\u062A\u06CC \u0633\u0627\u0632\u0646\u062F\u0647 \u0648\u0631\u06A9\u0631 \u0647\u0645 \u0628\u0647 \u067E\u06CC\u0627\u0645\u200C\u0647\u0627 \u062F\u0633\u062A\u0631\u0633\u06CC \u0646\u062F\u0627\u0631\u062F.
+\u06F3. <b>\u067E\u0627\u0633\u062E \u0645\u0633\u062A\u0642\u06CC\u0645:</b> \u0628\u0631\u0627\u06CC \u067E\u0627\u0633\u062E \u0628\u0647 \u0647\u0631 \u067E\u06CC\u0627\u0645\u060C \u06A9\u0627\u0641\u06CC\u0633\u062A \u0631\u0648\u06CC \u062F\u06A9\u0645\u0647 \xAB\u0627\u0631\u0633\u0627\u0644 \u067E\u0627\u0633\u062E\xBB \u0628\u0632\u0646\u06CC\u062F \u06CC\u0627 \u0631\u0648\u06CC \u0647\u0645\u0627\u0646 \u067E\u06CC\u0627\u0645 \u0631\u06CC\u067E\u0644\u0627\u06CC \u06A9\u0646\u06CC\u062F.
+\u06F4. <b>\u06A9\u0646\u062A\u0631\u0644 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627:</b> \u0645\u06CC\u200C\u062A\u0648\u0627\u0646\u06CC\u062F \u0627\u0632 \u0628\u062E\u0634 \u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u062F\u0631\u06CC\u0627\u0641\u062A \u0647\u0631 \u0646\u0648\u0639 \u0631\u0633\u0627\u0646\u0647 (\u0639\u06A9\u0633\u060C \u0648\u06CC\u0633\u060C \u0648\u06CC\u062F\u06CC\u0648 \u0648...) \u0631\u0627 \u062E\u0627\u0645\u0648\u0634 \u06A9\u0646\u06CC\u062F.
+\u06F5. <b>\u0627\u062A\u0635\u0627\u0644 \u0628\u0647 \u06AF\u0631\u0648\u0647:</b> \u0645\u06CC\u200C\u062A\u0648\u0627\u0646\u06CC\u062F \u0631\u0628\u0627\u062A \u0631\u0627 \u0628\u0647 \u06CC\u06A9 \u0633\u0648\u067E\u0631\u06AF\u0631\u0648\u0647 \u0628\u0627 \u0642\u0627\u0628\u0644\u06CC\u062A \u062A\u0627\u067E\u06CC\u06A9 \u0627\u062F \u06A9\u0631\u062F\u0647 \u0648 \u062F\u0633\u062A\u0648\u0631 /connect \u0631\u0627 \u0628\u0632\u0646\u06CC\u062F \u062A\u0627 \u067E\u06CC\u0627\u0645\u200C\u0647\u0627 \u0628\u0647 \u062A\u0627\u067E\u06CC\u06A9\u200C\u0647\u0627\u06CC \u06AF\u0631\u0648\u0647\u062A\u0627\u0646 \u0628\u0631\u0648\u0646\u062F.`;
+    await tg.sendMessage(from.id, helpTxt);
+    return;
+  }
+  let targetUserHash = null;
+  let replyToMsgId;
+  if (msg.reply_to_message) {
+    const mapping = await db.getMappingByDest(userHash, msg.reply_to_message.message_id);
+    if (mapping) {
+      targetUserHash = mapping.src_chat_hash;
+      replyToMsgId = mapping.src_msg_id;
+    }
+  }
+  const currentTargetState = await db.getSetting(`state:${userHash}`);
+  if (!targetUserHash && currentTargetState) {
+    if (currentTargetState.startsWith("target:")) {
+      targetUserHash = currentTargetState.replace("target:", "");
+    } else if (currentTargetState.startsWith("nickname:set")) {
+      if (text.length < 2 || text.length > 30) {
+        await tg.sendMessage(from.id, "\u274C \u0644\u0642\u0628 \u0628\u0627\u06CC\u062F \u0628\u06CC\u0646 \u06F2 \u062A\u0627 \u06F3\u06F0 \u06A9\u0627\u0631\u0627\u06A9\u062A\u0631 \u0628\u0627\u0634\u062F.");
+        return;
+      }
+      await db.updateNickname(userHash, text);
+      await db.setSetting(`state:${userHash}`, "");
+      await tg.sendMessage(from.id, `\u2705 \u0644\u0642\u0628 \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0647 <b>${text}</b> \u062A\u063A\u06CC\u06CC\u0631 \u06CC\u0627\u0641\u062A.`);
+      return;
+    } else if (currentTargetState.startsWith("note:")) {
+      const targetHash = currentTargetState.replace("note:", "");
+      await db.saveNote(userHash, targetHash, text);
+      await db.setSetting(`state:${userHash}`, "");
+      await tg.sendMessage(from.id, "\u2705 \u06CC\u0627\u062F\u062F\u0627\u0634\u062A \u0645\u062D\u0631\u0645\u0627\u0646\u0647 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0631\u0627\u06CC \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F.");
+      return;
+    }
+  }
+  if (!targetUserHash) {
+    await tg.sendMessage(
+      from.id,
+      "\u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u0645\u062E\u0627\u0637\u0628\u06CC \u0646\u062F\u0627\u0631\u062F! \u0644\u0637\u0641\u0627\u064B \u0627\u0628\u062A\u062F\u0627 \u0631\u0648\u06CC \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u06CC\u06A9 \u0646\u0641\u0631 \u06A9\u0644\u06CC\u06A9 \u06A9\u0646\u06CC\u062F \u06CC\u0627 \u0631\u0648\u06CC \u067E\u06CC\u0627\u0645 \u0642\u0628\u0644\u06CC \u0627\u0648 \u0631\u06CC\u067E\u0644\u0627\u06CC \u0628\u0632\u0646\u06CC\u062F.",
+      { reply_markup: mainMenuBar() }
+    );
+    return;
+  }
+  await dispatchAnonymousMessage(from.id, user, targetUserHash, msg, db, tg, env, replyToMsgId);
+}
+async function setupAnonymousChat(userId, user, targetToken, db, tg, env) {
+  const targetUser = await db.getUserByLinkToken(targetToken);
+  if (!targetUser || targetUser.is_link_active === 0) {
+    await tg.sendMessage(userId, "\u274C \u0627\u06CC\u0646 \u0644\u06CC\u0646\u06A9 \u0646\u0627\u0634\u0646\u0627\u0633 \u0645\u0646\u0642\u0636\u06CC \u06CC\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u0634\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (targetUser.user_id_hash === user.user_id_hash) {
+    await tg.sendMessage(userId, "\u26A0\uFE0F \u0627\u06CC\u0646 \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u062E\u0648\u062F \u0634\u0645\u0627\u0633\u062A!");
+    return;
+  }
+  await db.setSetting(`state:${user.user_id_hash}`, `target:${targetUser.user_id_hash}`);
+  let groupSecurityNotice = "";
+  const connectedGroup = await db.getUserConnectedGroup(targetUser.user_id_hash);
+  if (connectedGroup && connectedGroup.is_active === 1) {
+    try {
+      const memberCount = await tg.getChatMemberCount(connectedGroup.group_id);
+      if (memberCount > 2) {
+        groupSecurityNotice = `
+
+\u26A0\uFE0F <b>\u0647\u0634\u062F\u0627\u0631 \u0627\u0645\u0646\u06CC\u062A\u06CC \u0648 \u062D\u0631\u06CC\u0645 \u062E\u0635\u0648\u0635\u06CC:</b>
+\u0645\u062E\u0627\u0637\u0628 \u0634\u0645\u0627 \u067E\u06CC\u0627\u0645\u200C\u0647\u0627\u06CC \u062F\u0631\u06CC\u0627\u0641\u062A\u06CC \u0631\u0627 \u0628\u0647 \u06CC\u06A9 \u06AF\u0631\u0648\u0647 \u0628\u0627 <b>${memberCount} \u0639\u0636\u0648</b> \u0645\u062A\u0635\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A. \u0644\u0637\u0641\u0627\u064B \u0645\u0637\u0644\u0639 \u0628\u0627\u0634\u06CC\u062F \u06A9\u0647 \u0633\u0627\u06CC\u0631 \u0627\u0639\u0636\u0627\u06CC \u062D\u0627\u0636\u0631 \u062F\u0631 \u0622\u0646 \u06AF\u0631\u0648\u0647 \u0646\u06CC\u0632 \u067E\u06CC\u0627\u0645\u200C\u0647\u0627\u06CC \u0627\u0631\u0633\u0627\u0644\u06CC \u0634\u0645\u0627 \u0631\u0627 \u0645\u0634\u0627\u0647\u062F\u0647 \u062E\u0648\u0627\u0647\u0646\u062F \u06A9\u0631\u062F!`;
+      }
+    } catch (e) {
+      console.warn("Could not check member count:", e);
+    }
+  }
+  const prompt = `\u{1F48C} \u0627\u06A9\u0646\u0648\u0646 \u062F\u0631 \u062D\u0627\u0644 \u0627\u0631\u0633\u0627\u0644 \u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u0628\u0647 <b>${targetUser.nickname}</b> \u0647\u0633\u062A\u06CC\u062F.
+
+\u0647\u0631 \u0645\u062A\u0646\u06CC\u060C \u0639\u06A9\u0633\u060C \u0648\u06CC\u0633\u060C \u0648\u06CC\u062F\u06CC\u0648 \u06CC\u0627 \u0641\u0627\u06CC\u0644\u06CC \u0628\u0641\u0631\u0633\u062A\u06CC\u062F \u06A9\u0627\u0645\u0644\u0627\u064B \u0646\u0627\u0634\u0646\u0627\u0633 \u0628\u0631\u0627\u06CC \u0627\u06CC\u0634\u0627\u0646 \u0627\u0631\u0633\u0627\u0644 \u062E\u0648\u0627\u0647\u062F \u0634\u062F.${groupSecurityNotice}`;
+  await tg.sendMessage(userId, prompt);
+}
+async function dispatchAnonymousMessage(senderTgId, senderUser, recipientHash, msg, db, tg, env, replyToMsgId) {
+  const recipient = await db.getUserByHash(recipientHash);
+  if (!recipient) {
+    await tg.sendMessage(senderTgId, "\u274C \u0645\u062E\u0627\u0637\u0628 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F.");
+    return;
+  }
+  const isBlocked = await db.isBlocked(recipientHash, senderUser.user_id_hash);
+  if (isBlocked) {
+    await tg.sendMessage(senderTgId, "\u26D4\uFE0F \u067E\u06CC\u0627\u0645 \u0627\u0631\u0633\u0627\u0644 \u0646\u0634\u062F (\u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u0634\u0645\u0627 \u0631\u0627 \u0645\u0633\u062F\u0648\u062F \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A).");
+    return;
+  }
+  const filters = await db.getMediaFilters(recipientHash);
+  if (msg.photo && filters.allow_photo === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0639\u06A9\u0633 \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (msg.video && filters.allow_video === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0648\u06CC\u062F\u06CC\u0648 \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (msg.voice && filters.allow_voice === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0648\u06CC\u0633 (\u067E\u06CC\u0627\u0645 \u0635\u0648\u062A\u06CC) \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (msg.video_note && filters.allow_video_note === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0648\u06CC\u062F\u06CC\u0648 \u0645\u0633\u06CC\u062C \u062F\u0627\u06CC\u0631\u0647\u200C\u0627\u06CC \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (msg.audio && filters.allow_audio === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0645\u0648\u0632\u06CC\u06A9 \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if (msg.document && filters.allow_document === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0641\u0627\u06CC\u0644 \u0648 \u0627\u0633\u0646\u0627\u062F \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  if ((msg.sticker || msg.animation) && filters.allow_sticker === 0) {
+    await tg.sendMessage(senderTgId, "\u274C \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u0627\u0633\u062A\u06CC\u06A9\u0631 \u0648 \u06AF\u06CC\u0641 \u0631\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.");
+    return;
+  }
+  const shieldEnabled = await db.getSetting("shield_enabled", env.DEFAULT_SHIELD_ENABLED || "false") === "true";
+  const defaultRate = parseInt(await db.getSetting("shield_rate", env.DEFAULT_RATE_LIMIT_PER_MINUTE || "5"), 10);
+  const maxPerMinute = recipient.personal_rate_limit > 0 ? recipient.personal_rate_limit : shieldEnabled ? defaultRate : 0;
+  if (maxPerMinute > 0) {
+    const allowed = await db.checkRateLimit(senderUser.user_id_hash, recipientHash, maxPerMinute);
+    if (!allowed) {
+      await tg.sendMessage(
+        senderTgId,
+        `\u26A0\uFE0F \u0634\u0645\u0627 \u0628\u0647 \u0633\u0642\u0641 \u0627\u0631\u0633\u0627\u0644 \u067E\u06CC\u0627\u0645 \u0645\u062C\u0627\u0632 (${maxPerMinute} \u067E\u06CC\u0627\u0645 \u062F\u0631 \u062F\u0642\u06CC\u0642\u0647) \u0631\u0633\u06CC\u062F\u0647\u200C\u0627\u06CC\u062F. \u0644\u0637\u0641\u0627\u064B \u06A9\u0645\u06CC \u0635\u0628\u0631 \u06A9\u0646\u06CC\u062F.`
+      );
+      return;
+    }
+  }
+  if (recipient.is_vacation === 1) {
+    await db.queueMessage(recipientHash, senderUser.user_id_hash, senderTgId, msg.message_id);
+    await tg.sendMessage(
+      senderTgId,
+      "\u23F8 \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u062F\u0631\u06CC\u0627\u0641\u062A \u067E\u06CC\u0627\u0645 \u0631\u0627 \u0645\u0648\u0642\u062A\u0627\u064B \u0645\u062A\u0648\u0642\u0641 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A. \u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u062F\u0631 \u0635\u0641 \u0642\u0631\u0627\u0631 \u06AF\u0631\u0641\u062A \u0648 \u0628\u0647 \u0645\u062D\u0636 \u0622\u0646\u0644\u0627\u06CC\u0646 \u0634\u062F\u0646 \u0628\u0647 \u062F\u0633\u062A \u0627\u06CC\u0634\u0627\u0646 \u062E\u0648\u0627\u0647\u062F \u0631\u0633\u06CC\u062F."
+    );
+    return;
+  }
+  const noteRow = await db.getNote(recipientHash, senderUser.user_id_hash);
+  let senderDisplayName = senderUser.nickname;
+  if (noteRow?.admin_alias) {
+    senderDisplayName = `${noteRow.admin_alias} [${senderUser.nickname}]`;
+  }
+  let noteHeader = "";
+  if (noteRow?.note_text) {
+    noteHeader = `\u{1F4CC} <i>\u06CC\u0627\u062F\u062F\u0627\u0634\u062A \u0634\u0645\u0627: ${noteRow.note_text}</i>
+
+`;
+  }
+  const isBlockedSender = await db.isBlocked(recipientHash, senderUser.user_id_hash);
+  const actionsKeyboard = messageActionsKeyboard(senderUser.link_token, msg.message_id, {
+    isBlocked: isBlockedSender,
+    hasNote: !!noteRow?.note_text
+  });
+  const connectedGroup = await db.getUserConnectedGroup(recipientHash);
+  if (connectedGroup && connectedGroup.is_active === 1) {
+    try {
+      let topicId = await db.getForumTopic(recipientHash, senderUser.user_id_hash, connectedGroup.group_id);
+      if (!topicId) {
+        const newTopic = await tg.createForumTopic(connectedGroup.group_id, senderDisplayName);
+        topicId = newTopic.message_thread_id;
+        await db.saveForumTopic(recipientHash, senderUser.user_id_hash, topicId, connectedGroup.group_id);
+      }
+      const copied = await tg.copyMessage(connectedGroup.group_id, senderTgId, msg.message_id, {
+        message_thread_id: topicId
+      });
+      await db.saveMessageMapping(senderUser.user_id_hash, msg.message_id, recipientHash, copied.message_id);
+      await tg.sendMessage(senderTgId, "\u2705 \u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062F\u0631 \u062A\u0627\u067E\u06CC\u06A9 \u06AF\u0631\u0648\u0647 \u0645\u0642\u0635\u062F \u0627\u0631\u0633\u0627\u0644 \u0634\u062F.", {
+        reply_markup: messageSentConfirmationKeyboard(copied.message_id),
+        reply_to_message_id: msg.message_id
+      });
+      await db.recordConversation(senderUser.user_id_hash, recipientHash);
+      return;
+    } catch (e) {
+      console.warn("Failed to send to user connected group, falling back to private message:", e);
+    }
+  }
+  const recipientTgId = await decryptTgId(recipient.encrypted_tg_id, env.AES_KEY);
+  if (recipient.delivery_mode === "peek") {
+    const peekPrompt = `${noteHeader}\u{1F4E9} <b>\u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u062C\u062F\u06CC\u062F\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB \u062F\u0627\u0631\u06CC\u062F!</b>
+
+\u0628\u0631\u0627\u06CC \u0645\u0634\u0627\u0647\u062F\u0647 \u067E\u06CC\u0627\u0645 \u0631\u0648\u06CC \u062F\u06A9\u0645\u0647 \u0632\u06CC\u0631 \u0628\u0632\u0646\u06CC\u062F:`;
+    const peekKeyboard = {
+      inline_keyboard: [
+        [{ text: "\u{1F441} \u0645\u0634\u0627\u0647\u062F\u0647 \u067E\u06CC\u0627\u0645", callback_data: `peek:${senderTgId}:${msg.message_id}:${senderUser.link_token}` }]
+      ]
+    };
+    await tg.sendMessage(recipientTgId, peekPrompt, { reply_markup: peekKeyboard });
+  } else {
+    const prefix = `${noteHeader}\u{1F4AC} <b>\u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u0627\u0632 \u0637\u0631\u0641: ${senderDisplayName}</b>`;
+    await tg.sendMessage(recipientTgId, prefix);
+    const copied = await tg.copyMessage(recipientTgId, senderTgId, msg.message_id, {
+      reply_markup: actionsKeyboard,
+      reply_to_message_id: replyToMsgId
+    });
+    await db.saveMessageMapping(senderUser.user_id_hash, msg.message_id, recipientHash, copied.message_id);
+    await tg.sendMessage(senderTgId, "\u2705 \u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0631\u0633\u0627\u0644 \u0634\u062F.", {
+      reply_markup: messageSentConfirmationKeyboard(copied.message_id),
+      reply_to_message_id: msg.message_id
+    });
+  }
+  await db.recordConversation(senderUser.user_id_hash, recipientHash);
+}
+
+// src/handlers/callback.ts
+async function handleCallbackQuery(cb, env, db, tg) {
+  const data = cb.data;
+  if (!data || !cb.message)
+    return;
+  const from = cb.from;
+  const userHash = await hashUserId(from.id, env.SECRET_SALT);
+  const user = await db.getUserByHash(userHash);
+  if (!user)
+    return;
+  const adminIds = (env.ADMIN_IDS || "").split(",").map((s) => s.trim());
+  const isAdmin = adminIds.includes(from.id.toString());
+  const msgId = cb.message.message_id;
+  if (data === "menu:main") {
+    await tg.answerCallbackQuery(cb.id);
+    await tg.editMessageText(from.id, msgId, "\u{1F3E0} <b>\u0645\u0646\u0648\u06CC \u0627\u0635\u0644\u06CC:</b>", {
+      reply_markup: mainMenuInlineKeyboard(user, env.BOT_USERNAME, isAdmin)
+    });
+    return;
+  }
+  if (data === "menu:link") {
+    await tg.answerCallbackQuery(cb.id);
+    const linkUrl = `https://t.me/${env.BOT_USERNAME}?start=u_${user.link_token}`;
+    const txt = `\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u0634\u0645\u0627:</b>
+
+<code>${linkUrl}</code>
+
+\u0647\u0631 \u06A9\u0633 \u0631\u0648\u06CC \u0627\u06CC\u0646 \u0644\u06CC\u0646\u06A9 \u06A9\u0644\u06CC\u06A9 \u06A9\u0646\u062F\u060C \u0645\u06CC\u200C\u062A\u0648\u0627\u0646\u062F \u0628\u062F\u0648\u0646 \u0627\u06CC\u0646\u06A9\u0647 \u0647\u0648\u06CC\u062A\u0634 \u0641\u0627\u0634 \u0634\u0648\u062F \u0628\u0647 \u0634\u0645\u0627 \u067E\u06CC\u0627\u0645 \u0628\u0641\u0631\u0633\u062A\u062F.`;
+    await tg.editMessageText(from.id, msgId, txt, {
+      reply_markup: linkManagementKeyboard(user.link_token, user.is_link_active === 1, env.BOT_USERNAME)
+    });
+    return;
+  }
+  if (data === "link:regen") {
+    const newToken = generateRandomToken(12);
+    await db.regenerateLinkToken(userHash, newToken);
+    await tg.answerCallbackQuery(cb.id, "\u2705 \u0644\u06CC\u0646\u06A9 \u0642\u0628\u0644\u06CC \u0628\u0627\u0637\u0644 \u0634\u062F \u0648 \u0644\u06CC\u0646\u06A9 \u062C\u062F\u06CC\u062F \u0633\u0627\u062E\u062A\u0647 \u0634\u062F!", true);
+    const linkUrl = `https://t.me/${env.BOT_USERNAME}?start=u_${newToken}`;
+    const txt = `\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u062C\u062F\u06CC\u062F \u0634\u0645\u0627:</b>
+
+<code>${linkUrl}</code>
+
+\u0644\u06CC\u0646\u06A9 \u0642\u0628\u0644\u06CC \u062F\u06CC\u06AF\u0631 \u06A9\u0627\u0631 \u0646\u0645\u06CC\u200C\u06A9\u0646\u062F \u0648 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u0634\u062F.`;
+    await tg.editMessageText(from.id, msgId, txt, {
+      reply_markup: linkManagementKeyboard(newToken, true, env.BOT_USERNAME)
+    });
+    return;
+  }
+  if (data === "link:toggle") {
+    const nextState = user.is_link_active === 1 ? false : true;
+    await db.toggleLinkActive(userHash, nextState);
+    await tg.answerCallbackQuery(
+      cb.id,
+      nextState ? "\u2705 \u0644\u06CC\u0646\u06A9 \u0634\u0645\u0627 \u0641\u0639\u0627\u0644 \u0634\u062F." : "\u274C \u0644\u06CC\u0646\u06A9 \u0634\u0645\u0627 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u0634\u062F."
+    );
+    const linkUrl = `https://t.me/${env.BOT_USERNAME}?start=u_${user.link_token}`;
+    const txt = `\u{1F517} <b>\u0648\u0636\u0639\u06CC\u062A \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC: ${nextState ? "\u0641\u0639\u0627\u0644 \u2705" : "\u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u274C"}</b>
+
+<code>${linkUrl}</code>`;
+    await tg.editMessageText(from.id, msgId, txt, {
+      reply_markup: linkManagementKeyboard(user.link_token, nextState, env.BOT_USERNAME)
+    });
+    return;
+  }
+  if (data === "menu:vacation") {
+    const isNowVacation = await db.toggleVacation(userHash);
+    const updatedUser = await db.getUserByHash(userHash);
+    if (isNowVacation) {
+      await tg.answerCallbackQuery(cb.id, "\u23F8 \u062D\u0627\u0644\u062A \u0627\u0633\u062A\u0631\u0627\u062D\u062A \u0641\u0639\u0627\u0644 \u0634\u062F. \u067E\u06CC\u0627\u0645\u200C\u0647\u0627\u06CC \u062C\u062F\u06CC\u062F \u062F\u0631 \u0635\u0641 \u0645\u06CC\u200C\u0645\u0627\u0646\u0646\u062F.", true);
+    } else {
+      await tg.answerCallbackQuery(cb.id, "\u25B6\uFE0F \u062D\u0627\u0644\u062A \u0627\u0633\u062A\u0631\u0627\u062D\u062A \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u0634\u062F \u0648 \u0622\u0646\u0644\u0627\u06CC\u0646 \u0634\u062F\u06CC\u062F.", true);
+      const queue = await db.getAndClearQueuedMessages(userHash);
+      if (queue.length > 0) {
+        await tg.sendMessage(from.id, `\u{1F4EC} \u0634\u0645\u0627 <b>${queue.length}</b> \u067E\u06CC\u0627\u0645 \u062F\u0631 \u0635\u0641 \u062F\u0627\u0634\u062A\u06CC\u062F \u06A9\u0647 \u0627\u06A9\u0646\u0648\u0646 \u062A\u062D\u0648\u06CC\u0644 \u0645\u06CC\u200C\u0634\u0648\u0646\u062F:`);
+        for (const qItem of queue) {
+          try {
+            await tg.copyMessage(from.id, qItem.from_chat_id, qItem.message_id);
+          } catch (e) {
+            console.error("Error flushing queue message:", e);
+          }
+        }
+      }
+    }
+    await tg.editMessageText(from.id, msgId, "\u{1F3E0} <b>\u0645\u0646\u0648\u06CC \u0627\u0635\u0644\u06CC:</b>", {
+      reply_markup: mainMenuInlineKeyboard(updatedUser, env.BOT_USERNAME, isAdmin)
+    });
+    return;
+  }
+  if (data === "menu:settings") {
+    await tg.answerCallbackQuery(cb.id);
+    const filters = await db.getMediaFilters(userHash);
+    await tg.editMessageText(from.id, msgId, "\u2699\uFE0F <b>\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0648 \u0641\u06CC\u0644\u062A\u0631 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627:</b>", {
+      reply_markup: settingsKeyboard(user, filters)
+    });
+    return;
+  }
+  if (data === "set:nickname") {
+    await tg.answerCallbackQuery(cb.id);
+    await db.setSetting(`state:${userHash}`, "nickname:set");
+    await tg.sendMessage(from.id, "\u270F\uFE0F \u0644\u0637\u0641\u0627\u064B \u0644\u0642\u0628 \u062C\u062F\u06CC\u062F \u062E\u0648\u062F \u0631\u0627 \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0628\u06CC\u0646 \u06F2 \u062A\u0627 \u06F3\u06F0 \u06A9\u0627\u0631\u0627\u06A9\u062A\u0631):");
+    return;
+  }
+  if (data === "set:delivery") {
+    const nextMode = user.delivery_mode === "direct" ? "peek" : "direct";
+    await db.setDeliveryMode(userHash, nextMode);
+    await tg.answerCallbackQuery(
+      cb.id,
+      nextMode === "direct" ? "\u26A1\uFE0F \u067E\u06CC\u0627\u0645\u200C\u0647\u0627 \u0645\u0633\u062A\u0642\u06CC\u0645\u0627\u064B \u0627\u0631\u0633\u0627\u0644 \u0645\u06CC\u200C\u0634\u0648\u0646\u062F." : "\u{1F441} \u067E\u06CC\u0627\u0645\u200C\u0647\u0627 \u0628\u0627 \u062F\u06A9\u0645\u0647 \u0645\u0634\u0627\u0647\u062F\u0647 \u0648 \u0631\u0633\u06CC\u062F \u062E\u0648\u0627\u0646\u062F\u0647 \u0634\u062F\u0646 \u0645\u06CC\u200C\u0622\u06CC\u0646\u062F."
+    );
+    const updatedUser = await db.getUserByHash(userHash);
+    const filters = await db.getMediaFilters(userHash);
+    await tg.editMessageText(from.id, msgId, "\u2699\uFE0F <b>\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0648 \u0641\u06CC\u0644\u062A\u0631 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627:</b>", {
+      reply_markup: settingsKeyboard(updatedUser, filters)
+    });
+    return;
+  }
+  if (data.startsWith("flt:")) {
+    const field = data.replace("flt:", "");
+    await db.toggleMediaFilter(userHash, field);
+    await tg.answerCallbackQuery(cb.id, "\u0648\u0636\u0639\u06CC\u062A \u0641\u06CC\u0644\u062A\u0631 \u062A\u063A\u06CC\u06CC\u0631 \u06A9\u0631\u062F.");
+    const filters = await db.getMediaFilters(userHash);
+    await tg.editMessageText(from.id, msgId, "\u2699\uFE0F <b>\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0648 \u0641\u06CC\u0644\u062A\u0631 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627:</b>", {
+      reply_markup: settingsKeyboard(user, filters)
+    });
+    return;
+  }
+  if (data === "set:rate_limit") {
+    const rates = [0, 3, 5, 10];
+    const currentIdx = rates.indexOf(user.personal_rate_limit);
+    const nextRate = rates[(currentIdx + 1) % rates.length];
+    await db.setPersonalRateLimit(userHash, nextRate);
+    await tg.answerCallbackQuery(
+      cb.id,
+      nextRate === 0 ? "\u0633\u067E\u0631 \u0636\u062F \u0627\u0633\u067E\u0645 \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 \u0634\u062F." : `\u0633\u067E\u0631 \u0631\u0648\u06CC ${nextRate} \u067E\u06CC\u0627\u0645 \u062F\u0631 \u062F\u0642\u06CC\u0642\u0647 \u062A\u0646\u0638\u06CC\u0645 \u0634\u062F.`
+    );
+    const updatedUser = await db.getUserByHash(userHash);
+    const filters = await db.getMediaFilters(userHash);
+    await tg.editMessageText(from.id, msgId, "\u2699\uFE0F <b>\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0648 \u0641\u06CC\u0644\u062A\u0631 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627:</b>", {
+      reply_markup: settingsKeyboard(updatedUser, filters)
+    });
+    return;
+  }
+  if (data.startsWith("peek:")) {
+    const [, senderTgIdStr, targetMidStr, senderToken] = data.split(":");
+    const senderTgId = parseInt(senderTgIdStr, 10);
+    const targetMid = parseInt(targetMidStr, 10);
+    await tg.answerCallbackQuery(cb.id, "\u067E\u06CC\u0627\u0645 \u0628\u0627\u0631\u06AF\u0630\u0627\u0631\u06CC \u0634\u062F.");
+    const actionsKeyboard = messageActionsKeyboard(senderToken, targetMid);
+    await tg.copyMessage(from.id, senderTgId, targetMid, {
+      reply_markup: actionsKeyboard
+    });
+    await tg.deleteMessage(from.id, msgId);
+    await tg.sendMessage(senderTgId, "\u2705 \u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u062A\u0648\u0633\u0637 \u0637\u0631\u0641 \u0645\u0642\u0627\u0628\u0644 \u062E\u0648\u0627\u0646\u062F\u0647 \u0634\u062F.", {
+      reply_to_message_id: targetMid
+    });
+    return;
+  }
+  if (data.startsWith("reply:")) {
+    const [, targetToken, replyMidStr] = data.split(":");
+    const targetUser = await db.getUserByLinkToken(targetToken);
+    if (!targetUser) {
+      await tg.answerCallbackQuery(cb.id, "\u274C \u0645\u062E\u0627\u0637\u0628 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F \u06CC\u0627 \u062A\u063A\u06CC\u06CC\u0631 \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.", true);
+      return;
+    }
+    await db.setSetting(`state:${userHash}`, `target:${targetUser.user_id_hash}`);
+    await tg.answerCallbackQuery(cb.id);
+    await tg.sendMessage(
+      from.id,
+      `\u270D\uFE0F \u0627\u06A9\u0646\u0648\u0646 \u067E\u0627\u0633\u062E \u062E\u0648\u062F \u0631\u0627 \u0628\u0631\u0627\u06CC <b>${targetUser.nickname}</b> \u0628\u0646\u0648\u06CC\u0633\u06CC\u062F \u06CC\u0627 \u0647\u0631 \u0641\u0627\u06CC\u0644\u06CC \u0628\u0641\u0631\u0633\u062A\u06CC\u062F:`,
+      { reply_to_message_id: parseInt(replyMidStr, 10) }
+    );
+    return;
+  }
+  if (data.startsWith("block:")) {
+    const targetToken = data.replace("block:", "");
+    const targetUser = await db.getUserByLinkToken(targetToken);
+    if (!targetUser)
+      return;
+    await db.addBlock(userHash, targetUser.user_id_hash);
+    await tg.answerCallbackQuery(cb.id, "\u{1F512} \u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0645\u0633\u062F\u0648\u062F \u0634\u062F.", true);
+    const newKb = messageActionsKeyboard(targetToken, msgId, { isBlocked: true });
+    await tg.editMessageText(from.id, msgId, cb.message.text || "\u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633", {
+      reply_markup: newKb
+    });
+    return;
+  }
+  if (data.startsWith("unblock:")) {
+    const targetToken = data.replace("unblock:", "");
+    const targetUser = await db.getUserByLinkToken(targetToken);
+    if (!targetUser)
+      return;
+    await db.removeBlock(userHash, targetUser.user_id_hash);
+    await tg.answerCallbackQuery(cb.id, "\u{1F513} \u0645\u062E\u0627\u0637\u0628 \u0631\u0641\u0639 \u0645\u0633\u062F\u0648\u062F\u06CC \u0634\u062F.", true);
+    const newKb = messageActionsKeyboard(targetToken, msgId, { isBlocked: false });
+    await tg.editMessageText(from.id, msgId, cb.message.text || "\u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633", {
+      reply_markup: newKb
+    });
+    return;
+  }
+  if (data.startsWith("note:")) {
+    const targetToken = data.replace("note:", "");
+    const targetUser = await db.getUserByLinkToken(targetToken);
+    if (!targetUser)
+      return;
+    await db.setSetting(`state:${userHash}`, `note:${targetUser.user_id_hash}`);
+    await tg.answerCallbackQuery(cb.id);
+    await tg.sendMessage(
+      from.id,
+      `\u{1F4DD} \u0644\u0637\u0641\u0627\u064B \u0645\u062A\u0646 \u06CC\u0627\u062F\u062F\u0627\u0634\u062A \u0645\u062D\u0631\u0645\u0627\u0646\u0647 \u062E\u0648\u062F \u0628\u0631\u0627\u06CC <b>${targetUser.nickname}</b> \u0631\u0627 \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F:
+(\u0627\u06CC\u0646 \u0646\u0648\u062A \u0641\u0642\u0637 \u0628\u0631\u0627\u06CC \u062E\u0648\u062F\u062A\u0627\u0646 \u0646\u0645\u0627\u06CC\u0634 \u062F\u0627\u062F\u0647 \u0645\u06CC\u200C\u0634\u0648\u062F)`
+    );
+    return;
+  }
+  if (data.startsWith("report:")) {
+    const [, targetToken, reportedMidStr] = data.split(":");
+    const targetUser = await db.getUserByLinkToken(targetToken);
+    if (!targetUser)
+      return;
+    const caseId = generateReportCaseId();
+    await tg.answerCallbackQuery(cb.id, `\u{1F6A8} \u06AF\u0632\u0627\u0631\u0634 \u0628\u0627 \u0634\u0646\u0627\u0633\u0647 \u067E\u06CC\u06AF\u06CC\u0631\u06CC ${caseId} \u0628\u0631\u0627\u06CC \u0645\u062F\u06CC\u0631\u06CC\u062A \u0627\u0631\u0633\u0627\u0644 \u0634\u062F.`, true);
+    const primaryAdminId = adminIds[0];
+    if (primaryAdminId) {
+      const reportReportTxt = `\u{1F6A8} <b>\u06AF\u0632\u0627\u0631\u0634 \u062A\u062E\u0644\u0641 \u062C\u062F\u06CC\u062F (#${caseId})</b>
+
+\u0644\u0642\u0628 \u0641\u0631\u062F \u06AF\u0632\u0627\u0631\u0634\u200C\u0634\u062F\u0647: <b>${targetUser.nickname}</b>
+\u0634\u0646\u0627\u0633\u0647 \u0647\u0634 \u0634\u0627\u06A9\u06CC: <code>${userHash.slice(0, 10)}...</code>
+
+\u067E\u06CC\u0627\u0645 \u0631\u06CC\u067E\u0648\u0631\u062A\u200C\u0634\u062F\u0647 \u062F\u0631 \u0627\u062F\u0627\u0645\u0647 \u0647\u062F\u0627\u06CC\u062A \u0645\u06CC\u200C\u0634\u0648\u062F:`;
+      const adminReportKb = {
+        inline_keyboard: [
+          [{ text: "\u{1F6AB} \u0628\u0646 \u0633\u0631\u0627\u0633\u0631\u06CC \u06A9\u0627\u0631\u0628\u0631 (Global Ban)", callback_data: `admin:ban:${targetUser.user_id_hash}` }]
+        ]
+      };
+      await tg.sendMessage(primaryAdminId, reportReportTxt, { reply_markup: adminReportKb });
+      const reporterTgId = from.id;
+      await tg.copyMessage(primaryAdminId, reporterTgId, parseInt(reportedMidStr, 10));
+    }
+    return;
+  }
+  if (data.startsWith("del:")) {
+    const targetMsgId = parseInt(data.replace("del:", ""), 10);
+    const mapping = await db.deleteMappingBySource(userHash, msgId);
+    if (mapping) {
+      const recipientUser = await db.getUserByHash(mapping.dest_chat_hash);
+      if (recipientUser) {
+        const destChatId = await decryptTgId(recipientUser.encrypted_tg_id, env.AES_KEY);
+        await tg.deleteMessage(destChatId, mapping.dest_msg_id);
+      }
+    } else {
+      try {
+        await tg.deleteMessage(from.id, targetMsgId);
+      } catch (e) {
+      }
+    }
+    await tg.answerCallbackQuery(cb.id, "\u{1F5D1} \u067E\u06CC\u0627\u0645 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0631\u0627\u06CC \u0637\u0631\u0641 \u0645\u0642\u0627\u0628\u0644 \u062D\u0630\u0641 \u0634\u062F.", true);
+    await tg.deleteMessage(from.id, msgId);
+    return;
+  }
+  if (data === "menu:contacts") {
+    await tg.answerCallbackQuery(cb.id);
+    const contacts = await db.getContactsForUser(userHash);
+    if (contacts.length === 0) {
+      await tg.editMessageText(from.id, msgId, "\u{1F465} <b>\u0644\u06CC\u0633\u062A \u0645\u062E\u0627\u0637\u0628\u06CC\u0646 \u0634\u0645\u0627 \u062E\u0627\u0644\u06CC \u0627\u0633\u062A.</b>\n\u0647\u0646\u0648\u0632 \u0628\u0627 \u06A9\u0633\u06CC \u06AF\u0641\u062A\u06AF\u0648 \u0646\u06A9\u0631\u062F\u0647\u200C\u0627\u06CC\u062F.", {
+        reply_markup: {
+          inline_keyboard: [[{ text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }]]
+        }
+      });
+      return;
+    }
+    const kbRows = [];
+    for (const cHash of contacts.slice(0, 8)) {
+      const cUser = await db.getUserByHash(cHash);
+      const note = await db.getNote(userHash, cHash);
+      let label = cUser ? cUser.nickname : "\u06A9\u0627\u0631\u0628\u0631 \u0646\u0627\u0634\u0646\u0627\u0633";
+      if (note?.note_text)
+        label += ` (${note.note_text.slice(0, 15)})`;
+      kbRows.push([
+        { text: `\u{1F4AC} ${label}`, callback_data: `contact_chat:${cUser?.link_token}` },
+        { text: "\u274C \u062D\u0630\u0641", callback_data: `contact_del:${cHash}` }
+      ]);
+    }
+    kbRows.push([{ text: "\u{1F9F9} \u067E\u0627\u06A9\u0633\u0627\u0632\u06CC \u06A9\u0627\u0645\u0644 \u0647\u0645\u0647 \u0645\u062E\u0627\u0637\u0628\u06CC\u0646", callback_data: "contacts_clear" }]);
+    kbRows.push([{ text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }]);
+    await tg.editMessageText(from.id, msgId, "\u{1F465} <b>\u0645\u062E\u0627\u0637\u0628\u06CC\u0646 \u0627\u062E\u06CC\u0631 \u0634\u0645\u0627:</b>\n\u0628\u0631\u0627\u06CC \u0686\u062A \u06CC\u0627 \u062D\u0630\u0641 \u0627\u0646\u062A\u062E\u0627\u0628 \u06A9\u0646\u06CC\u062F:", {
+      reply_markup: { inline_keyboard: kbRows }
+    });
+    return;
+  }
+  if (data.startsWith("contact_del:")) {
+    const targetHash = data.replace("contact_del:", "");
+    await db.deleteContact(userHash, targetHash);
+    await tg.answerCallbackQuery(cb.id, "\u0645\u062E\u0627\u0637\u0628 \u0627\u0632 \u0644\u06CC\u0633\u062A \u0634\u0645\u0627 \u062D\u0630\u0641 \u0634\u062F.");
+    const contacts = await db.getContactsForUser(userHash);
+    const kbRows = [];
+    for (const cHash of contacts.slice(0, 8)) {
+      const cUser = await db.getUserByHash(cHash);
+      kbRows.push([
+        { text: `\u{1F4AC} ${cUser?.nickname || "\u0646\u0627\u0634\u0646\u0627\u0633"}`, callback_data: `contact_chat:${cUser?.link_token}` },
+        { text: "\u274C \u062D\u0630\u0641", callback_data: `contact_del:${cHash}` }
+      ]);
+    }
+    kbRows.push([{ text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }]);
+    await tg.editMessageText(from.id, msgId, "\u{1F465} <b>\u0645\u062E\u0627\u0637\u0628\u06CC\u0646 \u0627\u062E\u06CC\u0631 \u0634\u0645\u0627:</b>", {
+      reply_markup: { inline_keyboard: kbRows }
+    });
+    return;
+  }
+  if (data === "contacts_clear") {
+    await db.clearAllContacts(userHash);
+    await tg.answerCallbackQuery(cb.id, "\u0647\u0645\u0647 \u0645\u062E\u0627\u0637\u0628\u06CC\u0646 \u067E\u0627\u06A9\u0633\u0627\u0632\u06CC \u0634\u062F\u0646\u062F.", true);
+    await tg.editMessageText(from.id, msgId, "\u{1F465} <b>\u0644\u06CC\u0633\u062A \u0645\u062E\u0627\u0637\u0628\u06CC\u0646 \u0634\u0645\u0627 \u06A9\u0627\u0645\u0644\u0627\u064B \u067E\u0627\u06A9\u0633\u0627\u0632\u06CC \u0634\u062F.</b>", {
+      reply_markup: {
+        inline_keyboard: [[{ text: "\u{1F519} \u0628\u0627\u0632\u06AF\u0634\u062A \u0628\u0647 \u0645\u0646\u0648", callback_data: "menu:main" }]]
+      }
+    });
+    return;
+  }
+  if (data.startsWith("contact_chat:")) {
+    const targetToken = data.replace("contact_chat:", "");
+    const targetUser = await db.getUserByLinkToken(targetToken);
+    if (!targetUser)
+      return;
+    await db.setSetting(`state:${userHash}`, `target:${targetUser.user_id_hash}`);
+    await tg.answerCallbackQuery(cb.id);
+    await tg.sendMessage(from.id, `\u270D\uFE0F \u067E\u06CC\u0627\u0645 \u062E\u0648\u062F \u0631\u0627 \u0628\u0631\u0627\u06CC <b>${targetUser.nickname}</b> \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F:`);
+    return;
+  }
+  if (data === "admin:panel" && isAdmin) {
+    await tg.answerCallbackQuery(cb.id);
+    const shieldEnabled = await db.getSetting("shield_enabled", env.DEFAULT_SHIELD_ENABLED || "false") === "true";
+    const shieldRate = await db.getSetting("shield_rate", env.DEFAULT_RATE_LIMIT_PER_MINUTE || "5");
+    await tg.editMessageText(from.id, msgId, "\u{1F6E1} <b>\u067E\u0646\u0644 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0627\u062F\u0645\u06CC\u0646 Faceless:</b>", {
+      reply_markup: adminPanelKeyboard(shieldEnabled, shieldRate)
+    });
+    return;
+  }
+  if (data === "admin:toggle_shield" && isAdmin) {
+    const current = await db.getSetting("shield_enabled", "false") === "true";
+    const next = !current;
+    await db.setSetting("shield_enabled", next ? "true" : "false");
+    await tg.answerCallbackQuery(cb.id, next ? "\u0633\u067E\u0631 \u0633\u0631\u0627\u0633\u0631\u06CC \u0631\u0648\u0634\u0646 \u0634\u062F \u2705" : "\u0633\u067E\u0631 \u0633\u0631\u0627\u0633\u0631\u06CC \u062E\u0627\u0645\u0648\u0634 \u0634\u062F \u274C");
+    const shieldRate = await db.getSetting("shield_rate", env.DEFAULT_RATE_LIMIT_PER_MINUTE || "5");
+    await tg.editMessageText(from.id, msgId, "\u{1F6E1} <b>\u067E\u0646\u0644 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0627\u062F\u0645\u06CC\u0646 Faceless:</b>", {
+      reply_markup: adminPanelKeyboard(next, shieldRate)
+    });
+    return;
+  }
+  if (data.startsWith("admin:ban:") && isAdmin) {
+    const targetHash = data.replace("admin:ban:", "");
+    await db.setGlobalBan(targetHash, true);
+    await tg.answerCallbackQuery(cb.id, "\u{1F6AB} \u06A9\u0627\u0631\u0628\u0631 \u0645\u0648\u0631\u062F \u0646\u0638\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062F\u0631 \u0633\u0631\u0627\u0633\u0631 \u0631\u0628\u0627\u062A \u0628\u0646 \u0634\u062F.", true);
+    return;
+  }
+}
+
+// src/handlers/edit.ts
+async function handleEditedMessage(editedMsg, env, db, tg) {
+  const from = editedMsg.from;
+  if (!from)
+    return;
+  const senderHash = await hashUserId(from.id, env.SECRET_SALT);
+  const mapping = await db.getMappingBySource(senderHash, editedMsg.message_id);
+  if (!mapping) {
+    return;
+  }
+  const recipientUser = await db.getUserByHash(mapping.dest_chat_hash);
+  if (!recipientUser)
+    return;
+  const recipientTgId = await decryptTgId(recipientUser.encrypted_tg_id, env.AES_KEY);
+  try {
+    if (editedMsg.text) {
+      await tg.editMessageText(recipientTgId, mapping.dest_msg_id, editedMsg.text);
+    } else if (editedMsg.caption) {
+      await tg.editMessageCaption(recipientTgId, mapping.dest_msg_id, editedMsg.caption);
+    }
+  } catch (e) {
+    console.warn("Failed to edit target message:", e);
+  }
+}
+
+// src/handlers/reaction.ts
+async function handleMessageReaction(reactionUpdate, env, db, tg) {
+  const chatId = reactionUpdate.chat.id;
+  const messageId = reactionUpdate.message_id;
+  const userHash = await hashUserId(chatId, env.SECRET_SALT);
+  let targetChatHash = null;
+  let targetMsgId = null;
+  const mappingSrc = await db.getMappingBySource(userHash, messageId);
+  if (mappingSrc) {
+    targetChatHash = mappingSrc.dest_chat_hash;
+    targetMsgId = mappingSrc.dest_msg_id;
+  } else {
+    const mappingDest = await db.getMappingByDest(userHash, messageId);
+    if (mappingDest) {
+      targetChatHash = mappingDest.src_chat_hash;
+      targetMsgId = mappingDest.src_msg_id;
+    }
+  }
+  if (!targetChatHash || !targetMsgId)
+    return;
+  const targetUser = await db.getUserByHash(targetChatHash);
+  if (!targetUser)
+    return;
+  const targetTgId = await decryptTgId(targetUser.encrypted_tg_id, env.AES_KEY);
+  try {
+    await tg.setMessageReaction(targetTgId, targetMsgId, reactionUpdate.new_reaction);
+  } catch (e) {
+    console.warn("Failed to mirror message reaction:", e);
+  }
+}
+
+// src/handlers/forum.ts
+async function handleForumMessage(msg, env, db, tg) {
+  const threadId = msg.message_thread_id;
+  const chatId = msg.chat.id;
+  if (!threadId || msg.from?.is_bot)
+    return;
+  const mapping = await db.getTopicMapping(chatId, threadId);
+  if (!mapping)
+    return;
+  const senderUser = await db.getUserByHash(mapping.sender_hash);
+  if (!senderUser)
+    return;
+  const senderTgId = await decryptTgId(senderUser.encrypted_tg_id, env.AES_KEY);
+  try {
+    await tg.sendMessage(senderTgId, "\u{1F4AC} <b>\u067E\u0627\u0633\u062E \u062C\u062F\u06CC\u062F \u0627\u0632 \u0637\u0631\u0641 \u0645\u062E\u0627\u0637\u0628:</b>");
+    const copied = await tg.copyMessage(senderTgId, chatId, msg.message_id);
+    await db.saveMessageMapping(mapping.recipient_hash, msg.message_id, mapping.sender_hash, copied.message_id);
+  } catch (e) {
+    console.error("Failed to route forum reply to user:", e);
+  }
+}
+
+// src/index.ts
+var src_default = {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
+      return new Response(
+        JSON.stringify({
+          status: "ok",
+          service: "Faceless Anonymous Telegram Bot",
+          runtime: "Cloudflare Workers + D1",
+          uptime: "100%"
+        }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+    const tg = new TelegramClient(env.BOT_TOKEN);
+    const db = new Database(env.DB);
+    if (request.method === "GET" && url.pathname === "/init-commands") {
+      await tg.setMyCommands([
+        { command: "start", description: "\u0634\u0631\u0648\u0639 \u0648 \u062F\u0631\u06CC\u0627\u0641\u062A \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC" },
+        { command: "menu", description: "\u0628\u0627\u0632 \u06A9\u0631\u062F\u0646 \u0645\u0646\u0648\u06CC \u0627\u0635\u0644\u06CC" },
+        { command: "mylink", description: "\u0645\u062F\u06CC\u0631\u06CC\u062A \u0648 \u062F\u0631\u06CC\u0627\u0641\u062A \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC" },
+        { command: "contacts", description: "\u0645\u0634\u0627\u0647\u062F\u0647 \u0648 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0645\u062E\u0627\u0637\u0628\u06CC\u0646" },
+        { command: "settings", description: "\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0644\u0642\u0628 \u0648 \u0641\u06CC\u0644\u062A\u0631 \u0631\u0633\u0627\u0646\u0647\u200C\u0647\u0627" },
+        { command: "help", description: "\u0631\u0627\u0647\u0646\u0645\u0627 \u0648 \u0627\u0635\u0648\u0644 \u0627\u0645\u0646\u06CC\u062A" }
+      ]);
+      return new Response("Commands initialized successfully!", { status: 200 });
+    }
+    if (request.method === "GET" && url.pathname === "/setup-webhook") {
+      const webhookUrl = `${url.origin}/webhook`;
+      const result = await tg.setWebhook(webhookUrl, env.WEBHOOK_SECRET);
+      return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
+    }
+    if (request.method === "POST") {
+      if (env.WEBHOOK_SECRET) {
+        const receivedToken = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+        if (receivedToken !== env.WEBHOOK_SECRET) {
+          console.warn("Unauthorized webhook request rejected.");
+          return new Response("Unauthorized", { status: 403 });
+        }
+      }
+      let update;
+      try {
+        update = await request.json();
+      } catch (err) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      ctx.waitUntil(
+        (async () => {
+          try {
+            if (update.message) {
+              if (update.message.chat.type === "private") {
+                await handleMessage(update.message, env, db, tg);
+              } else if (update.message.chat.type === "supergroup" || update.message.chat.type === "group") {
+                await handleForumMessage(update.message, env, db, tg);
+              }
+            } else if (update.callback_query) {
+              await handleCallbackQuery(update.callback_query, env, db, tg);
+            } else if (update.edited_message) {
+              await handleEditedMessage(update.edited_message, env, db, tg);
+            } else if (update.message_reaction) {
+              await handleMessageReaction(update.message_reaction, env, db, tg);
+            }
+          } catch (e) {
+            console.error("Unhandled error in update processing:", e);
+          }
+        })()
+      );
+      return new Response("OK", { status: 200 });
+    }
+    return new Response("Not Found", { status: 404 });
+  }
+};
+export {
+  src_default as default
+};

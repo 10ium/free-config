@@ -4,6 +4,123 @@ var Database = class {
     this.db = db;
   }
   /**
+   * ساخت خودکار تمام جداول و ایندکس‌های دیتابیس D1 (بدون نیاز به نوشتن دستی در کنسول)
+   */
+  async initTables() {
+    const stmts = [
+      `CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id_hash TEXT NOT NULL UNIQUE,
+        encrypted_tg_id TEXT NOT NULL,
+        nickname TEXT NOT NULL,
+        link_token TEXT NOT NULL UNIQUE,
+        is_link_active INTEGER NOT NULL DEFAULT 1,
+        is_vacation INTEGER NOT NULL DEFAULT 0,
+        delivery_mode TEXT NOT NULL DEFAULT 'direct',
+        is_banned INTEGER NOT NULL DEFAULT 0,
+        personal_rate_limit INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_active DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_users_link_token ON users(link_token)`,
+      `CREATE INDEX IF NOT EXISTS idx_users_user_id_hash ON users(user_id_hash)`,
+      `CREATE TABLE IF NOT EXISTS media_filters (
+        user_id_hash TEXT PRIMARY KEY,
+        allow_photo INTEGER NOT NULL DEFAULT 1,
+        allow_video INTEGER NOT NULL DEFAULT 1,
+        allow_voice INTEGER NOT NULL DEFAULT 1,
+        allow_video_note INTEGER NOT NULL DEFAULT 1,
+        allow_audio INTEGER NOT NULL DEFAULT 1,
+        allow_document INTEGER NOT NULL DEFAULT 1,
+        allow_sticker INTEGER NOT NULL DEFAULT 1,
+        allow_web_preview INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY(user_id_hash) REFERENCES users(user_id_hash) ON DELETE CASCADE
+      )`,
+      `CREATE TABLE IF NOT EXISTS conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user1_hash TEXT NOT NULL,
+        user2_hash TEXT NOT NULL,
+        last_message_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_active_for_user1 INTEGER NOT NULL DEFAULT 1,
+        is_active_for_user2 INTEGER NOT NULL DEFAULT 1,
+        UNIQUE(user1_hash, user2_hash)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_conv_u1 ON conversations(user1_hash)`,
+      `CREATE INDEX IF NOT EXISTS idx_conv_u2 ON conversations(user2_hash)`,
+      `CREATE TABLE IF NOT EXISTS user_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_hash TEXT NOT NULL,
+        target_hash TEXT NOT NULL,
+        note_text TEXT,
+        admin_alias TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(owner_hash, target_hash)
+      )`,
+      `CREATE TABLE IF NOT EXISTS blocks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        blocker_hash TEXT NOT NULL,
+        blocked_hash TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(blocker_hash, blocked_hash)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_blocks_pair ON blocks(blocker_hash, blocked_hash)`,
+      `CREATE TABLE IF NOT EXISTS message_mappings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        src_chat_hash TEXT NOT NULL,
+        src_msg_id INTEGER NOT NULL,
+        dest_chat_hash TEXT NOT NULL,
+        dest_msg_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_msg_map_src ON message_mappings(src_chat_hash, src_msg_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_msg_map_dest ON message_mappings(dest_chat_hash, dest_msg_id)`,
+      `CREATE TABLE IF NOT EXISTS user_groups (
+        user_hash TEXT PRIMARY KEY,
+        group_id INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS forum_topics (
+        recipient_hash TEXT NOT NULL,
+        sender_hash TEXT NOT NULL,
+        topic_id INTEGER NOT NULL,
+        group_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(recipient_hash, sender_hash, group_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS message_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipient_hash TEXT NOT NULL,
+        sender_hash TEXT NOT NULL,
+        from_chat_id INTEGER NOT NULL,
+        message_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS system_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS rate_limits (
+        sender_hash TEXT NOT NULL,
+        target_hash TEXT NOT NULL,
+        window_minute INTEGER NOT NULL,
+        count INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY(sender_hash, target_hash, window_minute)
+      )`
+    ];
+    for (const sql of stmts) {
+      await this.db.prepare(sql).run();
+    }
+    return await this.getExistingTables();
+  }
+  /**
+   * دریافت لیست جدول‌های موجود در دیتابیس
+   */
+  async getExistingTables() {
+    const res = await this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();
+    return (res.results || []).map((r) => r.name);
+  }
+  /**
    * دریافت اطلاعات کاربر با استفاده از هش شناسه
    */
   async getUserByHash(hash) {
@@ -281,6 +398,12 @@ var TelegramClient = class {
       throw new Error(`Telegram API [${method}] failed: ${data.description}`);
     }
     return data.result;
+  }
+  /**
+   * دریافت مشخصات ربات (getMe)
+   */
+  async getMe() {
+    return await this.call("getMe", {});
   }
   /**
    * ارسال پیام متنی
@@ -662,7 +785,18 @@ async function handleMessage(msg, env, db, tg) {
     }
     return;
   }
-  let user = await db.getUserByHash(userHash);
+  let user = null;
+  try {
+    user = await db.getUserByHash(userHash);
+  } catch (err) {
+    if (err?.message && err.message.includes("no such table")) {
+      console.log("Tables missing, auto-initializing D1 database...");
+      await db.initTables();
+      user = await db.getUserByHash(userHash);
+    } else {
+      throw err;
+    }
+  }
   if (user && user.is_banned === 1) {
     await tg.sendMessage(from.id, "\u26D4\uFE0F \u062D\u0633\u0627\u0628 \u06A9\u0627\u0631\u0628\u0631\u06CC \u0634\u0645\u0627 \u0628\u0647 \u062F\u0644\u06CC\u0644 \u0646\u0642\u0636 \u0642\u0648\u0627\u0646\u06CC\u0646 \u0645\u0633\u062F\u0648\u062F \u0634\u062F\u0647 \u0627\u0633\u062A.");
     return;
@@ -1384,8 +1518,76 @@ var src_default = {
         { headers: { "Content-Type": "application/json" } }
       );
     }
+    const d1 = env.DB || env.D1_DATABASE_DB;
     const tg = new TelegramClient(env.BOT_TOKEN);
-    const db = new Database(env.DB);
+    if (request.method === "GET" && url.pathname === "/init-db") {
+      if (!d1) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "\u062F\u06CC\u062A\u0627\u0628\u06CC\u0633 D1 \u0628\u0647 \u0648\u0631\u06A9\u0631 \u0645\u062A\u0635\u0644 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A. \u0645\u0637\u0645\u0626\u0646 \u0634\u0648\u06CC\u062F \u062F\u0631 \u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0648\u0631\u06A9\u0631 (Settings -> Bindings) \u0646\u0627\u0645 \u0645\u062A\u063A\u06CC\u0631 DB \u06CC\u0627 D1_DATABASE_DB \u062A\u0646\u0638\u06CC\u0645 \u0634\u062F\u0647 \u0628\u0627\u0634\u062F."
+          }),
+          { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
+        );
+      }
+      try {
+        const db = new Database(d1);
+        const tables = await db.initTables();
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            message: "\u062A\u0645\u0627\u0645\u06CC \u062C\u062F\u0627\u0648\u0644 \u0648 \u0627\u06CC\u0646\u062F\u06A9\u0633\u200C\u0647\u0627\u06CC \u062F\u06CC\u062A\u0627\u0628\u06CC\u0633 D1 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0633\u0627\u062E\u062A\u0647 \u0634\u062F\u0646\u062F!",
+            tables
+          }, null, 2),
+          { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } }
+        );
+      } catch (e) {
+        return new Response(
+          JSON.stringify({ ok: false, error: e?.message || e }),
+          { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
+        );
+      }
+    }
+    if (request.method === "GET" && url.pathname === "/diagnose") {
+      let d1Status = "not_bound";
+      let tables = [];
+      if (d1) {
+        try {
+          const db = new Database(d1);
+          tables = await db.getExistingTables();
+          d1Status = tables.includes("users") ? "ready" : "tables_missing_open_/init-db";
+        } catch (e) {
+          d1Status = `error: ${e?.message}`;
+        }
+      }
+      let tgStatus = "unknown";
+      try {
+        const me = await tg.getMe();
+        tgStatus = `ok: @${me.username}`;
+      } catch (e) {
+        tgStatus = `error: ${e?.message}`;
+      }
+      return new Response(
+        JSON.stringify(
+          {
+            d1_binding: d1 ? env.DB ? "DB" : "D1_DATABASE_DB" : "MISSING",
+            d1_status: d1Status,
+            tables_count: tables.length,
+            tables,
+            bot_token: env.BOT_TOKEN ? "SET" : "MISSING",
+            telegram_api: tgStatus,
+            secret_salt: env.SECRET_SALT ? "SET" : "MISSING",
+            aes_key: env.AES_KEY ? "SET" : "MISSING",
+            webhook_secret: env.WEBHOOK_SECRET ? "SET" : "MISSING",
+            admin_ids: env.ADMIN_IDS || "NOT_SET",
+            bot_username: env.BOT_USERNAME || "NOT_SET"
+          },
+          null,
+          2
+        ),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
     if (request.method === "GET" && url.pathname === "/init-commands") {
       await tg.setMyCommands([
         { command: "start", description: "\u0634\u0631\u0648\u0639 \u0648 \u062F\u0631\u06CC\u0627\u0641\u062A \u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC" },
@@ -1399,7 +1601,7 @@ var src_default = {
     }
     if (request.method === "GET" && url.pathname === "/setup-webhook") {
       const webhookUrl = `${url.origin}/webhook`;
-      const result = await tg.setWebhook(webhookUrl, env.WEBHOOK_SECRET);
+      const result = await tg.setWebhook(webhookUrl, env.WEBHOOK_SECRET || "");
       return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
     }
     if (request.method === "POST") {
@@ -1416,6 +1618,18 @@ var src_default = {
       } catch (err) {
         return new Response("Bad Request", { status: 400 });
       }
+      if (!d1) {
+        console.error("Database D1 is not bound!");
+        if (update.message?.chat?.id) {
+          await tg.sendMessage(
+            update.message.chat.id,
+            "\u26A0\uFE0F \u062F\u06CC\u062A\u0627\u0628\u06CC\u0633 D1 \u0628\u0647 \u0648\u0631\u06A9\u0631 \u0645\u062A\u0635\u0644 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A. \u0644\u0637\u0641\u0627\u064B \u062F\u0631 \u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0648\u0631\u06A9\u0631 \u0645\u062A\u063A\u06CC\u0631 DB \u0631\u0627 \u0628\u0627\u06CC\u0646\u062F \u06A9\u0646\u06CC\u062F."
+          ).catch(() => {
+          });
+        }
+        return new Response("OK", { status: 200 });
+      }
+      const db = new Database(d1);
       ctx.waitUntil(
         (async () => {
           try {
@@ -1434,6 +1648,17 @@ var src_default = {
             }
           } catch (e) {
             console.error("Unhandled error in update processing:", e);
+            if (update.message?.chat?.id) {
+              await tg.sendMessage(
+                update.message.chat.id,
+                `\u26A0\uFE0F <b>\u062E\u0637\u0627 \u062F\u0631 \u067E\u0631\u062F\u0627\u0632\u0634 \u067E\u06CC\u0627\u0645:</b>
+<code>${e?.message || e}</code>
+
+\u0627\u06AF\u0631 \u062C\u062F\u0627\u0648\u0644 \u062F\u06CC\u062A\u0627\u0628\u06CC\u0633 \u0647\u0646\u0648\u0632 \u0633\u0627\u062E\u062A\u0647 \u0646\u0634\u062F\u0647\u200C\u0627\u0646\u062F\u060C \u06CC\u06A9 \u0628\u0627\u0631 \u0644\u06CC\u0646\u06A9 \u0632\u06CC\u0631 \u0631\u0627 \u062F\u0631 \u0645\u0631\u0648\u0631\u06AF\u0631 \u0628\u0627\u0632 \u06A9\u0646\u06CC\u062F:
+https://${url.host}/init-db`
+              ).catch(() => {
+              });
+            }
           }
         })()
       );

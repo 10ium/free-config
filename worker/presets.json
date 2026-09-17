@@ -145,7 +145,7 @@
     "id": "emotional_damage",
     "name": "Emotional Damage (NiREvil) 🛡️",
     "url": "https://raw.githubusercontent.com/NiREvil/Emotional-Damage/main/_worker.js",
-    "pathSuffix": "/sub",
+    "pathSuffix": "/{UUID}",
     "kvBindings": [],
     "vars": [
       {
@@ -179,25 +179,33 @@
     "id": "cf_vless_trojan_yongge",
     "name": "CF VLESS & Trojan (yonggekkk) 👑",
     "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
-    "pathSuffix": "/sub",
+    "pathSuffix": "/{UUID}",
     "kvBindings": [],
     "vars": [
       {
+        "name": "uuid",
+        "required": true,
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری اتصال (UUID)"
+      },
+      {
         "name": "UUID",
         "required": true,
-        "autoGenType": "uuid"
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری پشتیبان"
       },
       {
         "name": "pswd",
-        "required": true,
-        "autoGenType": "trojan_pass",
-        "defaultValue": "trojan"
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "description": "رمز عبور تروجان"
       },
       {
         "name": "proxyip",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": ""
+        "defaultValue": "speed.cloudflare.com",
+        "description": "آدرس IP تمیز کلادفلر"
       }
     ],
     "description": "سیستم اشتراک و ساب‌اسکریپشن VLESS و Trojan پایدار برای برنامه‌های کلاینت.",
@@ -267,49 +275,104 @@
     "category": "clashfa"
   },
   {
-    "id": "faceless_chat_bot",
-    "name": "Faceless Chat Bot 🎭",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/faceless_chat_bot",
-    "pathSuffix": "",
+    "id": "faceless-bot",
+    "name": "ربات پیشرفته چت و پیام ناشناس (Faceless) 🎭",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
+    "pathSuffix": "/setup",
+    "author": "ClashFa Team",
+    "version": "2.2.0",
+    "icon": "🎭",
+    "repo": "https://github.com/10ium/free-config",
+    "branch": "main",
+    "entrypoint": "worker/faceless_chat_bot",
+    "compatibility_date": "2024-09-01",
     "kvBindings": [],
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "faceless_db"
+      }
+    ],
     "vars": [
       {
         "name": "D1_ID_DB",
         "required": true,
-        "autoGenType": "d1_auto"
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس D1 ابری فیسلس (DB)"
+      },
+      {
+        "name": "BOT_USERNAME",
+        "required": true,
+        "defaultValue": "facelesscahtbot",
+        "autoGenType": "manual",
+        "description": "آیدی ربات بدون @"
+      },
+      {
+        "name": "ADMIN_IDS",
+        "required": true,
+        "autoGenType": "manual",
+        "description": "شناسه عددی ادمین اصلی"
       },
       {
         "name": "BOT_TOKEN",
         "required": true,
-        "autoGenType": "manual"
+        "autoGenType": "manual",
+        "description": "توکن ربات تلگرام از BotFather"
       },
       {
         "name": "WEBHOOK_SECRET",
         "required": false,
-        "autoGenType": "alphanumeric"
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "کلید امنیتی وب‌هوک"
       },
       {
         "name": "SECRET_SALT",
         "required": false,
-        "autoGenType": "alphanumeric"
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "رشته Salt رمزنگاری"
       },
       {
         "name": "AES_KEY",
         "required": false,
-        "autoGenType": "aes_key"
-      },
-      {
-        "name": "BOT_USERNAME",
-        "required": false,
-        "autoGenType": "manual"
-      },
-      {
-        "name": "ADMIN_IDS",
-        "required": false,
-        "autoGenType": "manual"
+        "autoGenType": "aes_key",
+        "length": 32,
+        "description": "کلید رمزنگاری AES"
       }
     ],
-    "description": "ربات پیام‌رسان ناشناس حرفه‌ای فیسلس (Faceless) با دیتابیس D1، رمزنگاری AES-GCM و ست‌آپ خودکار وب‌هوک.",
+    "post_deploy": {
+      "action": "open_url",
+      "pathSuffix": "/setup",
+      "description": "راه‌اندازی خودکار ۳ در ۱: ساخت جداول D1، فعال‌سازی وب‌هوک و ثبت منوی دستورات"
+    },
+    "description": "ربات پیام ناشناس مدرن با لینک اختصاصی، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، فیلتر مدیا، پاسخ مستقیم و حفظ حریم خصوصی. (راه‌اندازی خودکار ۳ در ۱ در مسیر /setup).",
+    "category": "clashfa"
+  },
+  {
+    "id": "clashfa_cf_deployer_bot",
+    "name": "ClashFa CF Deployer Bot 🤖",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
+    "isLegacy": false,
+    "kvBindings": [
+      "BOT_KV"
+    ],
+    "vars": [
+      {
+        "name": "TELEGRAM_BOT_TOKEN",
+        "required": true,
+        "autoGenType": "manual",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "SECRET_TOKEN",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "description": "توکن امنیتی وب‌هوک"
+      }
+    ],
+    "pathSuffix": "",
+    "description": "ربات تلگرام و داشبورد جامع وب برای استقرار، ارکستراسیون و مدیریت خودکار ورکرها و پیجز بر بستر کلادفلر.",
     "category": "clashfa"
   },
   {

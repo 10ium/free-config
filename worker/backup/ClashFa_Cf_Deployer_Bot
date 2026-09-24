@@ -1,0 +1,3297 @@
+/**
+ * Advanced Cloudflare Orchestrator, Web Dashboard & Telegram Bot
+ * Language: Persian (Farsi)
+ * 
+ * Features:
+ * - 19 Presets (ClashFa, Config & Proxy, DNS, Custom)
+ * - Telegram Bot with HTML-safe rendering & message chunking
+ * - Full-Featured Persian Modern Responsive Web Dashboard (at / and /dashboard)
+ * - Cloudflare API v4 layer with timeout resilience & token permissions audit
+ * - Worker source code downloader (.js) & safe bindings manager
+ * - Automated D1 SQL schema deployment & KV management
+ * 
+ * Bindings Required:
+ * - BOT_KV (KV Namespace)
+ * 
+ * Environment Variables:
+ * - TELEGRAM_BOT_TOKEN (String)
+ * - SECRET_TOKEN (String, optional for webhook protection)
+ */
+
+// Standards definitions from original Go template
+const CharsetAlphaNumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const CharsetSpecialCharacters = "!@#$%^&*()_+[]{}|;:',.<>?";
+const CharsetTrojanPassword = CharsetAlphaNumeric + CharsetSpecialCharacters;
+const CharsetURIPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&*_-+;:,.";
+
+
+
+const PRESETS = [
+  // ===================== CONFIG CATEGORY (8) =====================
+  {
+    id: "irnova",
+    name: "IRNova (Nova-Proxy) 🛡️",
+    url: "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",
+    isLegacy: false,
+    kvBindings: ["KV"],
+    vars: ["D1_ID_DB"],
+    pathSuffix: "/admin",
+    description: "پروکسی قدرتمند نوا مبتنی بر دیتابیس D1 (با نام DB) و دیتابیس KV (با نام KV).\nپس از دیپلوی، پنل با مسیر /admin و رمز پیش‌فرض admin123 در دسترس است.",
+    category: "config"
+  },
+  {
+    id: "nahan",
+    name: "Nahan Project (itsyebekhe) 🛡️",
+    url: "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["D1_ID_IOT_DB"],
+    pathSuffix: "/sync/dash",
+    description: "پروژه نهان (Nahan) - توزیع ترافیک و پروکسی معکوس بدون سرور مبتنی بر دیتابیس D1 (با نام متغیر IOT_DB).\nپس از دپلو، با وارد کردن مسیر /sync/dash و رمز عبور پیشفرض admin وارد پنل شوید.",
+    category: "config"
+  },
+  {
+    id: "edgetunnel",
+    name: "EdgeTunnel (cmliu) 🚀",
+    url: "https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js",
+    isLegacy: false,
+    kvBindings: ["KV"],
+    vars: ["ADMIN", "KEY", "UUID", "PROXYIP"],
+    pathSuffix: "/admin",
+    description: "تونل عبور ترافیک پیشرفته edgetunnel مبتنی بر پروتکل‌های VLESS/Trojan/Shadowsocks.",
+    category: "config"
+  },
+  {
+    id: "netra_panel",
+    name: "Netra Panel 💜",
+    url: "https://raw.githubusercontent.com/netrair/netra-panel/main/worker.js",
+    isLegacy: false,
+    kvBindings: ["kv"],
+    vars: [],
+    pathSuffix: "/panel",
+    description: "پنل پروکسی قدرتمند VLESS و Trojan با پشتیبانی از وارپ، فرگمنت و مدیریت آسان.",
+    category: "config"
+  },
+  {
+    id: "cf_proxy_eooce",
+    name: "Cloudflare Proxy (eooce) 🚀",
+    url: "https://raw.githubusercontent.com/eooce/Cloudflare-proxy/main/_worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["PASSWORD", "UUID", "PROXYIP", "SUB_PATH"],
+    pathSuffix: "/?ed=2560",
+    description: "پروکسی چندپروتکله با کنترل دسترسی رمزگذاری‌شده، پنل تحت وب و مسیر ساب‌اسکریپشن.",
+    category: "config"
+  },
+  {
+    id: "foxcloud",
+    name: "FoxCloud (code3-dev) 🦊",
+    url: "https://github.com/code3-dev/foxcloud/releases/latest/download/worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["UUID", "PROXY_IP"],
+    pathSuffix: "/sub",
+    description: "پروکسی پیشرفته و پایدار VLESS با رابط کاربری وب، کد QR و خروجی‌های کلاینت.",
+    category: "config"
+  },
+  {
+    id: "emotional_damage",
+    name: "Emotional Damage (NiREvil) 🛡️",
+    url: "https://raw.githubusercontent.com/NiREvil/Emotional-Damage/main/_worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["UUID", "PROXYIP", "SOCKS5"],
+    pathSuffix: "/{UUID}",
+    description: "انشعاب بهینه‌سازی‌شده EDtunnel با قابلیت زنجیره‌سازی و رله پروکسی‌های SOCKS5.",
+    category: "config"
+  },
+  {
+    id: "cf_vless_trojan_yongge",
+    name: "CF VLESS & Trojan (yonggekkk) 👑",
+    url: "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["uuid", "UUID", "pswd", "proxyip"],
+    pathSuffix: "/{UUID}",
+    description: "سیستم اشتراک و ساب‌اسکریپشن VLESS و Trojan پایدار برای برنامه‌های کلاینت.",
+    category: "config"
+  },
+
+  // ===================== CLASHFA CATEGORY (6) =====================
+  {
+    id: "clashfa_mirror",
+    name: "ClashFa Mirror Pro ⚡",
+    url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.txt",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "ابزاری همه‌کاره برای میرور کردن لینک‌ها با بالاترین سرعت.",
+    category: "clashfa"
+  },
+  {
+    id: "mihomo_converter",
+    name: "Great Mihomo Converter 🛠️",
+    url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "مبدل فوق‌العاده لینک‌های اشتراک همراه با رابط کاربری وب اختصاصی (Mihomo/Clash).",
+    category: "clashfa"
+  },
+  {
+    id: "tg_proxy_assistant",
+    name: "TG Proxy Assistant 🤖",
+    url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/TG-Proxy_Assistant",
+    isLegacy: false,
+    kvBindings: ["PROXY_KV"],
+    vars: ["BOT_TOKEN", "ADMIN_PASSWORD"],
+    pathSuffix: "",
+    description: "ربات دستیار تلگرام و کنترل‌کننده پروکسی و کانفیگ‌ها بر بستر کلادفلر ورکرز.",
+    category: "clashfa"
+  },
+  {
+    id: "iran_proxy",
+    name: "Iran Proxy 🛡️",
+    url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "ابزاری برای جمع‌آوری پروکسی‌های ساکس با آی‌پی تمیز ایران.",
+    category: "clashfa"
+  },
+  {
+    id: "iptv_player",
+    name: "IPTV Player 📺",
+    url: "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند و پرسرعت بر روی ورکرز کلادفلر.",
+    category: "clashfa"
+  },
+  {
+    id: "faceless-bot",
+    name: "ربات پیشرفته چت و پیام ناشناس (Faceless) 🎭",
+    url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
+    isLegacy: false,
+    kvBindings: [],
+    d1_databases: [
+      {
+        binding: "DB",
+        database_name: "faceless_db"
+      }
+    ],
+    vars: ["D1_ID_DB", "BOT_USERNAME", "ADMIN_IDS", "BOT_TOKEN", "WEBHOOK_SECRET", "SECRET_SALT", "AES_KEY"],
+    pathSuffix: "/setup",
+    description: "ربات پیام ناشناس مدرن با لینک اختصاصی، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، فیلتر مدیا، پاسخ مستقیم و حفظ حریم خصوصی. (راه‌اندازی خودکار ۳ در ۱ در مسیر /setup).",
+    category: "clashfa"
+  },
+  {
+    id: "clashfa_cf_deployer_bot",
+    name: "ClashFa CF Deployer Bot 🤖",
+    url: "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
+    isLegacy: false,
+    kvBindings: ["BOT_KV"],
+    vars: ["TELEGRAM_BOT_TOKEN", "SECRET_TOKEN"],
+    pathSuffix: "",
+    description: "ربات تلگرام و داشبورد جامع وب برای استقرار، ارکستراسیون و مدیریت خودکار ورکرها و پیجز بر بستر کلادفلر.",
+    category: "clashfa"
+  },
+
+  // ===================== DNS CATEGORY (4) =====================
+  {
+    id: "doh_4n0nymou3",
+    name: "Cloudflare DoH Proxy (4n0nymou3) 🌐",
+    url: "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "پروکسی ایمن و سبک DNS over HTTPS (DoH) بر روی کلادفلر ورکرز.",
+    category: "dns"
+  },
+  {
+    id: "doh_thegreatazizi",
+    name: "Secure DoH (TheGreatAzizi) 🔒",
+    url: "https://raw.githubusercontent.com/TheGreatAzizi/Secure-DNS-over-HTTPS-Cloudflare-Worker/main/Worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "پروکسی دی‌ان‌اس اختصاصی با امنیت پیشرفته و تاخیر بسیار کم.",
+    category: "dns"
+  },
+  {
+    id: "doh_code3_dev",
+    name: "DoH Proxy (code3-dev) ⚡",
+    url: "https://raw.githubusercontent.com/code3-dev/doh-proxy-worker/master/workers.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "پروکسی ساده و فوق‌العاده سریع DNS-over-HTTPS.",
+    category: "dns"
+  },
+  {
+    id: "doh_seramo",
+    name: "DoH Proxy (seramo) 🌐",
+    url: "https://raw.githubusercontent.com/seramo/doh-proxy-worker/main/worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: [],
+    pathSuffix: "",
+    description: "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
+    category: "dns"
+  }
+];
+
+// Helper to dynamically resolve URL path suffix for any preset
+function resolvePathSuffix(preset, vars = {}) {
+  if (!preset) return "";
+  const u = vars.uuid || vars.UUID || "";
+  if (preset.id === "cf_vless_trojan_yongge" || preset.id === "cf_vless_yongge") {
+    return u ? `/${u}` : "/86c50e3a-5b87-49dd-bd20-03c7f2735e40";
+  }
+  if (preset.id === "emotional_damage") {
+    return u ? `/${u}` : "/";
+  }
+  if (preset.id === "nahan") return "/sync/dash";
+  if (preset.id === "edgetunnel" || preset.id === "irnova") return "/admin";
+  if (preset.id === "netra_panel") return "/panel";
+  if (preset.id === "foxcloud") return "/sub";
+  if (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot") return "/setup";
+  if (preset.id === "cf_proxy_eooce") return "/?ed=2560";
+  if (preset.pathSuffix && preset.pathSuffix.includes("{UUID}")) {
+    return u ? preset.pathSuffix.replace("{UUID}", u) : "/";
+  }
+  return preset.pathSuffix || "";
+}
+
+
+
+function renderWebDashboard() {
+  return "<!DOCTYPE html>\n<html lang=\"fa\" dir=\"rtl\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>ClashFa Deployer & Orchestrator</title>\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <link href=\"https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css\" rel=\"stylesheet\" type=\"text/css\" />\n  <style>\n    body { font-family: 'Vazirmatn', sans-serif; }\n    .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }\n    .glass-card { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.08); }\n    ::-webkit-scrollbar { width: 6px; height: 6px; }\n    ::-webkit-scrollbar-track { background: #0f172a; }\n    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }\n    ::-webkit-scrollbar-thumb:hover { background: #475569; }\n  </style>\n</head>\n<body class=\"bg-slate-950 text-slate-100 min-h-screen flex flex-col\">\n  <!-- Navbar -->\n  <header class=\"sticky top-0 z-50 glass border-b border-slate-800 px-4 py-3\">\n    <div class=\"max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4\">\n      <div class=\"flex items-center gap-3\">\n        <div class=\"w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30\">\n          ⚡\n        </div>\n        <div>\n          <h1 class=\"font-bold text-lg text-white tracking-wide\">ClashFa Deployer & Orchestrator</h1>\n          <p class=\"text-xs text-slate-400\">سامانه جامع استقرار و مدیریت ورکرهای کلادفلر</p>\n        </div>\n      </div>\n\n      <!-- Navigation Tabs -->\n      <nav class=\"flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-sm\">\n        <button onclick=\"switchTab('templates')\" id=\"tab-templates\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition bg-indigo-600 text-white\">🚀 قالب‌ها</button>\n        <button onclick=\"switchTab('workers')\" id=\"tab-workers\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">📂 مدیریت ورکرها</button>\n        <button onclick=\"switchTab('accounts')\" id=\"tab-accounts\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">🔑 اکانت‌ها</button>\n        <button onclick=\"switchTab('logs')\" id=\"tab-logs\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">📋 لاگ‌های سیستم</button>\n      </nav>\n\n      <!-- Refresh cache button -->\n      <div class=\"flex items-center gap-2\">\n        <button onclick=\"refreshPresetsCache()\" class=\"px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 transition\">\n          <span id=\"cache-icon\">🔄</span> بروزرسانی کش قالب‌ها\n        </button>\n      </div>\n    </div>\n  </header>\n\n  <!-- Main Content Area -->\n  <main class=\"flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6\">\n    <!-- Notice Banner -->\n    <div id=\"alert-banner\" class=\"hidden mb-6 p-4 rounded-xl border text-sm flex items-center justify-between transition\"></div>\n\n    <!-- TAB 1: TEMPLATES -->\n    <section id=\"content-templates\" class=\"tab-content\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white flex items-center gap-2\">🚀 قالب‌های آماده استقرار</h2>\n          <p class=\"text-sm text-slate-400\">انتخاب از میان ۱۹ ورکر بهینه‌سازی‌شده برای کلش‌فا، پروکسی و دی‌ان‌اس</p>\n        </div>\n        <div class=\"flex items-center gap-2\">\n          <button onclick=\"filterCategory('all')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white\">همه (۱۹)</button>\n          <button onclick=\"filterCategory('clashfa')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">کلش‌فا (۶)</button>\n          <button onclick=\"filterCategory('config')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">کانفیگ و پروکسی (۹)</button>\n          <button onclick=\"filterCategory('dns')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">دی‌ان‌اس (۴)</button>\n        </div>\n      </div>\n\n      <div id=\"presets-grid\" class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5\">\n        <!-- Injected via JS -->\n      </div>\n    </section>\n\n    <!-- TAB 2: WORKERS MANAGER -->\n    <section id=\"content-workers\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">📂 مدیریت ورکرها و بایندینگ‌ها</h2>\n          <p class=\"text-sm text-slate-400\">مشاهده اسکریپت‌ها، دریافت سورس‌کد، تنظیمات متغیرها و حذف ورکرها</p>\n        </div>\n        <div class=\"flex items-center gap-3\">\n          <label class=\"text-xs text-slate-400\">انتخاب اکانت:</label>\n          <select id=\"workers-account-select\" onchange=\"loadWorkersList()\" class=\"bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 outline-none\">\n            <!-- Injected via JS -->\n          </select>\n          <button onclick=\"loadWorkersList()\" class=\"px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg transition\">🔄 بروزرسانی لیست</button>\n        </div>\n      </div>\n\n      <div class=\"glass-card rounded-2xl p-4 overflow-x-auto\">\n        <table class=\"w-full text-sm text-right\">\n          <thead class=\"text-xs text-slate-400 border-b border-slate-800\">\n            <tr>\n              <th class=\"p-3\">#</th>\n              <th class=\"p-3\">نام ورکر</th>\n              <th class=\"p-3\">آخرین بروزرسانی</th>\n              <th class=\"p-3\">لینک ورکر</th>\n              <th class=\"p-3 text-center\">عملیات</th>\n            </tr>\n          </thead>\n          <tbody id=\"workers-table-body\">\n            <tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">در حال دریافت اطلاعات ورکرها...</td></tr>\n          </tbody>\n        </table>\n      </div>\n    </section>\n\n    <!-- TAB 3: ACCOUNTS -->\n    <section id=\"content-accounts\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">🔑 حساب‌های متصل کلادفلر</h2>\n          <p class=\"text-sm text-slate-400\">مدیریت توکن‌های API کلادفلر، بررسی مجوزها و ساب‌دامین ورکرز</p>\n        </div>\n        <button onclick=\"openAddAccountModal()\" class=\"px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-xl font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5\">\n          ➕ افزودن اکانت جدید\n        </button>\n      </div>\n\n      <div id=\"accounts-cards\" class=\"grid grid-cols-1 md:grid-cols-2 gap-5\">\n        <!-- Injected via JS -->\n      </div>\n    </section>\n\n    <!-- TAB 4: LOGS -->\n    <section id=\"content-logs\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">📋 لاگ‌ها و رخدادهای سیستم</h2>\n          <p class=\"text-sm text-slate-400\">گزارش ۵۰ رخداد اخیر دیپلوی، تغییرات بایندینگ و ارتباطات با سرورها</p>\n        </div>\n        <div class=\"flex items-center gap-2\">\n          <button onclick=\"loadLogs()\" class=\"px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 transition\">🔄 بروزرسانی لاگ‌ها</button>\n        </div>\n      </div>\n\n      <div class=\"glass-card rounded-2xl p-4 overflow-x-auto\">\n        <table class=\"w-full text-xs text-right font-mono\">\n          <thead class=\"text-slate-400 border-b border-slate-800\">\n            <tr>\n              <th class=\"p-3 w-40\">زمان (تهران)</th>\n              <th class=\"p-3 w-28\">نوع</th>\n              <th class=\"p-3\">پیام رخداد</th>\n            </tr>\n          </thead>\n          <tbody id=\"logs-table-body\">\n            <tr><td colspan=\"3\" class=\"p-6 text-center text-slate-500\">در حال دریافت لاگ‌ها...</td></tr>\n          </tbody>\n        </table>\n      </div>\n    </section>\n  </main>\n\n  <!-- MODAL: DEPLOY WORKER -->\n  <div id=\"deploy-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative max-h-[90vh] flex flex-col\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 id=\"modal-preset-title\" class=\"font-bold text-lg text-white\">استقرار ورکر</h3>\n        <button onclick=\"closeDeployModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div id=\"modal-form-body\" class=\"overflow-y-auto flex-1 space-y-4 pr-1\">\n        <!-- Injected via JS -->\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-4 flex items-center justify-end gap-3\">\n        <button onclick=\"closeDeployModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">لغو</button>\n        <button id=\"btn-submit-deploy\" onclick=\"executeDeployFromWeb()\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-2\">\n          <span>🚀 آغاز استقرار</span>\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- MODAL: BINDINGS MANAGER -->\n  <div id=\"bindings-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-2xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative max-h-[85vh] flex flex-col\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 id=\"modal-bindings-title\" class=\"font-bold text-lg text-white\">مدیریت بایندینگ‌های ورکر</h3>\n        <button onclick=\"closeBindingsModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div id=\"modal-bindings-body\" class=\"overflow-y-auto flex-1 space-y-3\">\n        <!-- Injected via JS -->\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-4 flex items-center justify-between\">\n        <button onclick=\"deleteAllBindingsWeb()\" class=\"px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-600/30 rounded-xl text-xs transition\">💥 حذف همه بایندینگ‌ها</button>\n        <button onclick=\"closeBindingsModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">بستن</button>\n      </div>\n    </div>\n  </div>\n\n  <!-- MODAL: ADD ACCOUNT -->\n  <div id=\"add-account-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 class=\"font-bold text-lg text-white\">➕ افزودن حساب کلادفلر</h3>\n        <button onclick=\"closeAddAccountModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div class=\"space-y-4 text-sm\">\n        <div>\n          <label class=\"block text-slate-400 mb-1 text-xs\">توکن اختصاصی کلادفلر (Cloudflare API Token):</label>\n          <input type=\"password\" id=\"input-cf-token\" placeholder=\"توکن API با دسترسی‌های کامل...\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-indigo-500 transition\">\n        </div>\n        <div class=\"bg-indigo-950/40 border border-indigo-800/40 rounded-xl p-3 text-xs text-indigo-300\">\n          💡 راهنما: توکن شما باید حداقل دارای مجوزهای <b>Account.Workers Scripts:Edit</b> و <b>Account.Workers KV Storage:Edit</b> و <b>Account.D1:Edit</b> باشد.\n        </div>\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-6 flex items-center justify-end gap-3\">\n        <button onclick=\"closeAddAccountModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">لغو</button>\n        <button id=\"btn-save-account\" onclick=\"saveNewAccountWeb()\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-2\">\n          <span>تایید و اتصال</span>\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- Client JavaScript -->\n  <script>\n    let globalPresets = [];\n    let globalAccounts = [];\n    let activePreset = null;\n    let currentBindingsContext = null;\n\n    async function init() {\n      await loadPresets();\n      await loadAccounts();\n    }\n\n    function switchTab(tabId) {\n      document.querySelectorAll('.tab-btn').forEach(btn => {\n        btn.classList.remove('bg-indigo-600', 'text-white');\n        btn.classList.add('text-slate-400');\n      });\n      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));\n\n      document.getElementById('tab-' + tabId).classList.add('bg-indigo-600', 'text-white');\n      document.getElementById('tab-' + tabId).classList.remove('text-slate-400');\n      document.getElementById('content-' + tabId).classList.remove('hidden');\n\n      if (tabId === 'workers') loadWorkersList();\n      if (tabId === 'logs') loadLogs();\n      if (tabId === 'accounts') renderAccounts();\n    }\n\n    function showAlert(message, type) {\n      const banner = document.getElementById('alert-banner');\n      banner.classList.remove('hidden', 'bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300', 'bg-rose-950/60', 'border-rose-800', 'text-rose-300', 'bg-indigo-950/60', 'border-indigo-800', 'text-indigo-300');\n      if (type === 'success') {\n        banner.classList.add('bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300');\n      } else if (type === 'error') {\n        banner.classList.add('bg-rose-950/60', 'border-rose-800', 'text-rose-300');\n      } else {\n        banner.classList.add('bg-indigo-950/60', 'border-indigo-800', 'text-indigo-300');\n      }\n      banner.innerHTML = '<span>' + message + '</span><button onclick=\"this.parentElement.classList.add(\\'hidden\\')\" class=\"text-xs opacity-70 hover:opacity-100\">&times;</button>';\n      setTimeout(() => banner.classList.add('hidden'), 8000);\n    }\n\n    async function loadPresets() {\n      try {\n        const res = await fetch('/api/presets');\n        globalPresets = await res.json();\n        renderPresets(globalPresets);\n      } catch (err) {\n        console.error(\"Presets loading error:\", err);\n      }\n    }\n\n    function renderPresets(presets) {\n      const container = document.getElementById('presets-grid');\n      container.innerHTML = presets.map((p) => {\n        let kvBadge = (p.kvBindings && p.kvBindings.length > 0) ? '<span class=\"bg-indigo-950/80 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800/50\">KV</span>' : '';\n        let d1Badge = (p.vars && p.vars.some(v => v.startsWith('D1_'))) ? '<span class=\"bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/50\">D1</span>' : '';\n        let varsBadge = (p.vars && p.vars.length > 0) ? '<span class=\"bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded\">' + p.vars.length + ' متغیر</span>' : '';\n\n        return '<div class=\"glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-indigo-500/50 transition group\">' +\n          '<div>' +\n            '<div class=\"flex items-center justify-between gap-2 mb-3\">' +\n              '<span class=\"px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700\">' + getCatTitle(p.category) + '</span>' +\n              '<span class=\"text-xs text-slate-500 font-mono\">#' + p.id + '</span>' +\n            '</div>' +\n            '<h3 class=\"font-bold text-base text-white group-hover:text-indigo-400 transition mb-2\">' + p.name + '</h3>' +\n            '<p class=\"text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4\">' + (p.description || 'بدون توضیح') + '</p>' +\n          '</div>' +\n          '<div class=\"border-t border-slate-800/80 pt-4 flex items-center justify-between gap-2\">' +\n            '<div class=\"flex items-center gap-1.5 text-[11px] text-slate-400\">' + kvBadge + d1Badge + varsBadge + '</div>' +\n            '<button onclick=\"openDeployModal(\\'' + p.id + '\\')\" class=\"px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-xl font-medium shadow-md shadow-indigo-600/20 transition\">استقرار 🚀</button>' +\n          '</div>' +\n        '</div>';\n      }).join('');\n    }\n\n    function getCatTitle(c) {\n      if (c === 'clashfa') return '🚀 کلش‌فا';\n      if (c === 'dns') return '🌐 دی‌ان‌اس';\n      if (c === 'config') return '🛰️ کانفیگ';\n      return 'سایر';\n    }\n\n    function filterCategory(cat) {\n      document.querySelectorAll('.cat-filter').forEach(b => {\n        b.classList.remove('bg-indigo-600', 'text-white');\n        b.classList.add('bg-slate-800', 'text-slate-400');\n      });\n      event.target.classList.add('bg-indigo-600', 'text-white');\n      event.target.classList.remove('bg-slate-800', 'text-slate-400');\n\n      if (cat === 'all') {\n        renderPresets(globalPresets);\n      } else {\n        renderPresets(globalPresets.filter(p => p.category === cat));\n      }\n    }\n\n    async function loadAccounts() {\n      try {\n        const res = await fetch('/api/accounts');\n        globalAccounts = await res.json();\n        renderAccounts();\n        updateAccountSelects();\n      } catch (err) {\n        console.error(\"Accounts error:\", err);\n      }\n    }\n\n    function updateAccountSelects() {\n      const select = document.getElementById('workers-account-select');\n      if (!select) return;\n      if (globalAccounts.length === 0) {\n        select.innerHTML = '<option value=\"\">هیچ حسابی متصل نیست</option>';\n        return;\n      }\n      select.innerHTML = globalAccounts.map((a, i) => '<option value=\"' + i + '\">' + a.name + ' (' + a.id.substring(0, 8) + '...)</option>').join('');\n    }\n\n    function renderAccounts() {\n      const container = document.getElementById('accounts-cards');\n      if (globalAccounts.length === 0) {\n        container.innerHTML = '<div class=\"col-span-2 p-8 text-center glass-card rounded-2xl text-slate-400\">هنوز هیچ حساب کلادفلری متصل نشده است. روی دکمه «افزودن اکانت جدید» کلیک کنید.</div>';\n        return;\n      }\n\n      container.innerHTML = globalAccounts.map((a, idx) => {\n        return '<div class=\"glass-card rounded-2xl p-5 border border-slate-800 relative\">' +\n          '<div class=\"flex items-center justify-between mb-4\">' +\n            '<div class=\"flex items-center gap-3\">' +\n              '<div class=\"w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg\">👤</div>' +\n              '<div>' +\n                '<h3 class=\"font-bold text-white text-base\">' + a.name + '</h3>' +\n                '<p class=\"text-xs text-slate-400 font-mono\">شناسه: ' + a.id + '</p>' +\n              '</div>' +\n            '</div>' +\n            '<button onclick=\"deleteAccountWeb(' + idx + ')\" class=\"text-rose-400 hover:text-rose-300 text-xs px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-800/40 transition\">حذف اکانت</button>' +\n          '</div>' +\n          '<div class=\"bg-slate-900/90 rounded-xl p-3 text-xs space-y-2 mb-4\">' +\n            '<div class=\"flex items-center justify-between\">' +\n              '<span class=\"text-slate-400\">ساب‌دامین ورکرز:</span>' +\n              '<span class=\"font-mono text-indigo-300\">' + (a.subdomain || 'دریافت نشده') + '</span>' +\n            '</div>' +\n            '<div class=\"flex items-center justify-between\">' +\n              '<span class=\"text-slate-400\">توکن:</span>' +\n              '<span class=\"font-mono text-slate-500\">' + (a.tokenMasked || '••••••••••••') + '</span>' +\n            '</div>' +\n          '</div>' +\n          '<div class=\"flex items-center justify-between gap-2\">' +\n            '<button onclick=\"refreshSubdomainWeb(' + idx + ')\" class=\"px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl border border-slate-700 transition\">🔄 استعلام زنده ساب‌دامین</button>' +\n          '</div>' +\n        '</div>';\n      }).join('');\n    }\n\n    function openDeployModal(presetId) {\n      activePreset = globalPresets.find(p => p.id === presetId);\n      if (!activePreset) return;\n\n      document.getElementById('modal-preset-title').textContent = 'استقرار ' + activePreset.name;\n      const form = document.getElementById('modal-form-body');\n\n      let html = '<div>' +\n        '<label class=\"block text-xs text-slate-400 mb-1\">حساب مقصد کلادفلر:</label>' +\n        '<select id=\"deploy-acc-idx\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n          globalAccounts.map((a, i) => '<option value=\"' + i + '\">' + a.name + '</option>').join('') +\n        '</select>' +\n      '</div>' +\n      '<div>' +\n        '<label class=\"block text-xs text-slate-400 mb-1\">نام پروژه ورکر (حروف کوچک و خط تیره):</label>' +\n        '<input type=\"text\" id=\"deploy-worker-name\" value=\"' + activePreset.id + '-' + Math.random().toString(36).substring(2, 6) + '\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n      '</div>';\n\n      if (activePreset.vars && activePreset.vars.length > 0) {\n        html += '<div class=\"border-t border-slate-800 pt-3\"><p class=\"text-xs font-bold text-slate-300 mb-2\">متغیرهای محیطی قالب:</p>';\n        activePreset.vars.forEach(v => {\n          let placeholder = 'مقدار ' + v;\n          let isD1 = v.startsWith('D1_ID_');\n          html += '<div class=\"mb-3\">' +\n            '<div class=\"flex items-center justify-between mb-1\">' +\n              '<label class=\"text-xs text-slate-400 font-mono\">' + v + '</label>' +\n              '<button type=\"button\" onclick=\"autoFillVar(\\'' + v + '\\')\" class=\"text-[11px] text-indigo-400 hover:text-indigo-300\">🎲 مقدار خودکار</button>' +\n            '</div>' +\n            '<input type=\"text\" id=\"var-' + v + '\" placeholder=\"' + (isD1 ? 'شناسه دیتابیس D1 یا خالی برای ساخت خودکار' : placeholder) + '\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n          '</div>';\n        });\n        html += '</div>';\n      }\n\n      form.innerHTML = html;\n      document.getElementById('deploy-modal').classList.remove('hidden');\n    }\n\n    function closeDeployModal() {\n      document.getElementById('deploy-modal').classList.add('hidden');\n    }\n\n    function autoFillVar(varName) {\n      const input = document.getElementById('var-' + varName);\n      if (!input) return;\n      if (varName === 'UUID' || varName === 'uuid') {\n        input.value = crypto.randomUUID();\n      } else if (varName.startsWith('D1_ID_')) {\n        input.value = 'auto';\n      } else if (varName === 'AES_KEY') {\n        input.value = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');\n      } else if (varName === 'WEBHOOK_SECRET' || varName === 'SECRET_SALT') {\n        input.value = Math.random().toString(36).substring(2, 14);\n      } else if (varName === 'PROXY_IP' || varName === 'PROXYIP' || varName === 'proxyip') {\n        input.value = 'speed.cloudflare.com';\n      } else if (varName === 'SUB_PATH') {\n        input.value = '/sub/' + Math.random().toString(36).substring(2, 8);\n      } else {\n        input.value = Math.random().toString(36).substring(2, 10);\n      }\n    }\n\n    async function executeDeployFromWeb() {\n      if (!activePreset) return;\n      const accIdx = parseInt(document.getElementById('deploy-acc-idx').value, 10);\n      const workerName = document.getElementById('deploy-worker-name').value.trim();\n\n      if (!workerName) {\n        alert('لطفاً نام پروژه را وارد کنید.');\n        return;\n      }\n\n      const vars = {};\n      if (activePreset.vars) {\n        activePreset.vars.forEach(v => {\n          const el = document.getElementById('var-' + v);\n          if (el) vars[v] = el.value.trim();\n        });\n      }\n\n      const btn = document.getElementById('btn-submit-deploy');\n      btn.disabled = true;\n      btn.innerHTML = '<span>⏳ در حال استقرار...</span>';\n\n      try {\n        const res = await fetch('/api/deploy', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({\n            accIdx,\n            presetId: activePreset.id,\n            workerName,\n            vars\n          })\n        });\n        const data = await res.json();\n        if (data.success) {\n          closeDeployModal();\n          showAlert('✅ ورکر ' + workerName + ' با موفقیت بر روی کلادفلر استقرار یافت! آدرس: ' + (data.url || ''), 'success');\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در استقرار: ' + (data.error || 'خطای نامشخص'), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط با سرور: ' + err.message, 'error');\n      } finally {\n        btn.disabled = false;\n        btn.innerHTML = '<span>🚀 آغاز استقرار</span>';\n      }\n    }\n\n    async function loadWorkersList() {\n      const select = document.getElementById('workers-account-select');\n      const tbody = document.getElementById('workers-table-body');\n      if (!select || !select.value) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">حسابی انتخاب نشده است.</td></tr>';\n        return;\n      }\n\n      const accIdx = parseInt(select.value, 10);\n      tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-400\">⏳ در حال دریافت لیست ورکرها از کلادفلر...</td></tr>';\n\n      try {\n        const res = await fetch('/api/workers?accIdx=' + accIdx);\n        const workers = await res.json();\n        if (!Array.isArray(workers) || workers.length === 0) {\n          tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">هیچ ورکری در این اکانت یافت نشد.</td></tr>';\n          return;\n        }\n\n        tbody.innerHTML = workers.map((w, idx) => {\n          let rawSub = (globalAccounts[accIdx] && globalAccounts[accIdx].subdomain) ? globalAccounts[accIdx].subdomain.trim().replace(/^\\.+|\\.+$/g, \"\") : \"\";\n          let baseDomain = rawSub ? (rawSub.endsWith(\"workers.dev\") ? rawSub : rawSub + \".workers.dev\") : \"workers.dev\";\n          let workerUrl = \"https://\" + w.id + \".\" + baseDomain;\n          return '<tr class=\"border-b border-slate-800/60 hover:bg-slate-900/40 transition\">' +\n            '<td class=\"p-3 text-slate-500\">' + (idx + 1) + '</td>' +\n            '<td class=\"p-3 font-medium text-white font-mono\">' + w.id + '</td>' +\n            '<td class=\"p-3 text-xs text-slate-400\">' + new Date(w.modified_on).toLocaleDateString('fa-IR') + '</td>' +\n            '<td class=\"p-3 text-xs text-indigo-400 font-mono\"><a href=\"' + workerUrl + '\" target=\"_blank\" class=\"hover:underline\">مشاهده ↗</a></td>' +\n            '<td class=\"p-3 text-center\">' +\n              '<div class=\"flex items-center justify-center gap-2\">' +\n                '<button onclick=\"openBindingsModal(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg transition\">⚙️ بایندینگ‌ها</button>' +\n                '<button onclick=\"downloadWorkerCodeWeb(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/40 text-xs rounded-lg transition\">📥 دانلود کد</button>' +\n                '<button onclick=\"deleteWorkerWeb(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-800/40 text-xs rounded-lg transition\">🗑️ حذف</button>' +\n              '</div>' +\n            '</td>' +\n          '</tr>';\n        }).join('');\n      } catch (err) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-rose-400\">خطا در دریافت اطلاعات: ' + err.message + '</td></tr>';\n      }\n    }\n\n    async function downloadWorkerCodeWeb(accIdx, workerName) {\n      try {\n        const res = await fetch('/api/worker-source?accIdx=' + accIdx + '&name=' + workerName);\n        const code = await res.text();\n        const blob = new Blob([code], { type: 'application/javascript' });\n        const url = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = url;\n        a.download = workerName + '.js';\n        document.body.appendChild(a);\n        a.click();\n        document.body.removeChild(a);\n        URL.revokeObjectURL(url);\n        showAlert('✅ سورس‌کد ورکر با موفقیت دانلود شد.', 'success');\n      } catch (err) {\n        showAlert('❌ خطا در دریافت سورس‌کد: ' + err.message, 'error');\n      }\n    }\n\n    async function deleteWorkerWeb(accIdx, workerName) {\n      if (!confirm('آیا مطمئن هستید که می‌خواهید ورکر ' + workerName + ' را حذف کنید؟')) return;\n      const cleanBindings = confirm('آیا می‌خواهید منابع متصل به این ورکر (فضاهای KV و دیتابیس‌های اختصاصی D1) نیز حذف شوند؟\\n\\n[OK]: حذف ورکر + منابع متصل\\n[Cancel]: فقط حذف خود ورکر و نگه‌داری منابع');\n      try {\n        const res = await fetch('/api/workers?accIdx=' + accIdx + '&name=' + encodeURIComponent(workerName) + '&cleanBindings=' + cleanBindings, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ ورکر ' + workerName + ' با موفقیت حذف شد.', 'success');\n          loadWorkersList();\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در حذف ورکر: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در حذف: ' + err.message, 'error');\n      }\n    }\n\n    async function openBindingsModal(accIdx, workerName) {\n      currentBindingsContext = { accIdx, workerName };\n      document.getElementById('modal-bindings-title').textContent = 'مدیریت بایندینگ‌های ' + workerName;\n      const body = document.getElementById('modal-bindings-body');\n      body.innerHTML = '<p class=\"text-xs text-slate-400 text-center p-4\">⏳ در حال دریافت بایندینگ‌ها...</p>';\n      document.getElementById('bindings-modal').classList.remove('hidden');\n\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + accIdx + '&name=' + workerName);\n        const data = await res.json();\n        const bindings = data.bindings || [];\n\n        if (bindings.length === 0) {\n          body.innerHTML = '<p class=\"text-xs text-slate-500 text-center p-4\">هیچ بایندینگی برای این ورکر ثبت نشده است.</p>';\n          return;\n        }\n\n        body.innerHTML = bindings.map((b, idx) => {\n          return '<div class=\"glass-card rounded-xl p-3 flex items-center justify-between text-xs border border-slate-800\">' +\n            '<div>' +\n              '<span class=\"font-bold text-white font-mono\">' + b.name + '</span>' +\n              '<span class=\"text-slate-400 mr-2\">(' + b.type + ')</span>' +\n              '<p class=\"text-slate-500 font-mono text-[11px] mt-1\">' + (b.namespace_id || b.database_id || b.text || '(مقدار رمز)') + '</p>' +\n            '</div>' +\n            '<button onclick=\"deleteSingleBindingWeb(' + idx + ')\" class=\"text-rose-400 hover:text-rose-300 px-2 py-1 bg-rose-950/40 rounded border border-rose-800/40 transition\">حذف بایندینگ</button>' +\n          '</div>';\n        }).join('');\n      } catch (err) {\n        body.innerHTML = '<p class=\"text-xs text-rose-400 text-center p-4\">خطا: ' + err.message + '</p>';\n      }\n    }\n\n    function closeBindingsModal() {\n      document.getElementById('bindings-modal').classList.add('hidden');\n    }\n\n    async function deleteSingleBindingWeb(bindingIdx) {\n      if (!currentBindingsContext) return;\n      if (!confirm('آیا از حذف این بایندینگ مطمئن هستید؟')) return;\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + currentBindingsContext.accIdx + '&name=' + currentBindingsContext.workerName + '&idx=' + bindingIdx, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ بایندینگ با موفقیت حذف شد.', 'success');\n          openBindingsModal(currentBindingsContext.accIdx, currentBindingsContext.workerName);\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در حذف: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function deleteAllBindingsWeb() {\n      if (!currentBindingsContext) return;\n      if (!confirm('آیا مطمئن هستید که می‌خواهید تمامی بایندینگ‌های این ورکر را یکجا پاک کنید؟')) return;\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + currentBindingsContext.accIdx + '&name=' + currentBindingsContext.workerName + '&all=true', { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ تمامی بایندینگ‌ها حذف شدند.', 'success');\n          closeBindingsModal();\n          loadLogs();\n        } else {\n          showAlert('❌ خطا: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    function openAddAccountModal() {\n      document.getElementById('input-cf-token').value = '';\n      document.getElementById('add-account-modal').classList.remove('hidden');\n    }\n\n    function closeAddAccountModal() {\n      document.getElementById('add-account-modal').classList.add('hidden');\n    }\n\n    async function saveNewAccountWeb() {\n      const token = document.getElementById('input-cf-token').value.trim();\n      if (!token) {\n        alert('لطفاً توکن را وارد کنید.');\n        return;\n      }\n\n      const btn = document.getElementById('btn-save-account');\n      btn.disabled = true;\n      btn.innerHTML = '<span>⏳ در حال بررسی مجوزها...</span>';\n\n      try {\n        const res = await fetch('/api/accounts', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({ token })\n        });\n        const data = await res.json();\n        if (data.success) {\n          closeAddAccountModal();\n          showAlert('✅ حساب کلادفلر با موفقیت اضافه شد!', 'success');\n          await loadAccounts();\n          loadLogs();\n        } else {\n          showAlert('❌ ' + (data.error || 'خطا در احراز هویت توکن'), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط: ' + err.message, 'error');\n      } finally {\n        btn.disabled = false;\n        btn.innerHTML = '<span>تایید و اتصال</span>';\n      }\n    }\n\n    async function deleteAccountWeb(idx) {\n      if (!confirm('آیا از حذف این حساب اطمینان دارید؟')) return;\n      try {\n        const res = await fetch('/api/accounts?idx=' + idx, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ حساب کلادفلر حذف شد.', 'success');\n          await loadAccounts();\n          loadLogs();\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function refreshSubdomainWeb(idx) {\n      try {\n        const res = await fetch('/api/refresh-subdomain?idx=' + idx, { method: 'POST' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ ساب‌دامین استعلام شد: ' + data.subdomain, 'success');\n          await loadAccounts();\n        } else {\n          showAlert('❌ خطا در استعلام: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function refreshPresetsCache() {\n      const icon = document.getElementById('cache-icon');\n      icon.classList.add('animate-spin');\n      try {\n        const res = await fetch('/api/refresh-cache', { method: 'POST' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ تمام ۱۹ قالب با موفقیت از گیت‌هاب دانلود و کش شدند.', 'success');\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در کش کردن قالب‌ها: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط: ' + err.message, 'error');\n      } finally {\n        icon.classList.remove('animate-spin');\n      }\n    }\n\n    async function loadLogs() {\n      const tbody = document.getElementById('logs-table-body');\n      try {\n        const res = await fetch('/api/logs');\n        const logs = await res.json();\n        if (!Array.isArray(logs) || logs.length === 0) {\n          tbody.innerHTML = '<tr><td colspan=\"3\" class=\"p-6 text-center text-slate-500\">هیچ لاگی ثبت نشده است.</td></tr>';\n          return;\n        }\n\n        tbody.innerHTML = logs.map(l => {\n          let badgeClass = 'bg-slate-800 text-slate-300';\n          if (l.type === 'error') badgeClass = 'bg-rose-950 text-rose-300 border border-rose-800/40';\n          if (l.type === 'warning') badgeClass = 'bg-amber-950 text-amber-300 border border-amber-800/40';\n          if (l.type === 'info') badgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-800/40';\n\n          return '<tr class=\"border-b border-slate-800/40 hover:bg-slate-900/30 transition\">' +\n            '<td class=\"p-3 text-slate-400\">' + l.timestamp + '</td>' +\n            '<td class=\"p-3\"><span class=\"px-2 py-0.5 rounded text-[10px] uppercase font-bold ' + badgeClass + '\">' + l.type + '</span></td>' +\n            '<td class=\"p-3 text-slate-200 break-all\">' + l.message + '</td>' +\n          '</tr>';\n        }).join('');\n      } catch (err) {\n        tbody.innerHTML = '<tr><td colspan=\"3\" class=\"p-6 text-center text-rose-400\">خطا در بارگذاری لاگ‌ها: ' + err.message + '</td></tr>';\n      }\n    }\n\n    window.addEventListener('DOMContentLoaded', init);\n  </script>\n</body>\n</html>\n";
+}
+
+
+
+// --- TIMEOUT FETCH UTILITY ---
+async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      throw new Error(`درخواست به سرور به دلیل طولانی شدن زمان (تایم‌اوت ${Math.round(timeoutMs / 1000)} ثانیه) لغو شد.`);
+    }
+    throw err;
+  }
+}
+
+// --- OPTIMIZED CLOUDFLARE API LAYER ---
+async function verifyCloudflareToken(token) {
+  try {
+    const res = await fetchWithTimeout("https://api.cloudflare.com/client/v4/accounts", {
+      headers: { 
+        "Authorization": `Bearer ${token}`
+      }
+    }, 15000);
+    const data = await res.json();
+    return data.success === true && data.result && data.result.length > 0;
+  } catch (_) { 
+    return false; 
+  }
+}
+
+async function getCloudflareAccounts(token) {
+  try {
+    const res = await fetchWithTimeout("https://api.cloudflare.com/client/v4/accounts", {
+      headers: { 
+        "Authorization": `Bearer ${token}`
+      }
+    }, 15000);
+    const data = await res.json();
+    return data.success ? data.result : [];
+  } catch (_) { 
+    return []; 
+  }
+}
+
+async function validateTokenPermissions(token, accountId) {
+  const report = {
+    workers: false,
+    kv: false,
+    d1: false
+  };
+
+  try {
+    const resWrk = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 12000);
+    const dataWrk = await resWrk.json();
+    report.workers = dataWrk.success === true;
+  } catch (_) {}
+
+  try {
+    const resKv = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 12000);
+    const dataKv = await resKv.json();
+    report.kv = dataKv.success === true;
+  } catch (_) {}
+
+  try {
+    const resD1 = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 12000);
+    const dataD1 = await resD1.json();
+    report.d1 = dataD1.success === true;
+  } catch (_) {}
+
+  return report;
+}
+
+// Resilient KV Namespace Creator (Handles Duplicate Titles Automatically)
+async function createKVNamespace(token, accountId, title) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ title })
+    }, 20000);
+
+    const data = await res.json();
+    if (data.success && data.result && data.result.id) {
+      return data.result.id;
+    }
+
+    const errMsg = (data.errors?.[0]?.message || "").toLowerCase();
+    const errCode = data.errors?.[0]?.code;
+
+    // Handle "a namespace with this account ID and title already exists"
+    if (errMsg.includes("already exists") || errCode === 10014) {
+      // Find existing namespace with this title
+      const listRes = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces?per_page=100`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      }, 20000);
+      const listData = await listRes.json();
+      if (listData.success && Array.isArray(listData.result)) {
+        const found = listData.result.find(ns => ns.title === title);
+        if (found && found.id) {
+          return found.id;
+        }
+      }
+
+      // If not matched directly, create with unique random suffix
+      const altTitle = `${title.substring(0, 50)}-${generateRandomString(CharsetAlphaNumeric, 4)}`;
+      const altRes = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ title: altTitle })
+      }, 20000);
+      const altData = await altRes.json();
+      if (altData.success && altData.result?.id) {
+        return altData.result.id;
+      }
+    }
+
+    throw new Error(data.errors?.[0]?.message || "Failed to create KV Namespace.");
+  } catch (err) {
+    throw err;
+  }
+}
+
+// Delete KV Namespace by ID
+async function deleteKVNamespace(token, accountId, namespaceId) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 15000);
+    const data = await res.json();
+    return data.success === true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Resilient D1 Database Creator (Handles Duplicate Names Automatically)
+async function createD1Database(token, accountId, name) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ name })
+  }, 20000);
+
+  const data = await res.json();
+  if (data.success && data.result && data.result.uuid) {
+    return data.result.uuid;
+  }
+
+  const errMsg = (data.errors?.[0]?.message || "").toLowerCase();
+  const errCode = data.errors?.[0]?.code;
+  if (errMsg.includes("already exists") || errCode === 7401) {
+    const listRes = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database?name=${encodeURIComponent(name)}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 20000);
+    const listData = await listRes.json();
+    if (listData.success && Array.isArray(listData.result)) {
+      const found = listData.result.find(db => db.name === name);
+      if (found && found.uuid) {
+        return found.uuid;
+      }
+    }
+  }
+
+  throw new Error(data.errors?.[0]?.message || "Failed to create D1 Database.");
+}
+
+// Delete D1 Database by ID
+async function deleteD1Database(token, accountId, databaseId) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 15000);
+    const data = await res.json();
+    return data.success === true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function executeD1Statements(token, accountId, databaseId, sql) {
+  const statements = sql
+    .split(";")
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  for (const stmt of statements) {
+    try {
+      const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ sql: stmt })
+      }, 15000);
+      const data = await res.json();
+      if (!data.success) {
+        console.warn(`D1 execution warning on statement: ${stmt.substring(0, 30)} - ${data.errors?.[0]?.message}`);
+      }
+    } catch (e) {
+      console.warn("D1 execute error: ", e.message);
+    }
+  }
+  return true;
+}
+
+// Code Cache & Preset Fetcher
+async function getPresetCode(preset, env = null, customUrl = null) {
+  const url = preset ? preset.url : customUrl;
+  if (!url) throw new Error("آدرس سورس‌کد تعریف نشده است.");
+
+  const cacheKey = `cache:code:${preset ? preset.id : "custom_" + Math.abs(hashCode(url))}`;
+  if (env && env.BOT_KV && preset) {
+    const cached = await env.BOT_KV.get(cacheKey);
+    if (cached) return cached;
+  }
+
+  let res;
+  try {
+    res = await fetchWithTimeout(url, {
+      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+    }, 25000);
+  } catch (err) {
+    res = { ok: false, status: 0, statusText: err.message };
+  }
+
+  if (!res || !res.ok) {
+    if (preset && preset.fallbackUrl) {
+      try {
+        res = await fetchWithTimeout(preset.fallbackUrl, {
+          headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+        }, 25000);
+      } catch (_) {}
+    }
+  }
+
+  if (!res || !res.ok) {
+    throw new Error(`خطا در دانلود سورس‌کد (${res?.status || 0} ${res?.statusText || "Connection Error"})`);
+  }
+
+  let code = await res.text();
+  if (!code || code.trim().length === 0) {
+    throw new Error("سورس‌کد دریافتی خالی است.");
+  }
+
+  // Ensure Service Worker format has registered event listeners
+  if (!isESModule(code) && !code.includes("addEventListener") && code.includes("handleFetch")) {
+    code += `\n\n// Auto-appended Cloudflare Workers event listeners\nif (typeof addEventListener !== "undefined") {\n  addEventListener("fetch", event => event.respondWith(handleFetch(event.request, event)));\n  if (typeof handleScheduled !== "undefined") {\n    addEventListener("scheduled", event => event.waitUntil(handleScheduled(event)));\n  }\n}\n`;
+  }
+
+  if (env && env.BOT_KV && preset) {
+    // Cache for 6 hours
+    await env.BOT_KV.put(cacheKey, code, { expirationTtl: 21600 });
+  }
+
+  return code;
+}
+
+async function cacheAllPresets(env) {
+  if (!env || !env.BOT_KV) return;
+  for (const p of PRESETS) {
+    try {
+      await getPresetCode(p, env);
+    } catch (_) {}
+  }
+}
+
+function isESModule(code) {
+  if (!code) return false;
+  if (code.includes("export default") || code.includes("export{") || code.includes("export {")) return true;
+  if (code.includes("import{") || code.includes("import {")) return true;
+  return /export\s*\{/i.test(code) ||
+         /export\s+default\b/i.test(code) ||
+         /export\s+(const|let|var|function|async|class)\b/i.test(code) ||
+         /import\s*\{/i.test(code) ||
+         /import\s+[\w$*]+/i.test(code) ||
+         /import\s*['"]/i.test(code);
+}
+
+async function deployWorkerScript(token, accountId, scriptName, code, bindings = []) {
+  const isModule = isESModule(code);
+  const formData = new FormData();
+  
+  const metadata = {
+    compatibility_date: new Date().toISOString().split("T")[0],
+    compatibility_flags: ["nodejs_compat"],
+    bindings: bindings
+  };
+
+  if (isModule) {
+    metadata.main_module = "worker.js";
+    formData.append("metadata", JSON.stringify(metadata));
+    formData.append("worker.js", new Blob([code], { type: "application/javascript+module" }), "worker.js");
+  } else {
+    metadata.body_part = "script";
+    formData.append("metadata", JSON.stringify(metadata));
+    formData.append("script", new Blob([code], { type: "application/javascript" }), "script");
+  }
+
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+    method: "PUT",
+    headers: { 
+      "Authorization": `Bearer ${token}`
+    },
+    body: formData
+  }, 30000);
+
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to deploy Worker.");
+  }
+  return data.result;
+}
+
+async function deleteWorkerScript(token, accountId, scriptName) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+    method: "DELETE",
+    headers: { 
+      "Authorization": `Bearer ${token}`
+    }
+  }, 15000);
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to delete worker script.");
+  }
+  return data.success;
+}
+
+async function getWorkerScriptCode(token, accountId, scriptName) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  }, 20000);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch worker script (${res.status})`);
+  }
+  return await res.text();
+}
+
+async function getWorkerSettings(token, accountId, scriptName) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/settings`, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  }, 15000);
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to fetch Worker settings.");
+  }
+  return data.result;
+}
+
+async function updateWorkerBindings(token, accountId, scriptName, bindings) {
+  const cleanedBindings = (bindings || []).map(b => {
+    if (b.type === "kv_namespace") {
+      return { name: b.name, type: "kv_namespace", namespace_id: b.namespace_id };
+    } else if (b.type === "d1") {
+      return { name: b.name, type: "d1", database_id: b.database_id };
+    } else if (b.type === "plain_text") {
+      return { name: b.name, type: "plain_text", text: b.text || "" };
+    } else if (b.type === "secret_text") {
+      return b.text ? { name: b.name, type: "secret_text", text: b.text } : null;
+    }
+    return b;
+  }).filter(Boolean);
+
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/settings`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ bindings: cleanedBindings })
+  }, 15000);
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to update bindings.");
+  }
+  return data.success;
+}
+
+async function enableWorkerSubdomain(token, accountId, scriptName) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/subdomain`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ enabled: true })
+    }, 15000);
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Subdomain Resolution System
+async function getWorkerSubdomain(token, accountId, env, accountName = "") {
+  // 1. Check KV Cache
+  if (env && env.BOT_KV) {
+    const cached = await env.BOT_KV.get(`subdomain:${accountId}`);
+    if (cached && cached.trim()) return cached.trim();
+  }
+
+  // 2. Fetch Live from Cloudflare API (generous 25s timeout)
+  const liveSub = await refreshWorkerSubdomainLive(token, accountId, env);
+  if (liveSub && liveSub.trim()) return liveSub.trim();
+
+  // 3. Derive Intelligent Fallback (e.g. pcwwrk@hi2.in -> pcwwrk)
+  if (accountName) {
+    const fallbackSub = deriveFallbackSubdomain(accountName);
+    if (env && env.BOT_KV && fallbackSub) {
+      await env.BOT_KV.put(`subdomain:${accountId}`, fallbackSub);
+    }
+    return fallbackSub;
+  }
+  return "";
+}
+
+async function refreshWorkerSubdomainLive(token, accountId, env = null) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/subdomain`, {
+      headers: { 
+        "Authorization": `Bearer ${token}`
+      }
+    }, 25000);
+    const data = await res.json();
+    if (data.success && data.result && data.result.subdomain) {
+      const sub = data.result.subdomain.trim();
+      if (env && env.BOT_KV) {
+        await env.BOT_KV.put(`subdomain:${accountId}`, sub);
+      }
+      return sub;
+    }
+  } catch (err) {
+    if (env) await logEvent(env, `هشدار در استعلام ساب‌دومین: ${err.message}`, "warning");
+  }
+  return "";
+}
+
+async function listWorkerScripts(token, accountId) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
+    headers: { 
+      "Authorization": `Bearer ${token}`
+    }
+  }, 20000);
+  const data = await res.json();
+  if (!data.success || !Array.isArray(data.result)) return [];
+  return data.result.sort((a, b) => {
+    const timeA = new Date(a.modified_on || a.created_on || 0).getTime();
+    const timeB = new Date(b.modified_on || b.created_on || 0).getTime();
+    return timeB - timeA;
+  });
+}
+
+async function listPagesProjects(token, accountId) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`, {
+    headers: { 
+      "Authorization": `Bearer ${token}`
+    }
+  }, 15000);
+  const data = await res.json();
+  return data.success ? data.result : [];
+}
+
+async function getPagesProject(token, accountId, name) {
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${name}`, {
+    headers: { 
+      "Authorization": `Bearer ${token}`
+    }
+  }, 15000);
+  const data = await res.json();
+  return data.success ? data.result : null;
+}
+
+async function createPagesProject(token, accountId, name, bindings) {
+  const kvBindingsObj = {};
+  const envVarsObj = {};
+
+  bindings.forEach(b => {
+    if (b.type === "kv_namespace") {
+      kvBindingsObj[b.name] = { namespace_id: b.namespace_id };
+    } else if (b.type === "plain_text") {
+      envVarsObj[b.name] = { type: "plain_text", value: b.text };
+    }
+  });
+
+  const payload = {
+    name: name,
+    production_branch: "main",
+    deployment_configs: {
+      production: {
+        compatibility_date: new Date().toISOString().split("T")[0],
+        compatibility_flags: ["nodejs_compat"],
+        kv_namespaces: kvBindingsObj,
+        env_vars: envVarsObj
+      }
+    }
+  };
+
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  }, 20000);
+
+  const data = await res.json();
+  if (!data.success) {
+    if (data.errors?.[0]?.code === 8000000) {
+      return await getPagesProject(token, accountId, name);
+    }
+    throw new Error(data.errors?.[0]?.message || "Failed to create Pages.");
+  }
+  return data.result;
+}
+
+async function deployPagesAsset(token, accountId, projectName, code) {
+  const formData = new FormData();
+  formData.append("manifest", "{}");
+  formData.append("branch", "main");
+  formData.append("_worker.js", new Blob([code], { type: "application/javascript" }), "_worker.js");
+
+  const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/deployments`, {
+    method: "POST",
+    headers: { 
+      "Authorization": `Bearer ${token}`
+    },
+    body: formData
+  }, 25000);
+
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "Failed to deploy Pages assets.");
+  }
+  return data.result;
+}
+
+async function getPagesProjects(token, accountId) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 15000);
+    const data = await res.json();
+    return data.success ? (data.result || []) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+// Telegram Slash Commands Auto-Registrar
+async function registerTelegramCommands(botToken) {
+  if (!botToken) return;
+  try {
+    const commands = [
+      { command: "start", description: "🏠 منوی اصلی ربات" },
+      { command: "workers", description: "📂 مدیریت و لیست ورکرها" },
+      { command: "pages", description: "📄 مدیریت و لیست پیجز" },
+      { command: "new_worker", description: "🚀 ساخت و استقرار ورکر جدید" },
+      { command: "new_pages", description: "📦 ساخت و استقرار پیجز جدید" },
+      { command: "subdomain", description: "🌐 بررسی و تنظیم ساب‌دومین" },
+      { command: "help", description: "ℹ️ راهنما و آموزش ربات" }
+    ];
+    await fetch(`https://api.telegram.org/bot${botToken}/setMyCommands`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commands })
+    });
+  } catch (_) {}
+}
+
+
+
+// --- STRING UTILITIES FOR TELEGRAM SAFETY ---
+function escapeHTML(str) {
+  if (typeof str !== "string") return String(str ?? "");
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function stripHTML(str) {
+  if (typeof str !== "string") return String(str ?? "");
+  return str.replace(/<[^>]*>?/gm, "");
+}
+
+function splitTextIntoChunks(text, maxLen = 3800) {
+  if (text.length <= maxLen) return [text];
+  const chunks = [];
+  let current = "";
+  const lines = text.split("\n");
+
+  for (const line of lines) {
+    if (line.length > maxLen) {
+      if (current) {
+        chunks.push(current.trim());
+        current = "";
+      }
+      for (let i = 0; i < line.length; i += maxLen) {
+        chunks.push(line.slice(i, i + maxLen));
+      }
+      continue;
+    }
+
+    if ((current + "\n" + line).length > maxLen) {
+      if (current) chunks.push(current.trim());
+      current = line;
+    } else {
+      current = current ? (current + "\n" + line) : line;
+    }
+  }
+  if (current) chunks.push(current.trim());
+  return chunks;
+}
+
+// --- TELEGRAM SEND / EDIT / UPLOAD SYSTEM ---
+async function sendMessage(chatId, text, env, useReplyMarkup = false, customKeyboard = null) {
+  let replyMarkup = {};
+  if (useReplyMarkup) {
+    replyMarkup = { keyboard: [[{ text: "🔙 بازگشت به منوی اصلی" }]], resize_keyboard: true };
+  } else if (customKeyboard) {
+    replyMarkup = { inline_keyboard: customKeyboard };
+  }
+
+  // Auto-split long messages (> 3800 chars) to prevent Telegram 400 Bad Request
+  if (text.length > 3800) {
+    const chunks = splitTextIntoChunks(text, 3800);
+    for (let i = 0; i < chunks.length; i++) {
+      const isLast = (i === chunks.length - 1);
+      await sendSingleMessage(chatId, chunks[i], env, isLast ? ((useReplyMarkup || customKeyboard) ? replyMarkup : undefined) : undefined);
+    }
+    return;
+  }
+
+  await sendSingleMessage(chatId, text, env, (useReplyMarkup || customKeyboard) ? replyMarkup : undefined);
+}
+
+async function sendSingleMessage(chatId, text, env, replyMarkup) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: "HTML",
+        reply_markup: replyMarkup
+      })
+    }, 10000);
+
+    const data = await res.json();
+    // Resilient fallback: If HTML entity parsing fails, retry as plain text!
+    if (!data.ok && data.description && data.description.includes("can't parse entities")) {
+      await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: stripHTML(text),
+          reply_markup: replyMarkup
+        })
+      }, 10000);
+    }
+  } catch (err) {
+    console.error("Telegram sendSingleMessage error:", err);
+  }
+}
+
+async function editMessageText(chatId, messageId, text, env, forceKeyboard = false) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`;
+  const replyMarkup = forceKeyboard ? {
+    inline_keyboard: [[{ text: "🔙 بازگشت به منوی اصلی", callback_data: "go_main" }]]
+  } : undefined;
+
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text: text,
+        parse_mode: "HTML",
+        reply_markup: replyMarkup
+      })
+    }, 10000);
+
+    const data = await res.json();
+    if (!data.ok && data.description && data.description.includes("can't parse entities")) {
+      await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text: stripHTML(text),
+          reply_markup: replyMarkup
+        })
+      }, 10000);
+    }
+  } catch (err) {
+    console.error("Telegram editMessageText error:", err);
+  }
+}
+
+async function sendTelegramDocument(chatId, filename, content, env, caption = "") {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`;
+  const formData = new FormData();
+  formData.append("chat_id", chatId);
+  if (caption) {
+    formData.append("caption", caption);
+    formData.append("parse_mode", "HTML");
+  }
+  formData.append("document", new Blob([content], { type: "application/javascript" }), filename);
+
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      body: formData
+    }, 20000);
+    const data = await res.json();
+    return data.ok === true;
+  } catch (err) {
+    console.error("Telegram sendTelegramDocument error:", err);
+    return false;
+  }
+}
+
+async function answerCallbackQuery(callbackQueryId, env) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+  try {
+    await fetchWithTimeout(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callback_query_id: callbackQueryId })
+    }, 8000);
+  } catch (_) {}
+}
+
+// --- ADVANCED GITHUB RAW URL NORMALIZER ---
+function normalizeGitHubUrl(urlStr) {
+  let target = urlStr.trim();
+  // Strip query parameters (?raw=true, etc.)
+  if (target.includes("?")) {
+    target = target.split("?")[0];
+  }
+  // Convert Gist URL to raw
+  if (target.includes("gist.github.com") && !target.includes("/raw")) {
+    target = target.replace("gist.github.com", "gist.githubusercontent.com") + "/raw";
+    return target;
+  }
+  // Convert standard GitHub blob URL to raw
+  if (target.includes("github.com") && !target.includes("raw.githubusercontent.com")) {
+    target = target
+      .replace("github.com", "raw.githubusercontent.com")
+      .replace("/blob/", "/");
+  }
+  return target;
+}
+
+
+
+// --- AUTOMATIC PRESET CACHING ENGINE ---
+async function cacheAllPresets(env) {
+  for (let i = 0; i < PRESETS.length; i++) {
+    const preset = PRESETS[i];
+    try {
+      const response = await fetchWithTimeout(preset.url, {
+        headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+      }, 15000);
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const code = await response.text();
+      
+      await env.BOT_KV.put(`cache:code:${preset.id}`, code);
+      await env.BOT_KV.put(`cache:updated:${preset.id}`, new Date().toISOString());
+      await logEvent(env, `کد ورکر [${preset.name}] با موفقیت دانلود و کش شد.`, "info");
+    } catch (err) {
+      await logEvent(env, `خطا در کش کردن ورکر [${preset.name}]: ${err.message}`, "error");
+    }
+  }
+}
+
+// --- FETCH CODE FROM CACHE OR NETWORK ---
+async function getPresetCode(preset, env, customUrl = null) {
+  if (customUrl) {
+    let targetUrl = normalizeGitHubUrl(customUrl);
+    await logEvent(env, `دریافت مستقیم سورس ورکر سفارشی از لینک: ${targetUrl}`, "info");
+    const response = await fetchWithTimeout(targetUrl, {
+      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+    }, 15000);
+    if (!response.ok) throw new Error("سورس فایل سفارشی از اینترنت قابل دانلود نیست.");
+    return await response.text();
+  }
+
+  let code = await env.BOT_KV.get(`cache:code:${preset.id}`);
+  if (!code) {
+    await logEvent(env, `ورکر [${preset.name}] در کش وجود نداشت. دانلود مستقیم انجام می‌شود...`, "warning");
+    const response = await fetchWithTimeout(preset.url, {
+      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
+    }, 15000);
+    if (!response.ok) throw new Error("سورس فایل از اینترنت قابل دانلود نیست.");
+    code = await response.text();
+    await env.BOT_KV.put(`cache:code:${preset.id}`, code);
+    await env.BOT_KV.put(`cache:updated:${preset.id}`, new Date().toISOString());
+  }
+  return code;
+}
+
+// --- HELPER UTILITIES ---
+function generateRandomString(charset, length) {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return result;
+}
+
+function deriveFallbackSubdomain(accountName, accountId = "") {
+  if (!accountName) return "";
+  let clean = typeof accountName === "object" && accountName !== null ? (accountName.name || accountName.email || "") : String(accountName || "");
+  const accId = typeof accountName === "object" && accountName !== null ? (accountName.id || accountId) : accountId;
+  if (clean.includes("@")) {
+    clean = clean.split("@")[0];
+  } else if (clean.includes("'s Account")) {
+    clean = clean.replace(/'s Account/gi, "");
+  }
+  let base = clean.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  if (!base && accId) {
+    base = "cf-" + String(accId).replace(/[^a-z0-9]/gi, "").substring(0, 8);
+  }
+  if (base.length > 25) base = base.substring(0, 25);
+  return base;
+}
+
+function autoGenerateVars(varList, context = {}) {
+  const generated = {};
+  varList.forEach(v => {
+    if (v === "UUID" || v === "uuid") {
+      const u = generated.UUID || generated.uuid || crypto.randomUUID();
+      generated.UUID = u;
+      generated.uuid = u;
+    } else if (v === "TR_PASS" || v === "ADMIN_PASSWORD" || v === "ADMIN") {
+      generated[v] = generateRandomString(CharsetTrojanPassword, 12);
+    } else if (v === "SUB_PATH") {
+      generated[v] = "/sub/" + generateRandomString(CharsetURIPath, 16);
+    } else if (v === "PROXY_IP" || v === "PROXYIP" || v === "proxyip") {
+      generated[v] = "speed.cloudflare.com";
+    } else if (v === "PREFIX") {
+      generated[v] = "BPB";
+    } else if (v === "FALLBACK") {
+      generated[v] = "speed.cloudflare.com";
+    } else if (v === "PASSWORD") {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 12);
+    } else if (v === "KEY") {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 32);
+    } else if (v === "SOCKS5") {
+      generated[v] = "";
+    } else if (v.startsWith("D1_ID_")) {
+      generated[v] = "auto";
+    } else if (v === "AES_KEY") {
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      generated[v] = Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+    } else if (v === "WEBHOOK_SECRET") {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 32);
+    } else if (v === "SECRET_SALT") {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 32);
+    } else if (v === "BOT_TOKEN") {
+      generated[v] = context.BOT_TOKEN || "";
+    } else if (v === "BOT_USERNAME") {
+      generated[v] = context.BOT_USERNAME || "facelesscahtbot";
+    } else if (v === "ADMIN_IDS") {
+      generated[v] = context.chatId ? context.chatId.toString() : "";
+    } else {
+      generated[v] = generateRandomString(CharsetAlphaNumeric, 12);
+    }
+  });
+  return generated;
+}
+
+// --- TELEGRAM UPDATE HANDLER ---
+async function handleTelegramUpdate(update, env) {
+  if (update.message) {
+    await handleTelegramMessage(update.message, env);
+  } else if (update.callback_query) {
+    await handleTelegramCallback(update.callback_query, env);
+  }
+}
+
+function pushHistory(session, currentState) {
+  if (!session.history) session.history = [];
+  session.history.push(currentState);
+}
+
+function popHistory(session) {
+  if (!session.history || session.history.length === 0) return "IDLE";
+  return session.history.pop();
+}
+
+async function handleTelegramMessage(msg, env) {
+  const chatId = msg.chat.id.toString();
+  const text = msg.text ? msg.text.trim() : "";
+  
+  let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
+  if (!userSession.accounts) userSession.accounts = [];
+  if (!userSession.history) userSession.history = [];
+
+  // --- TELEGRAM SLASH COMMANDS ROUTER ---
+  if (text.startsWith("/")) {
+    const cmd = text.split(" ")[0].toLowerCase();
+    if (cmd === "/start") {
+      userSession.state = "IDLE";
+      userSession.history = [];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      if (env.TELEGRAM_BOT_TOKEN) registerTelegramCommands(env.TELEGRAM_BOT_TOKEN);
+      return sendMainMenu(chatId, env);
+    }
+    if (cmd === "/cancel") {
+      userSession.state = "IDLE";
+      userSession.history = [];
+      userSession.deployPayload = {};
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      await sendMessage(chatId, "❌ عملیات جاری لغو گردید و به منوی اصلی برگشتید.", env);
+      return sendMainMenu(chatId, env);
+    }
+    if (cmd === "/new_worker" || cmd === "/newworker" || cmd === "/create_worker" || cmd === "/deploy_worker") {
+      if (!userSession.accounts || userSession.accounts.length === 0) {
+        return sendMessage(chatId, "⚠️ ابتدا باید یک حساب کلادفلر اضافه کنید. از منوی اصلی اقدام نمایید.", env);
+      }
+      userSession.deployPayload = { type: "worker" };
+      userSession.state = "SELECT_CATEGORY";
+      userSession.history = ["IDLE"];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendCategorySelection(chatId, env);
+    }
+    if (cmd === "/new_pages" || cmd === "/newpages" || cmd === "/create_pages" || cmd === "/deploy_pages") {
+      if (!userSession.accounts || userSession.accounts.length === 0) {
+        return sendMessage(chatId, "⚠️ ابتدا باید یک حساب کلادفلر متصل کنید.", env);
+      }
+      userSession.deployPayload = { type: "pages" };
+      userSession.state = "SELECT_CATEGORY";
+      userSession.history = ["IDLE"];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendCategorySelection(chatId, env);
+    }
+    if (cmd === "/workers" || cmd === "/list" || cmd === "/projects") {
+      if (!userSession.accounts || userSession.accounts.length === 0) {
+        return sendMessage(chatId, "⚠️ ابتدا باید یک حساب کلادفلر اضافه کنید. از منوی اصلی اقدام نمایید.", env);
+      }
+      const keyboard = [
+        [
+          { text: "🚀 ساخت و استقرار ورکر جدید", callback_data: "cmd_new_worker" },
+          { text: "📋 مشاهده لیست ورکرها", callback_data: "list_projects" }
+        ],
+        [
+          { text: "🏠 منوی اصلی", callback_data: "go_main" }
+        ]
+      ];
+      await sendMessage(chatId, "📂 <b>بخش ورکرها (Cloudflare Workers):</b>\n\nمی‌توانید یک ورکر جدید بسازید یا لیست پروژه‌های فعال را مدیریت کنید:", env, false, keyboard);
+      return handleTelegramListProjects(chatId, userSession, env);
+    }
+    if (cmd === "/pages") {
+      if (!userSession.accounts || userSession.accounts.length === 0) {
+        return sendMessage(chatId, "⚠️ ابتدا باید یک حساب کلادفلر متصل کنید.", env);
+      }
+      const acc = userSession.accounts[0];
+      const projects = await getPagesProjects(acc.token, acc.id);
+      const keyboard = [
+        [
+          { text: "🚀 ساخت و استقرار پیجز جدید", callback_data: "cmd_new_pages" }
+        ],
+        [
+          { text: "🏠 منوی اصلی", callback_data: "go_main" }
+        ]
+      ];
+      if (!projects || projects.length === 0) {
+        return sendMessage(chatId, `📄 <b>پروژه‌های Cloudflare Pages:</b>\n\n👤 حساب: <b>${escapeHTML(acc.name)}</b>\n\n⚠️ هیچ پروژه Pages فعالی روی این حساب یافت نشد. با دکمه زیر می‌توانید اولین پروژه پیجز را بسازید:`, env, false, keyboard);
+      }
+      let msg = `📄 <b>پروژه‌های فعال Cloudflare Pages (${projects.length}):</b>\n\n👤 حساب: <b>${escapeHTML(acc.name)}</b>\n\n`;
+      projects.forEach((p, idx) => {
+        const domain = p.subdomain ? `https://${p.subdomain}.pages.dev` : "";
+        const branch = p.production_branch || "main";
+        msg += `${idx + 1}. <b>${escapeHTML(p.name)}</b>\n`;
+        if (domain) msg += `🔗 <code>${escapeHTML(domain)}</code>\n`;
+        msg += `🌿 شاخه اصلی: <code>${escapeHTML(branch)}</code>\n\n`;
+      });
+      return sendMessage(chatId, msg, env, false, keyboard);
+    }
+    if (cmd === "/subdomain") {
+      if (!userSession.accounts || userSession.accounts.length === 0) {
+        return sendMessage(chatId, "⚠️ ابتدا باید یک حساب کلادفلر متصل کنید.", env);
+      }
+      const acc = userSession.accounts[0];
+      const sub = await getWorkerSubdomain(acc.token, acc.id, env, acc.name);
+      return sendMessage(chatId, `🌐 <b>اطلاعات ساب‌دومین ورکرز:</b>\n\n👤 حساب: <b>${escapeHTML(acc.name)}</b>\n🏷 ساب‌دومین: <code>${escapeHTML(sub || "ثبت‌نشده")}</code>\n\nجهت تغییر یا استعلام مجدد، از منوی 🔑 مدیریت اکانت‌ها اقدام کنید.`, env);
+    }
+    if (cmd === "/status") {
+      const accCount = (userSession.accounts || []).length;
+      return sendMessage(chatId, `📊 <b>وضعیت ربات استقرار کلش‌فا:</b>\n\n🔹 تعداد اکانت‌های متصل: <code>${accCount}</code>\n🔹 تعداد قالب‌های آماده: <code>${PRESETS.length}</code>\n🔹 نسخه سیستم: <code>2.4.0 Ultra</code>\n🔹 پنل وب: فعال بر روی ریشه ورکر <code>/</code>`, env);
+    }
+    if (cmd === "/help") {
+      const helpText = `ℹ️ <b>راهنمای دستورات ربات:</b>\n\n` +
+        `🚀 /new_worker - ساخت و استقرار ورکر جدید\n` +
+        `📦 /new_pages - ساخت و استقرار پیجز جدید\n` +
+        `📂 /workers - مدیریت و مشاهده لیست ورکرها\n` +
+        `📄 /pages - مدیریت و مشاهده پروژه‌های Pages\n` +
+        `🌐 /subdomain - استعلام و بررسی ساب‌دومین فعال\n` +
+        `📊 /status - وضعیت سامانه و اکانت‌ها\n` +
+        `❌ /cancel - لغو عملیات جاری و بازگشت\n` +
+        `🏠 /start - بازگشت به منوی اصلی\n\n` +
+        `💡 <i>همچنین می‌توانید از پنل تحت وب برای استقرار سریع استفاده نمایید.</i>`;
+      return sendMessage(chatId, helpText, env);
+    }
+  }
+
+  if (text === "🔙 بازگشت به منوی اصلی") {
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendMainMenu(chatId, env);
+  }
+
+  // --- STATE: AWAITING CF API TOKEN ---
+  if (userSession.state === "AWAITING_CF_TOKEN") {
+    if (!text) {
+      return sendMessage(chatId, "⚠️ لطفاً یک توکن API معتبر ارسال کنید.", env);
+    }
+
+    await sendMessage(chatId, "⏳ در حال بررسی اطلاعات و تست مجوزهای توکن کلادفلر...", env);
+    const isValid = await verifyCloudflareToken(text);
+    if (!isValid) {
+      await logEvent(env, `تلاش ناموفق برای افزودن توکن نامعتبر در تلگرام برای کاربر ${chatId}`, "warning");
+      return sendMessage(chatId, "❌ توکن نامعتبر است یا دسترسی‌های کافی ندارد. مجدداً اقدام فرمایید.", env, true);
+    }
+
+    const accounts = await getCloudflareAccounts(text);
+    if (!accounts || accounts.length === 0) {
+      return sendMessage(chatId, "❌ حساب کاربری یافت نشد. مجوز Account Settings: Read توکن را بررسی کنید.", env, true);
+    }
+
+    // Check for duplicate account / token
+    const existing = userSession.accounts.find(a => a.token === text || a.id === accounts[0].id);
+    if (existing) {
+      userSession.state = "IDLE";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendMessage(chatId, `⚠️ این حساب کلادفلر با نام <b>${escapeHTML(existing.name)}</b> قبلاً به ربات متصل شده است.`, env);
+    }
+
+    // Verify detailed permissions (Workers, KV, D1)
+    const perms = await validateTokenPermissions(text, accounts[0].id);
+
+    // Fetch or derive subdomain immediately on connection
+    let detectedSub = await refreshWorkerSubdomainLive(text, accounts[0].id, env);
+    if (!detectedSub) {
+      detectedSub = deriveFallbackSubdomain(accounts[0].name);
+    }
+    if (detectedSub && env.BOT_KV) {
+      await env.BOT_KV.put(`subdomain:${accounts[0].id}`, detectedSub);
+    }
+
+    const newAccount = { 
+      uid: "acc_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+      token: text, 
+      id: accounts[0].id, 
+      name: accounts[0].name,
+      subdomain: detectedSub || ""
+    };
+    userSession.accounts.push(newAccount);
+    userSession.state = "IDLE";
+    userSession.history = [];
+    
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    await logEvent(env, `حساب جدید (${newAccount.name}) با ساب‌دومین (${newAccount.subdomain}) از طریق تلگرام اضافه شد.`, "info");
+
+    let permsReport = `✅ <b>حساب کلادفلر با موفقیت متصل شد:</b>\n\n👤 نام حساب: <b>${escapeHTML(newAccount.name)}</b>\n🆔 شناسه: <code>${newAccount.id}</code>\n🌐 ساب‌دومین ورکرز: <code>${escapeHTML(newAccount.subdomain || "استعلام خودکار")}</code>\n\n📊 <b>وضعیت مجوزهای توکن:</b>\n`;
+    permsReport += `🔹 مدیریت ورکرها (Workers Scripts): ${perms.workers ? "✅ مجاز" : "⚠️ فاقد مجوز"}\n`;
+    permsReport += `🔹 دیتابیس کلید-مقدار (KV Storage): ${perms.kv ? "✅ مجاز" : "⚠️ فاقد مجوز"}\n`;
+    permsReport += `🔹 دیتابیس رابطه‌ای (D1 Database): ${perms.d1 ? "✅ مجاز" : "⚠️ فاقد مجوز"}\n`;
+
+    if (!perms.workers || !perms.kv || !perms.d1) {
+      permsReport += `\n💡 <i>نکته: در صورت نیاز به قالب‌های دارای KV یا D1، مطمئن شوید دسترسی‌های لازم به توکن داده شده است.</i>`;
+    }
+
+    await sendMessage(chatId, permsReport, env);
+    return sendMainMenu(chatId, env);
+  }
+
+  // --- STATE: AWAITING MANUAL SUBDOMAIN ENTRY ---
+  if (userSession.state.startsWith("AWAITING_SUBDOMAIN_INPUT_")) {
+    const accIdx = parseInt(userSession.state.replace("AWAITING_SUBDOMAIN_INPUT_", ""), 10);
+    const account = userSession.accounts[accIdx];
+    
+    if (!text || text.length > 50) {
+      return sendMessage(chatId, "⚠️ فرمت ساب‌دومین نامعتبر است. مجدداً تلاش کنید:", env);
+    }
+
+    await env.BOT_KV.put(`subdomain:${account.id}`, text.toLowerCase().trim());
+    await logEvent(env, `ساب‌دومین دستی برای حساب ${account.name} ذخیره شد: ${text}`, "info");
+
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    await sendMessage(chatId, `✅ ساب‌دومین ورکرز حساب <b>${escapeHTML(account.name)}</b> با موفقیت به <code>${escapeHTML(text)}</code> تنظیم شد.`, env);
+    return sendMainMenu(chatId, env);
+  }
+
+  // --- STATE: AWAITING CUSTOM URL ---
+  if (userSession.state === "AWAITING_CUSTOM_URL") {
+    if (!text.startsWith("http://") && !text.startsWith("https://")) {
+      return sendMessage(chatId, "⚠️ لطفاً یک لینک معتبر شروع شده با http یا https ارسال کنید:", env, false, [getNavKeyboardRow()]);
+    }
+
+    const normalizedUrl = normalizeGitHubUrl(text);
+    userSession.deployPayload = userSession.deployPayload || {};
+    userSession.deployPayload.templateIdx = "custom";
+    userSession.deployPayload.templateUrl = normalizedUrl;
+    userSession.deployPayload.templateName = "ورکر سفارشی 🛠️";
+    userSession.deployPayload.isLegacy = false;
+    userSession.deployPayload.kvBindings = [];
+    userSession.deployPayload.vars = {};
+
+    pushHistory(userSession, "AWAITING_CUSTOM_URL");
+    userSession.state = "CHOOSE_CUSTOM_VAR_OPTION";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return sendCustomVarOptionSelection(chatId, env);
+  }
+
+  // --- STATE: AWAITING CUSTOM RESOURCES COUNT ---
+  if (userSession.state === "AWAITING_CUSTOM_RESOURCES_COUNT") {
+    const counts = text.split(/\s+/);
+    if (counts.length !== 3 || counts.some(c => isNaN(parseInt(c, 10)))) {
+      return sendMessage(chatId, "⚠️ لطفاً دقیقاً ۳ عدد وارد کنید (مثال: 1 1 2) یا 0 0 0 برای رد کردن:", env, false, [getNavKeyboardRow()]);
+    }
+
+    const [numKv, numD1, numVar] = counts.map(c => parseInt(c, 10));
+
+    if (numKv === 0 && numD1 === 0 && numVar === 0) {
+      pushHistory(userSession, "AWAITING_CUSTOM_RESOURCES_COUNT");
+      userSession.state = "AWAITING_PROJECT_NAME";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendProjectNamePrompt(chatId, env);
+    }
+
+    userSession.deployPayload.resourceQueue = [];
+    for (let i = 1; i <= numKv; i++) {
+      userSession.deployPayload.resourceQueue.push({ type: "kv", index: i, step: "NAME", name: "", id: "" });
+    }
+    for (let i = 1; i <= numD1; i++) {
+      userSession.deployPayload.resourceQueue.push({ type: "d1", index: i, step: "NAME", name: "", id: "" });
+    }
+    for (let i = 1; i <= numVar; i++) {
+      userSession.deployPayload.resourceQueue.push({ type: "var", index: i, step: "NAME", name: "", val: "" });
+    }
+
+    userSession.deployPayload.resourceIndex = 0;
+    pushHistory(userSession, "AWAITING_CUSTOM_RESOURCES_COUNT");
+    userSession.state = "COLLECTING_RESOURCES";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return promptCurrentResource(chatId, userSession, env);
+  }
+
+  // --- STATE: COLLECTING_RESOURCES (CUSTOM WIZARD) ---
+  if (userSession.state === "COLLECTING_RESOURCES") {
+    const queue = userSession.deployPayload.resourceQueue;
+    const idx = userSession.deployPayload.resourceIndex;
+    const item = queue[idx];
+
+    if (item.type === "kv") {
+      if (item.step === "NAME") {
+        item.name = text;
+        item.step = "ID";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return promptCurrentResource(chatId, userSession, env);
+      } else if (item.step === "ID") {
+        item.id = text;
+        return advanceResourceIndex(chatId, userSession, env);
+      }
+    } else if (item.type === "d1") {
+      if (item.step === "NAME") {
+        item.name = text;
+        item.step = "ID";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return promptCurrentResource(chatId, userSession, env);
+      } else if (item.step === "ID") {
+        item.id = text;
+        return advanceResourceIndex(chatId, userSession, env);
+      }
+    } else if (item.type === "var") {
+      if (item.step === "NAME") {
+        item.name = text;
+        item.step = "VAL";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return promptCurrentResource(chatId, userSession, env);
+      } else if (item.step === "VAL") {
+        item.val = text;
+        return advanceResourceIndex(chatId, userSession, env);
+      }
+    }
+  }
+
+  // --- STATE: AWAITING_PROJECT_NAME ---
+  if (userSession.state === "AWAITING_PROJECT_NAME") {
+    const validNameRegex = /^[a-z0-9-]+$/;
+    if (!validNameRegex.test(text) || text.length > 63) {
+      return sendMessage(chatId, "⚠️ نام پروژه فقط شامل حروف انگلیسی کوچک، اعداد و خط تیره (-) است. دوباره تلاش کنید:", env, false, [getNavKeyboardRow()]);
+    }
+
+    userSession.deployPayload = userSession.deployPayload || {};
+    userSession.deployPayload.name = text;
+
+    pushHistory(userSession, "AWAITING_PROJECT_NAME");
+
+    const presetIdx = userSession.deployPayload.templateIdx;
+    
+    if (presetIdx === "custom") {
+      return proceedToAccountStep(chatId, userSession, env);
+    } else {
+      const preset = PRESETS[presetIdx];
+      const hasVars = (preset.vars && preset.vars.length > 0);
+
+      if (hasVars) {
+        userSession.state = "CHOOSE_VAR_MODE";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return sendVarModeSelection(chatId, env);
+      } else {
+        return proceedToAccountStep(chatId, userSession, env);
+      }
+    }
+  }
+
+  // --- STATE: VAR_COLLECT_[varName] ---
+  if (userSession.state.startsWith("VAR_COLLECT_")) {
+    const varName = userSession.state.replace("VAR_COLLECT_", "");
+    return proceedToNextVarOrDeploy(chatId, userSession, env, varName, text);
+  }
+
+  return sendMessage(chatId, "🤖 لطفاً یکی از گزینه‌های منو را انتخاب کنید:", env);
+}
+
+// --- STATE MACHINE FOR VARIABLE FLOWS ---
+async function proceedToNextVarOrDeploy(chatId, session, env, currentVarName, val) {
+  session.deployPayload = session.deployPayload || {};
+  session.deployPayload.vars = session.deployPayload.vars || {};
+  session.deployPayload.vars[currentVarName] = val;
+
+  const currentPreset = PRESETS[session.deployPayload.templateIdx];
+
+  // If user selected Auto-Generation mode, once mandatory inputs are collected, auto-generate all rest!
+  if (session.deployPayload.autoGenTemplate) {
+    session.deployPayload.vars = autoGenerateVars(currentPreset.vars, {
+      ...session.deployPayload.vars,
+      chatId: chatId.toString()
+    });
+    if (!session.deployPayload.vars["ADMIN_IDS"]) {
+      session.deployPayload.vars["ADMIN_IDS"] = chatId.toString();
+    }
+    pushHistory(session, `VAR_COLLECT_${currentVarName}`);
+    return proceedToAccountStep(chatId, session, env);
+  }
+
+  const collectedKeys = Object.keys(session.deployPayload.vars);
+  const missingVar = currentPreset.vars.find(v => !collectedKeys.includes(v));
+
+  pushHistory(session, `VAR_COLLECT_${currentVarName}`);
+
+  if (missingVar) {
+    session.state = `VAR_COLLECT_${missingVar}`;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return sendVariablePrompt(chatId, missingVar, env);
+  } else {
+    return proceedToAccountStep(chatId, session, env);
+  }
+}
+
+// --- PROCEED TO ACCOUNT STEP ---
+async function proceedToAccountStep(chatId, session, env) {
+  if (!session.accounts || session.accounts.length === 0) {
+    return sendMessage(chatId, "⚠️ شما هنوز هیچ حساب کلادفلری به ربات اضافه نکرده‌اید. لطفاً ابتدا حساب اضافه کنید.", env);
+  }
+
+  if (session.accounts.length === 1) {
+    session.deployPayload.account = session.accounts[0];
+    session.state = "EXECUTING_DEPLOY";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    await sendMessage(chatId, `👤 تنها یک حساب کاربری یافت شد. استقرار به طور خودکار بر روی حساب <b>${escapeHTML(session.accounts[0].name)}</b> آغاز می‌شود...\n\n⚡ در حال آماده‌سازی و استقرار...`, env);
+    return executeTelegramDeployment(chatId, session, env);
+  } else {
+    session.state = "SELECT_ACCOUNT_DEST";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return sendAccountSelection(chatId, session, env);
+  }
+}
+
+// --- TELEGRAM CALLBACK ACTIONS ---
+async function handleTelegramCallback(cb, env) {
+  const chatId = cb.message.chat.id.toString();
+  const data = cb.data;
+  const messageId = cb.message.message_id;
+
+  let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
+  if (!userSession.accounts) userSession.accounts = [];
+  if (!userSession.history) userSession.history = [];
+
+  await answerCallbackQuery(cb.id, env);
+
+  if (data === "noop") return;
+
+  // --- REFRESH PRESETS CACHE HANDLER ---
+  if (data === "refresh_presets_cache") {
+    await sendMessage(chatId, "⏳ در حال دانلود و بروزرسانی آخرین نسخه کدهای ۱۹ قالب از مخازن گیت‌هاب...", env);
+    await cacheAllPresets(env);
+    return sendMessage(chatId, "✅ تمامی قالب‌ها با موفقیت بروزرسانی و مجدداً در حافظه ابری کش شدند.", env);
+  }
+
+  // --- BACK NAVIGATION LOGIC ---
+  if (data === "step_back") {
+    if (userSession.state === "COLLECTING_RESOURCES") {
+      const queue = userSession.deployPayload.resourceQueue;
+      let idx = userSession.deployPayload.resourceIndex;
+      let item = queue[idx];
+
+      if (item.step === "ID" || item.step === "VAL") {
+        item.step = "NAME";
+      } else {
+        if (idx > 0) {
+          idx -= 1;
+          userSession.deployPayload.resourceIndex = idx;
+          item = queue[idx];
+          item.step = item.type === "var" ? "VAL" : "ID";
+        } else {
+          userSession.state = "AWAITING_CUSTOM_RESOURCES_COUNT";
+          await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+          return sendCustomResourcesPrompt(chatId, env);
+        }
+      }
+
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return promptCurrentResource(chatId, userSession, env);
+    }
+
+    const prevState = popHistory(userSession);
+    userSession.state = prevState;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    if (prevState === "IDLE") return sendMainMenu(chatId, env);
+    if (prevState === "SELECT_PLATFORM_TYPE") return sendPlatformTypeSelection(chatId, env);
+    if (prevState === "SELECT_CATEGORY") return sendCategorySelection(chatId, env);
+    if (prevState === "SELECT_TEMPLATE") {
+      return sendTemplateSelection(chatId, env, userSession.deployPayload.type, userSession.deployPayload.category);
+    }
+    if (prevState === "AWAITING_CUSTOM_URL") {
+      return sendMessage(chatId, "🔗 لطفاً لینک سورس ورکر سفارشی را ارسال کنید:", env, false, [getNavKeyboardRow()]);
+    }
+    if (prevState === "CHOOSE_CUSTOM_VAR_OPTION") return sendCustomVarOptionSelection(chatId, env);
+    if (prevState === "AWAITING_CUSTOM_RESOURCES_COUNT") return sendCustomResourcesPrompt(chatId, env);
+    if (prevState === "AWAITING_PROJECT_NAME") return sendProjectNamePrompt(chatId, env);
+    if (prevState === "CHOOSE_VAR_MODE") {
+      userSession.deployPayload.vars = {};
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendVarModeSelection(chatId, env);
+    }
+    if (prevState.startsWith("VAR_COLLECT_")) {
+      const varName = prevState.replace("VAR_COLLECT_", "");
+      if (userSession.deployPayload && userSession.deployPayload.vars) {
+        delete userSession.deployPayload.vars[varName];
+      }
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendVariablePrompt(chatId, varName, env);
+    }
+    return sendMainMenu(chatId, env);
+  }
+
+  if (data === "manage_accounts") {
+    return sendAccountsManagement(chatId, userSession, env, messageId);
+  }
+
+  if (data === "add_cf_token") {
+    userSession.state = "AWAITING_CF_TOKEN";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return editMessageText(chatId, messageId, "🔑 لطفاً <b>API Token</b> خود را با دسترسی‌های کامل ارسال نمایید.", env, true);
+  }
+
+  if (data === "del_all_acc") {
+    userSession.accounts = [];
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    await logEvent(env, `خروج همزمان از تمامی حساب‌ها توسط کاربر ${chatId}`, "warning");
+    await sendMessage(chatId, "🔒 خروج با موفقیت انجام شد. تمامی حساب‌ها از حافظه ربات پاک شدند.", env);
+    return sendMainMenu(chatId, env);
+  }
+
+  if (data.startsWith("del_acc_")) {
+    const idx = parseInt(data.replace("del_acc_", ""), 10);
+    if (userSession.accounts && userSession.accounts[idx]) {
+      const removed = userSession.accounts.splice(idx, 1);
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      await logEvent(env, `حذف حساب کلادفلر: ${removed[0].name}`, "info");
+      await sendMessage(chatId, "🗑️ حساب کلادفلر انتخاب شده با موفقیت برکنار شد.", env);
+      return sendAccountsManagement(chatId, userSession, env);
+    }
+  }
+
+  if (data.startsWith("view_acc_")) {
+    const idx = parseInt(data.replace("view_acc_", ""), 10);
+    const acc = userSession.accounts[idx];
+    const sub = await env.BOT_KV.get(`subdomain:${acc.id}`) || "ثبت نشده (تلاش برای دریافت خودکار)";
+    
+    const kb = [
+      [{ text: "🔄 استعلام زنده ساب‌دامین", callback_data: `refresh_sub_${idx}` }],
+      [{ text: "✏️ ویرایش دستی ساب‌دامین", callback_data: `set_sub_${idx}` }],
+      [{ text: "🔙 بازگشت به لیست حساب‌ها", callback_data: "manage_accounts" }]
+    ];
+    return sendMessage(chatId, `👤 <b>جزئیات حساب کلادفلر:</b>\n\n🔹 نام: <code>${escapeHTML(acc.name)}</code>\n🔹 شناسه: <code>${acc.id}</code>\n🔹 ساب‌دومین ورکرز: <code>${escapeHTML(sub)}</code>\n🔹 توکن: <code>${acc.token.substring(0, 8)}***</code>`, env, false, kb);
+  }
+
+  if (data.startsWith("refresh_sub_")) {
+    const idx = parseInt(data.replace("refresh_sub_", ""), 10);
+    const acc = userSession.accounts[idx];
+    await sendMessage(chatId, "⏳ در حال استعلام مستقیم ساب‌دامین از کلادفلر...", env);
+    const liveSub = await refreshWorkerSubdomainLive(acc.token, acc.id, env);
+    if (liveSub) {
+      return sendMessage(chatId, `✅ ساب‌دامین با موفقیت از کلادفلر استعلام و ذخیره شد:\n<code>${escapeHTML(liveSub)}</code>`, env);
+    } else {
+      return sendMessage(chatId, "⚠️ ساب‌دامین فعالی برای این حساب یافت نشد. می‌توانید با دکمه ویرایش دستی، ساب‌دامین را وارد کنید.", env);
+    }
+  }
+
+  if (data.startsWith("set_sub_")) {
+    const idx = parseInt(data.replace("set_sub_", ""), 10);
+    userSession.state = `AWAITING_SUBDOMAIN_INPUT_${idx}`;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendMessage(chatId, "✍️ لطفاً ساب‌دومین ورکرز اکانت خود را بدون پیشوند یا پسوند ارسال کنید:", env, true);
+  }
+
+  // --- FLOW START: SELECT DEPLOY TYPE ---
+  if (data === "start_deploy") {
+    userSession.deployPayload = {};
+    userSession.state = "SELECT_PLATFORM_TYPE";
+    userSession.history = ["IDLE"];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendPlatformTypeSelection(chatId, env);
+  }
+
+  if (data === "cmd_new_worker") {
+    userSession.deployPayload = { type: "worker" };
+    userSession.state = "SELECT_CATEGORY";
+    userSession.history = ["IDLE"];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendCategorySelection(chatId, env);
+  }
+
+  if (data === "cmd_new_pages") {
+    userSession.deployPayload = { type: "pages" };
+    userSession.state = "SELECT_CATEGORY";
+    userSession.history = ["IDLE"];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendCategorySelection(chatId, env);
+  }
+
+  if (data.startsWith("platform_")) {
+    const type = data.replace("platform_", "");
+    userSession.deployPayload.type = type;
+    
+    pushHistory(userSession, "SELECT_PLATFORM_TYPE");
+    userSession.state = "SELECT_CATEGORY";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return sendCategorySelection(chatId, env);
+  }
+
+  if (data.startsWith("cat_")) {
+    const category = data.replace("cat_", "");
+    userSession.deployPayload.category = category;
+
+    pushHistory(userSession, "SELECT_CATEGORY");
+    userSession.state = "SELECT_TEMPLATE";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    return sendTemplateSelection(chatId, env, userSession.deployPayload.type, category, 0);
+  }
+
+  if (data.startsWith("tpl_page_")) {
+    const parts = data.replace("tpl_page_", "").split("_");
+    const category = parts[0];
+    const page = parseInt(parts[1], 10);
+    return sendTemplateSelection(chatId, env, userSession.deployPayload.type, category, page);
+  }
+
+  if (data.startsWith("tpl_idx_")) {
+    const idxStr = data.replace("tpl_idx_", "");
+    pushHistory(userSession, userSession.state);
+
+    if (idxStr === "custom") {
+      userSession.deployPayload.templateIdx = "custom";
+      userSession.state = "AWAITING_CUSTOM_URL";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendMessage(chatId, "🔗 لطفاً لینک سورس ورکر سفارشی را ارسال کنید (لینک‌های گیت‌هاب به صورت خودکار پشتیبانی می‌شوند):", env, false, [getNavKeyboardRow()]);
+    } else {
+      const idx = parseInt(idxStr, 10);
+      const selectedPreset = PRESETS[idx];
+      userSession.deployPayload.templateIdx = idx;
+      userSession.deployPayload.templateName = selectedPreset.name;
+      userSession.deployPayload.templateUrl = selectedPreset.url;
+      userSession.deployPayload.isLegacy = selectedPreset.isLegacy;
+      userSession.deployPayload.kvBindings = selectedPreset.kvBindings;
+      userSession.deployPayload.vars = {};
+
+      userSession.state = "AWAITING_PROJECT_NAME";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return sendProjectNamePrompt(chatId, env);
+    }
+  }
+
+  if (data === "custom_vars_none") {
+    userSession.deployPayload.vars = {};
+    pushHistory(userSession, "CHOOSE_CUSTOM_VAR_OPTION");
+    userSession.state = "AWAITING_PROJECT_NAME";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendProjectNamePrompt(chatId, env);
+  }
+
+  if (data === "custom_vars_yes") {
+    pushHistory(userSession, "CHOOSE_CUSTOM_VAR_OPTION");
+    userSession.state = "AWAITING_CUSTOM_RESOURCES_COUNT";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendCustomResourcesPrompt(chatId, env);
+  }
+
+  if (data === "var_mode_auto") {
+    const preset = PRESETS[userSession.deployPayload.templateIdx];
+    const needsBotToken = preset.vars.includes("BOT_TOKEN");
+    
+    if (needsBotToken) {
+      await sendMessage(chatId, "⚙️ حالت نیمه خودکار فعال شد. متغیرهای ساختاری به صورت رندوم ایجاد خواهند شد. لطفاً توکن ربات تلگرام را ارسال کنید تا فرآیند ادامه یابد:", env, false, [getNavKeyboardRow()]);
+      userSession.deployPayload.autoGenTemplate = true;
+      userSession.state = "VAR_COLLECT_BOT_TOKEN";
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    } else {
+      userSession.deployPayload.vars = autoGenerateVars(preset.vars, { chatId: chatId.toString() });
+      pushHistory(userSession, "CHOOSE_VAR_MODE");
+      return proceedToAccountStep(chatId, userSession, env);
+    }
+  }
+
+  if (data === "var_mode_manual") {
+    const preset = PRESETS[userSession.deployPayload.templateIdx];
+    const firstVar = preset.vars[0];
+
+    pushHistory(userSession, "CHOOSE_VAR_MODE");
+    userSession.state = `VAR_COLLECT_${firstVar}`;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendVariablePrompt(chatId, firstVar, env);
+  }
+
+  // --- SINGLE VARIABLE INLINE AUTO-GENERATOR ---
+  if (data.startsWith("auto_gen_var_")) {
+    const varName = data.replace("auto_gen_var_", "");
+    let generatedVal = "";
+
+    if (varName === "BOT_USERNAME" && userSession.deployPayload && userSession.deployPayload.vars && userSession.deployPayload.vars.BOT_TOKEN) {
+      try {
+        const tgRes = await fetchWithTimeout(`https://api.telegram.org/bot${userSession.deployPayload.vars.BOT_TOKEN}/getMe`, {}, 8000);
+        const tgData = await tgRes.json();
+        if (tgData.ok && tgData.result && tgData.result.username) {
+          generatedVal = tgData.result.username;
+        }
+      } catch (_) {}
+    }
+
+    if (!generatedVal) {
+      const singleVarObj = autoGenerateVars([varName], { chatId: chatId.toString() });
+      generatedVal = singleVarObj[varName] || "";
+    }
+
+    return proceedToNextVarOrDeploy(chatId, userSession, env, varName, generatedVal);
+  }
+
+  if (data === "res_auto_kv") {
+    const idx = userSession.deployPayload.resourceIndex;
+    const item = userSession.deployPayload.resourceQueue[idx];
+    item.id = "auto";
+    return advanceResourceIndex(chatId, userSession, env);
+  }
+
+  if (data === "res_auto_val") {
+    const idx = userSession.deployPayload.resourceIndex;
+    const item = userSession.deployPayload.resourceQueue[idx];
+    if (item.name === "UUID" || item.name === "uuid") {
+      item.val = crypto.randomUUID();
+    } else if (item.name === "TR_PASS" || item.name === "ADMIN_PASSWORD" || item.name === "ADMIN") {
+      item.val = generateRandomString(CharsetTrojanPassword, 12);
+    } else {
+      item.val = generateRandomString(CharsetAlphaNumeric, 12);
+    }
+    return advanceResourceIndex(chatId, userSession, env);
+  }
+
+  if (data.startsWith("deploy_to_")) {
+    const accIdx = parseInt(data.replace("deploy_to_", ""), 10);
+    const selectedAccount = userSession.accounts[accIdx];
+    userSession.deployPayload.account = selectedAccount;
+
+    userSession.state = "EXECUTING_DEPLOY";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return executeTelegramDeployment(chatId, userSession, env);
+  }
+
+  if (data === "list_projects") {
+    if (!userSession.accounts || userSession.accounts.length === 0) {
+      return sendMessage(chatId, "⚠️ ابتدا باید اکانت کلادفلر اضافه کنید.", env);
+    }
+    return handleTelegramListProjects(chatId, userSession, env);
+  }
+
+  if (data.startsWith("list_opts_")) {
+    const accIdx = parseInt(data.replace("list_opts_", ""), 10);
+    const account = userSession.accounts[accIdx];
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  // --- WORKER DETAILED MENU HANDLERS ---
+  if (data.startsWith("wk_menu_")) {
+    const idx = parseInt(data.replace("wk_menu_", ""), 10);
+    if (userSession.listedWorkers && userSession.listedWorkers[idx]) {
+      const workerName = userSession.listedWorkers[idx];
+      userSession.activeWorker = workerName;
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+      const keyboard = [
+        [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }],
+        [{ text: "📥 دریافت و دانلود سورس‌کد ورکر (.js)", callback_data: `dl_wrk_code_${idx}` }],
+        [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
+        [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${userSession.activeAccIdx}` }]
+      ];
+
+      return sendMessage(chatId, `🛠️ <b>منوی مدیریت ورکر:</b> <code>${escapeHTML(workerName)}</code>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:`, env, false, keyboard);
+    }
+  }
+
+  // --- DOWNLOAD WORKER SOURCE CODE ---
+  if (data.startsWith("dl_wrk_code_")) {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال دریافت کدهای ورکر <code>${escapeHTML(workerName)}</code> از کلادفلر...`, env);
+    try {
+      const code = await getWorkerScriptCode(account.token, account.id, workerName);
+      const filename = `${workerName}.js`;
+      const caption = `📄 <b>سورس‌کد ورکر:</b> <code>${escapeHTML(workerName)}</code>\nحجم فایل: ${(code.length / 1024).toFixed(1)} کیلوبایت`;
+      
+      const sent = await sendTelegramDocument(chatId, filename, code, env, caption);
+      if (!sent) {
+        // Fallback: If document sending fails, send as chunked message
+        await sendMessage(chatId, `<code>${escapeHTML(code.substring(0, 3000))}</code>`, env);
+      }
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در دریافت سورس‌کد:\n<code>${escapeHTML(err.message)}</code>`, env);
+    }
+    return;
+  }
+
+  if (data === "wk_menu_back") {
+    if (userSession.listedWorkers && userSession.activeWorker) {
+      const idx = userSession.listedWorkers.indexOf(userSession.activeWorker);
+      if (idx !== -1) {
+        const keyboard = [
+          [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }],
+          [{ text: "📥 دریافت و دانلود سورس‌کد ورکر (.js)", callback_data: `dl_wrk_code_${idx}` }],
+          [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
+          [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${userSession.activeAccIdx}` }]
+        ];
+        return sendMessage(chatId, `🛠️ <b>منوی مدیریت ورکر:</b> <code>${escapeHTML(userSession.activeWorker)}</code>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:`, env, false, keyboard);
+      }
+    }
+    return sendMainMenu(chatId, env);
+  }
+
+  if (data === "manage_binds") {
+    return displayWorkerBindings(chatId, userSession, env);
+  }
+
+  if (data.startsWith("del_b_")) {
+    const idx = parseInt(data.replace("del_b_", ""), 10);
+    const bindings = userSession.activeBindings || [];
+    if (bindings[idx]) {
+      const targetBinding = bindings[idx];
+      const filteredBindings = bindings.filter((_, i) => i !== idx);
+
+      const workerName = userSession.activeWorker;
+      const accIdx = userSession.activeAccIdx;
+      const account = userSession.accounts[accIdx];
+
+      await sendMessage(chatId, `⏳ در حال حذف بایندینگ <code>${escapeHTML(targetBinding.name)}</code> از ورکر...`, env);
+
+      try {
+        await updateWorkerBindings(account.token, account.id, workerName, filteredBindings);
+        await logEvent(env, `بایندینگ ${targetBinding.name} از ورکر ${workerName} حذف شد.`, "warning");
+        await sendMessage(chatId, `✅ بایندینگ <code>${escapeHTML(targetBinding.name)}</code> با موفقیت حذف شد.`, env);
+        
+        userSession.activeBindings = filteredBindings;
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return displayWorkerBindings(chatId, userSession, env);
+      } catch (err) {
+        await sendMessage(chatId, `❌ خطای حذف بایندینگ:\n<code>${escapeHTML(err.message)}</code>`, env);
+        return displayWorkerBindings(chatId, userSession, env);
+      }
+    }
+  }
+
+  if (data === "del_all_b") {
+    const workerName = userSession.activeWorker;
+    const keyboard = [
+      [
+        { text: "💥 بله، همه حذف شوند", callback_data: "exec_del_all_b" },
+        { text: "❌ لغو عملیات", callback_data: "manage_binds" }
+      ]
+    ];
+    return sendMessage(chatId, `⚠️ آیا مطمئن هستید که می‌خواهید <b>تمامی</b> بایندینگ‌های ورکر <code>${escapeHTML(workerName)}</code> را حذف کنید؟ این عمل بلافاصله دسترسی ورکر به منابع را قطع می‌کند.`, env, false, keyboard);
+  }
+
+  if (data === "exec_del_all_b") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, "⏳ در حال حذف تمامی بایندینگ‌های ورکر...", env);
+
+    try {
+      await updateWorkerBindings(account.token, account.id, workerName, []);
+      await logEvent(env, `تمامی بایندینگ‌های ورکر ${workerName} حذف شدند.`, "warning");
+      await sendMessage(chatId, "✅ تمامی بایندینگ‌ها با موفقیت حذف شدند.", env);
+      
+      userSession.activeBindings = [];
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      return displayWorkerBindings(chatId, userSession, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف تمامی بایندینگ‌ها:\n<code>${escapeHTML(err.message)}</code>`, env);
+      return displayWorkerBindings(chatId, userSession, env);
+    }
+  }
+
+  if (data === "conf_del_wrk_sess") {
+    const workerName = userSession.activeWorker;
+    const keyboard = [
+      [
+        { text: "🗑️ فقط حذف خود ورکر", callback_data: "exec_del_wrk_only" },
+        { text: "💥 حذف ورکر + متغیرها و دیتابیس‌ها", callback_data: "exec_del_wrk_full" }
+      ],
+      [
+        { text: "❌ لغو عملیات", callback_data: "wk_menu_back" }
+      ]
+    ];
+    return sendMessage(chatId, `⚠️ <b>گزینه‌های حذف ورکر <code>${escapeHTML(workerName)}</code>:</b>\n\nلطفاً نوع حذف را مشخص فرمایید:\n\n1️⃣ <b>فقط حذف ورکر:</b> اسکریپت ورکر پاک می‌شود اما پایگاه‌های داده و متغیرها در کلادفلر حفظ می‌گردند.\n2️⃣ <b>حذف کامل ورکر + منابع:</b> علاوه بر اسکریپت، دیتابیس‌های KV و بایندینگ‌های اختصاصی متصل به این ورکر نیز پاک‌سازی می‌شوند.`, env, false, keyboard);
+  }
+
+  if (data === "exec_del_wrk_only" || data === "exec_del_wrk_sess") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال حذف ورکر <code>${escapeHTML(workerName)}</code> از کلادفلر...`, env);
+    try {
+      await deleteWorkerScript(account.token, account.id, workerName);
+      await logEvent(env, `ورکر ${workerName} با موفقیت حذف شد.`, "warning");
+      await sendMessage(chatId, `✅ اسکریپت ورکر <code>${escapeHTML(workerName)}</code> با موفقیت حذف گردید (منابع حفظ شدند).`, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف ورکر:\n<code>${escapeHTML(err.message)}</code>`, env);
+    }
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  if (data === "exec_del_wrk_full") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال حذف ورکر <code>${escapeHTML(workerName)}</code> و پاک‌سازی منابع متصل...`, env);
+    let deletedResourcesCount = 0;
+    try {
+      try {
+        const settings = await getWorkerSettings(account.token, account.id, workerName);
+        if (settings && Array.isArray(settings.bindings)) {
+          for (const b of settings.bindings) {
+            if (b.type === "kv_namespace" && b.namespace_id) {
+              const ok = await deleteKVNamespace(account.token, account.id, b.namespace_id);
+              if (ok) deletedResourcesCount++;
+            } else if (b.type === "d1" && b.database_id) {
+              const ok = await deleteD1Database(account.token, account.id, b.database_id);
+              if (ok) deletedResourcesCount++;
+            }
+          }
+        }
+      } catch (_) {}
+
+      await deleteWorkerScript(account.token, account.id, workerName);
+      await logEvent(env, `ورکر ${workerName} و تعداد ${deletedResourcesCount} منبع متصل حذف شدند.`, "warning");
+      await sendMessage(chatId, `✅ ورکر <code>${escapeHTML(workerName)}</code> با موفقیت حذف گردید.\n📦 تعداد منابع اختصاصی پاک‌شده: <code>${deletedResourcesCount}</code>`, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف کامل ورکر:\n<code>${escapeHTML(err.message)}</code>`, env);
+    }
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  if (data.startsWith("conf_del_all_wrk_")) {
+    const accIdx = parseInt(data.replace("conf_del_all_wrk_", ""), 10);
+    const keyboard = [
+      [
+        { text: "💥 بله، همه ورکرها حذف شوند", callback_data: `exec_del_all_wrk_${accIdx}` },
+        { text: "❌ انصراف", callback_data: `list_opts_${accIdx}` }
+      ]
+    ];
+    return sendMessage(chatId, "⚠️⚠️⚠️ <b>هشدار جدی</b>\n\nآیا از حذف <b>تمامی</b> ورکرهای موجود بر روی این اکانت اطمینان دارید؟ تمامی اسکریپت‌های شما پاک خواهند شد!", env, false, keyboard);
+  }
+
+  if (data.startsWith("exec_del_all_wrk_")) {
+    const accIdx = parseInt(data.replace("exec_del_all_wrk_", ""), 10);
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, "⏳ در حال حذف دسته جمعی تمام ورکرها... لطفاً صبور باشید.", env);
+    try {
+      const workers = await listWorkerScripts(account.token, account.id);
+      let deletedCount = 0;
+      for (const w of workers) {
+        try {
+          await deleteWorkerScript(account.token, account.id, w.id);
+          deletedCount++;
+        } catch (e) {
+          await logEvent(env, `خطا در حذف ورکر ${w.id}: ${e.message}`, "error");
+        }
+      }
+      await logEvent(env, `تعداد ${deletedCount} ورکر از اکانت ${account.name} حذف دسته‌جمعی شدند.`, "warning");
+      await sendMessage(chatId, `✅ عملیات پایان یافت. تعداد <code>${deletedCount}</code> ورکر با موفقیت حذف شدند.`, env);
+    } catch (err) {
+      await sendMessage(chatId, `❌ خطا در حذف دسته جمعی:\n<code>${escapeHTML(err.message)}</code>`, env);
+    }
+    return displayTelegramProjects(chatId, account, env, accIdx);
+  }
+
+  if (data === "go_main") {
+    userSession.state = "IDLE";
+    userSession.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    return sendMainMenu(chatId, env);
+  }
+}
+
+// --- RESOURCE NAVIGATION FOR CUSTOM WIZARD ---
+async function advanceResourceIndex(chatId, session, env) {
+  session.deployPayload.resourceIndex += 1;
+  pushHistory(session, "COLLECTING_RESOURCES");
+
+  if (session.deployPayload.resourceIndex < session.deployPayload.resourceQueue.length) {
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return promptCurrentResource(chatId, session, env);
+  } else {
+    return proceedToAccountStep(chatId, session, env);
+  }
+}
+
+async function promptCurrentResource(chatId, session, env) {
+  const queue = session.deployPayload.resourceQueue;
+  const idx = session.deployPayload.resourceIndex;
+  const item = queue[idx];
+
+  const keyboard = [getNavKeyboardRow()];
+
+  if (item.type === "kv") {
+    if (item.step === "NAME") {
+      return sendMessage(chatId, `📦 <b>دیتابیس KV (شماره ${item.index}):</b>\n\nنام متغیر بایندینگ (Binding Name) را وارد کنید (مثال: <code>KV</code>):`, env, false, keyboard);
+    } else if (item.step === "ID") {
+      const customKb = [
+        [{ text: "🎲 ساخت خودکار توسط ربات", callback_data: "res_auto_kv" }],
+        getNavKeyboardRow()
+      ];
+      return sendMessage(chatId, `📦 <b>دیتابیس KV (شماره ${item.index}):</b>\n\nشناسه Namespace ID دیتابیس KV خود را وارد کنید، یا روی دکمه ساخت خودکار کلیک کنید:`, env, false, customKb);
+    }
+  } else if (item.type === "d1") {
+    if (item.step === "NAME") {
+      return sendMessage(chatId, `🗄 <b>دیتابیس D1 (شماره ${item.index}):</b>\n\nنام متغیر بایندینگ (Binding Name) را وارد کنید (مثال: <code>DB</code> یا <code>IOT_DB</code>):`, env, false, keyboard);
+    } else if (item.step === "ID") {
+      return sendMessage(chatId, `🗄 <b>دیتابیس D1 (شماره ${item.index}):</b>\n\nشناسه دیتابیس D1 (Database ID) را وارد کنید یا خالی بگذارید برای ساخت خودکار:`, env, false, keyboard);
+    }
+  } else if (item.type === "var") {
+    if (item.step === "NAME") {
+      return sendMessage(chatId, `⚙️ <b>متغیر معمولی (شماره ${item.index}):</b>\n\nنام متغیر محیطی را وارد کنید (مثال: <code>ADMIN</code>):`, env, false, keyboard);
+    } else if (item.step === "VAL") {
+      const customKb = [
+        [{ text: "🎲 تولید خودکار مقدار رندوم", callback_data: "res_auto_val" }],
+        getNavKeyboardRow()
+      ];
+      return sendMessage(chatId, `⚙️ <b>متغیر معمولی (شماره ${item.index}):</b>\n\nمقدار متغیر <code>${escapeHTML(item.name)}</code> را وارد کنید:`, env, false, customKb);
+    }
+  }
+}
+
+// --- TELEGRAM DEPLOYMENT EXECUTOR ---
+async function executeTelegramDeployment(chatId, session, env) {
+  const { account, name, templateIdx, templateUrl, isLegacy, kvBindings, vars, type, autoGenTemplate } = session.deployPayload;
+
+  await sendMessage(chatId, "⚡ در حال خواندن سورس کد قالب...", env);
+  let sourceCode = "";
+  try {
+    if (templateIdx === "custom") {
+      sourceCode = await getPresetCode(null, env, templateUrl);
+    } else {
+      const preset = PRESETS[templateIdx];
+      sourceCode = await getPresetCode(preset, env);
+    }
+  } catch (err) {
+    session.state = "IDLE";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    return sendMessage(chatId, `❌ خطا در دریافت سورس کد:\n<code>${escapeHTML(err.message)}</code>`, env);
+  }
+
+  sourceCode += `\n\n/* Signed: ${generateRandomString(CharsetAlphaNumeric, 24)} */`;
+
+  await sendMessage(chatId, "🛠️ در حال ساخت دیتابیس‌ها و تنظیم منابع اختصاصی شما...", env);
+  try {
+    const activeBindings = [];
+
+    // Process presets' default KVs
+    if (kvBindings && kvBindings.length > 0) {
+      for (const kvName of kvBindings) {
+        await sendMessage(chatId, `📦 در حال ایجاد دیتابیس KV با نام <code>${escapeHTML(kvName)}</code>...`, env);
+        const kvNamespaceId = await createKVNamespace(account.token, account.id, `${name}-${kvName}`);
+        if (kvNamespaceId) {
+          activeBindings.push({ name: kvName, namespace_id: kvNamespaceId, type: "kv_namespace" });
+        }
+      }
+    }
+
+    // Process presets' variables & DB mappings
+    let finalVars = { ...vars };
+    if (autoGenTemplate && templateIdx !== "custom") {
+      const preset = PRESETS[templateIdx];
+      finalVars = autoGenerateVars(preset.vars, { ...vars, chatId: chatId.toString() });
+    }
+
+    // Auto-detect BOT_USERNAME via Telegram API if needed
+    if (finalVars.BOT_TOKEN && (!finalVars.BOT_USERNAME || finalVars.BOT_USERNAME === "")) {
+      try {
+        const tgRes = await fetchWithTimeout(`https://api.telegram.org/bot${finalVars.BOT_TOKEN}/getMe`, {}, 8000);
+        const tgData = await tgRes.json();
+        if (tgData.ok && tgData.result && tgData.result.username) {
+          finalVars.BOT_USERNAME = tgData.result.username;
+        }
+      } catch (_) {}
+    }
+
+    // Ensure ADMIN_IDS has a value if preset needs it
+    if (finalVars.hasOwnProperty("ADMIN_IDS") && (!finalVars.ADMIN_IDS || finalVars.ADMIN_IDS === "")) {
+      finalVars.ADMIN_IDS = chatId.toString();
+    }
+
+    if (finalVars) {
+      for (let [key, val] of Object.entries(finalVars)) {
+        if (key.startsWith("D1_ID_")) {
+          const bindingName = key.replace("D1_ID_", "");
+          let dbId = val;
+          if (dbId === "auto" || !dbId) {
+            await sendMessage(chatId, `🗄 در حال ایجاد فیزیکی دیتابیس D1 با نام <code>${escapeHTML(bindingName)}</code>...`, env);
+            const sanitizedDbName = `${name}-${bindingName}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            dbId = await createD1Database(account.token, account.id, sanitizedDbName);
+            finalVars[key] = dbId;
+          }
+
+          activeBindings.push({
+            name: bindingName,
+            database_id: dbId,
+            type: "d1"
+          });
+
+          // Execute D1 Database Schema if preset requires it
+          if (templateIdx !== "custom") {
+            const currentPreset = PRESETS[templateIdx];
+            if (currentPreset && currentPreset.id === "faceless_chat_bot") {
+              await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس (users, chats, logs) برای بات چت ناشناس...", env);
+              const schemaSql = `
+CREATE TABLE IF NOT EXISTS users (
+  user_id INTEGER PRIMARY KEY,
+  gender TEXT,
+  target_gender TEXT,
+  status TEXT DEFAULT 'idle',
+  chat_id TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS chats (
+  chat_id TEXT PRIMARY KEY,
+  user1 INTEGER,
+  user2 INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  action TEXT,
+  details TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+`;
+              await executeD1Statements(account.token, account.id, dbId, schemaSql);
+            }
+          }
+        } else {
+          activeBindings.push({
+            name: key,
+            text: val ? val.toString() : "",
+            type: "plain_text"
+          });
+        }
+      }
+    }
+
+    // Handle custom wizard resources if applicable
+    if (session.deployPayload.resourceQueue && session.deployPayload.resourceQueue.length > 0) {
+      for (const item of session.deployPayload.resourceQueue) {
+        if (item.type === "kv") {
+          let kvId = item.id;
+          if (kvId === "auto" || !kvId) {
+            await sendMessage(chatId, `📦 در حال ایجاد خودکار دیتابیس KV برای بایندینگ ${escapeHTML(item.name)}...`, env);
+            kvId = await createKVNamespace(account.token, account.id, `${name}-${item.name}`);
+          }
+          activeBindings.push({ name: item.name, namespace_id: kvId, type: "kv_namespace" });
+        } else if (item.type === "d1") {
+          let d1Id = item.id;
+          if (d1Id === "auto" || !d1Id) {
+            await sendMessage(chatId, `🗄 در حال ساخت فیزیکی دیتابیس D1 برای بایندینگ ${escapeHTML(item.name)}...`, env);
+            const sanitizedDbName = `${name}-${item.name}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            d1Id = await createD1Database(account.token, account.id, sanitizedDbName);
+          }
+          activeBindings.push({ name: item.name, database_id: d1Id, type: "d1" });
+        } else if (item.type === "var") {
+          activeBindings.push({ name: item.name, text: item.val ? item.val.toString() : "", type: "plain_text" });
+        }
+      }
+    }
+
+    await sendMessage(chatId, "🚀 در حال انتشار و استقرار نهایی پروژه در لبه‌های ابری کلادفلر...", env);
+
+    if (type === "pages") {
+      await createPagesProject(account.token, account.id, name, activeBindings);
+      await deployPagesAsset(account.token, account.id, name, sourceCode);
+    } else {
+      await deployWorkerScript(account.token, account.id, name, sourceCode, activeBindings);
+      await enableWorkerSubdomain(account.token, account.id, name);
+    }
+
+    // Resolve workers subdomain & path suffix
+    let sub = account.subdomain;
+    if (!sub || !sub.trim()) {
+      sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
+    }
+    sub = sub ? sub.trim().replace(/^.+|.+$/g, "") : "";
+    if (!sub && account.name) {
+      sub = deriveFallbackSubdomain(account.name);
+    }
+
+    let pathSuffix = "";
+    if (templateIdx !== "custom") {
+      const preset = PRESETS[templateIdx];
+      pathSuffix = resolvePathSuffix(preset, finalVars);
+    }
+
+    const rawBaseUrl = (type === "pages")
+      ? `https://${name}.pages.dev`
+      : (sub ? `https://${name}.${sub}.workers.dev` : `https://${name}.workers.dev`);
+
+    const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+
+    // Build precise success variable list output
+    // Build comprehensive success variable and resource list output
+    let varsMsg = "";
+    const activePreset = templateIdx !== "custom" ? PRESETS[templateIdx] : null;
+
+    if (activePreset && activePreset.kvBindings && activePreset.kvBindings.length > 0) {
+      varsMsg += "\n\n📦 <b>دیتابیس‌های ذخیره‌سازی KV متصل‌شده:</b>\n";
+      for (const kv of activePreset.kvBindings) {
+        varsMsg += `🔸 دیتابیس KV: متغیر بایندینگ <code>${escapeHTML(kv)}</code> (متصل شد)\n`;
+      }
+    }
+
+    if (finalVars && Object.keys(finalVars).length > 0) {
+      varsMsg += "\n🔑 <b>مشخصات و متغیرهای ثبت‌شده:</b>\n";
+      for (const [k, v] of Object.entries(finalVars)) {
+        const displayKey = k.startsWith("D1_ID_") ? k.replace("D1_ID_", "D1_DATABASE_") : k;
+        varsMsg += `🔸 <code>${displayKey}</code>: <code>${escapeHTML(v.toString())}</code>\n`;
+      }
+    }
+
+    if (activePreset) {
+      if (activePreset.id === "netra_panel") {
+        varsMsg += "\n🖥️ <b>اطلاعات ورود به پنل نترا (Netra Panel):</b>\n";
+        varsMsg += "🔸 مسیر پنل: <code>/panel</code>\n";
+        varsMsg += "🔸 دیتابیس KV: متغیر <code>kv</code> متصل شد\n";
+        varsMsg += "🔸 وضعیت پسورد: بدون رمز پیش‌فرض (در اولین ورود، می‌توانید رمز عبور دلخواه خود را تعیین یا رد کنید).\n";
+      } else if (activePreset.id === "nahan") {
+        varsMsg += "\n🖥️ <b>اطلاعات ورود به پنل نهان (Nahan):</b>\n";
+        varsMsg += "🔸 مسیر پنل: <code>/sync/dash</code>\n";
+        varsMsg += "🔸 نام کاربری / رمز عبور پیش‌فرض: <code>admin</code>\n";
+      } else if (activePreset.id === "irnova") {
+        varsMsg += "\n🖥️ <b>اطلاعات ورود به پنل نوا (IRNova):</b>\n";
+        varsMsg += "🔸 مسیر پنل: <code>/admin</code>\n";
+        varsMsg += "🔸 رمز عبور پیش‌فرض: <code>admin123</code>\n";
+      } else if (activePreset.id === "edgetunnel") {
+        varsMsg += "\n🖥️ <b>اطلاعات ورود به پنل:</b>\n";
+        varsMsg += "🔸 مسیر پنل: <code>/admin</code>\n";
+      } else if (activePreset.id === "faceless-bot" || activePreset.id === "faceless_chat_bot") {
+        varsMsg += "\n🤖 <b>راه‌اندازی ۳ در ۱ ربات فیسلس:</b>\n";
+        varsMsg += "🔸 مسیر ست‌آپ: <code>/setup</code>\n";
+        varsMsg += "🔸 عملکرد: ساخت خودکار جداول دیتابیس D1، اتصال وب‌هوک و ثبت منوی دستورات فارسی.\n";
+      }
+    }
+
+    if (session.deployPayload.resourceQueue && session.deployPayload.resourceQueue.length > 0) {
+      varsMsg += "\n\n📦 <b>منابع متصل شده سفارشی:</b>\n";
+      for (const item of session.deployPayload.resourceQueue) {
+        if (item.type === "kv") {
+          varsMsg += `🔸 دیتابیس [KV] با متغیر: <code>${item.name}</code>\n`;
+        } else if (item.type === "d1") {
+          varsMsg += `🔸 دیتابیس [D1] با متغیر: <code>${item.name}</code> (شناسه: <code>${item.id}</code>)\n`;
+        } else if (item.type === "var") {
+          varsMsg += `🔸 متغیر [Plain] با نام <code>${item.name}</code>: <code>${escapeHTML(item.val.toString())}</code>\n`;
+        }
+      }
+    }
+
+    // Special automated post-deploy webhook setup for Telegram bots
+    let postDeployNotice = "";
+    if (activePreset && (activePreset.id === "faceless-bot" || activePreset.id === "faceless_chat_bot")) {
+      await sendMessage(chatId, "⏳ در حال اجرای راه‌اندازی خودکار ۳ در ۱ ربات فیسلس (/setup)...", env);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const setupUrl = `${rawBaseUrl}/setup`;
+        const setupRes = await fetchWithTimeout(setupUrl, {}, 10000).catch(() => null);
+        const setupOk = setupRes && setupRes.ok;
+        postDeployNotice = `\n\n🤖 <b>وضعیت راه‌اندازی خودکار ۳ در ۱ فیسلس:</b>\n` +
+          `🔹 عملیات ست‌آپ (/setup): ${setupOk ? "✅ با موفقیت انجام شد" : '⚠️ در صورت لزوم باز کنید: <a href="' + setupUrl + '">لینک /setup</a>'}\n` +
+          (finalVars.BOT_USERNAME ? `🔹 آیدی ربات: @${finalVars.BOT_USERNAME}\n` : "");
+      } catch (e) {
+        postDeployNotice = `\n\n⚠️ جهت تکمیل راه‌اندازی، آدرس زیر را یک‌بار در مرورگر باز کنید:\n` +
+          `👉 <code>${rawBaseUrl}/setup</code>\n`;
+      }
+    } else if (templateIdx !== "custom" && PRESETS[templateIdx].id === "tg_proxy_assistant") {
+      await sendMessage(chatId, "⏳ در حال فعال‌سازی خودکار وب‌هوک ربات تلگرام...", env);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        let whOk = false;
+        if (finalVars.BOT_TOKEN) {
+          const webhookTarget = `${rawBaseUrl}/webhook`;
+          const tgApi = `https://api.telegram.org/bot${finalVars.BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookTarget)}`;
+          const res = await fetchWithTimeout(tgApi, {}, 8000);
+          const data = await res.json();
+          whOk = data && data.ok;
+        }
+        postDeployNotice = `\n\n🤖 <b>وضعیت راه‌اندازی وب‌هوک:</b>\n` +
+          `🔹 وبهوک تلگرام: ${whOk ? "✅ فعال شد" : "⚠️ فعال‌سازی خودکار انجام نشد (بررسی توکن ربات)"}\n` +
+          `🔹 پنل وب مدیریت: <a href="${rawBaseUrl}">ورود به داشبورد</a> (رمز: <code>${finalVars.ADMIN_PASSWORD || ""}</code>)\n`;
+      } catch (e) {
+        postDeployNotice = `\n\n⚠️ خطا در فعال‌سازی خودکار وب‌هوک: ${e.message}\n`;
+      }
+    } else if (finalVars.BOT_TOKEN && (finalVars.WEBHOOK_SECRET || finalVars.ADMIN_IDS)) {
+      try {
+        const tgWebhookUrl = `https://api.telegram.org/bot${finalVars.BOT_TOKEN}/setWebhook`;
+        const webhookTarget = `${rawBaseUrl}/webhook`;
+        await fetchWithTimeout(tgWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: webhookTarget,
+            secret_token: finalVars.WEBHOOK_SECRET || undefined,
+            drop_pending_updates: true
+          })
+        }, 10000);
+        await logEvent(env, `وبهوک ربات با موفقیت روی ${webhookTarget} تنظیم شد.`, "info");
+      } catch (err) {
+        await logEvent(env, `خطا در ست کردن خودکار وبهوک: ${err.message}`, "warning");
+      }
+    }
+
+    session.state = "IDLE";
+    session.deployPayload = {};
+    session.history = [];
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+
+    await logEvent(env, `استقرار موفق پروژه ${name} بر روی اکانت ${account.name}`, "info");
+
+    const successMsg = `🎉 <b>استقرار با موفقیت کامل انجام شد!</b>\n\n` +
+      `🏷 <b>نام پروژه:</b> <code>${escapeHTML(name)}</code>\n` +
+      `👤 <b>حساب کلادفلر:</b> <code>${escapeHTML(account.name)}</code>\n` +
+      `🌐 <b>آدرس نهایی ورکر:</b>\n` +
+      `<a href="${finalUrl}">${finalUrl}</a>` +
+      `${varsMsg}${postDeployNotice}\n\n` +
+      `✅ تمام دیتابیس‌ها و متغیرهای لازم ساخته و بایند شدند.`;
+
+    return sendMessage(chatId, successMsg, env);
+
+  } catch (err) {
+    session.state = "IDLE";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(session));
+    await logEvent(env, `خطای استقرار در پروژه ${name}: ${err.message}`, "error");
+    return sendMessage(chatId, `❌ خطایی در طول پروسه استقرار رخ داد:\n<code>${escapeHTML(err.message)}</code>\n\nلطفاً دسترسی‌های توکن، نام پروژه یا مقادیر ورودی را بررسی کنید.`, env);
+  }
+}
+
+// --- TELEGRAM RENDER SYSTEM ---
+async function sendMainMenu(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🚀 آغاز ساخت پروژه جدید", callback_data: "start_deploy" }
+    ],
+    [
+      { text: "🔑 مدیریت اکانت‌ها", callback_data: "manage_accounts" },
+      { text: "📂 لیست پروژه‌ها", callback_data: "list_projects" }
+    ]
+  ];
+
+  await sendMessage(
+    chatId, 
+    "<b>⚡ دستیار جامع استقرار کلادفلر (ClashFa Deployer)</b>\n\nربات آماده به کار است.\n\n👇 یکی از گزینه‌های زیر را انتخاب کنید:", 
+    env, 
+    false, 
+    keyboard
+  );
+}
+
+function getNavKeyboardRow() {
+  return [
+    { text: "🔙 مرحله قبل", callback_data: "step_back" },
+    { text: "🏠 منوی اصلی", callback_data: "go_main" }
+  ];
+}
+
+async function sendPlatformTypeSelection(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🚀 کلادفلر ورکرز (Workers)", callback_data: "platform_worker" },
+      { text: "📦 کلادفلر پیج‌ها (Pages)", callback_data: "platform_pages" }
+    ],
+    [
+      { text: "🔙 بازگشت به منوی اصلی", callback_data: "step_back" }
+    ]
+  ];
+
+  return sendMessage(chatId, "💻 <b>گام اول:</b> نوع بستر استقرار پروژه خود را مشخص کنید:", env, false, keyboard);
+}
+
+async function sendCategorySelection(chatId, env) {
+  const keyboard = [
+    [{ text: "🚀 ورکر‌های کلش‌فا (ClashFa)", callback_data: "cat_clashfa" }],
+    [{ text: "🛰️ ورکر‌های کانفیگ و پروکسی (Config)", callback_data: "cat_config" }],
+    [{ text: "🌐 ورکر‌های دی‌ان‌اس (DNS)", callback_data: "cat_dns" }],
+    [{ text: "🔗 ورکر سفارشی (لینک سورس)", callback_data: "tpl_idx_custom" }],
+    getNavKeyboardRow()
+  ];
+  return sendMessage(chatId, "🗂️ <b>گام دوم:</b> دسته‌بندی پروژه مورد نظر خود را انتخاب کنید:", env, false, keyboard);
+}
+
+// --- PAGINATED TEMPLATE SELECTION ---
+async function sendTemplateSelection(chatId, env, type, category, page = 0) {
+  const matching = [];
+  PRESETS.forEach((preset, index) => {
+    if (preset.category === category) {
+      matching.push({ preset, index });
+    }
+  });
+
+  const pageSize = 5;
+  const totalPages = Math.ceil(matching.length / pageSize) || 1;
+  const currentPage = Math.max(0, Math.min(page, totalPages - 1));
+
+  const pageItems = matching.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+
+  const keyboard = [];
+  pageItems.forEach(({ preset, index }) => {
+    keyboard.push([{ text: preset.name, callback_data: `tpl_idx_${index}` }]);
+  });
+
+  // Pagination navigation row if more than 1 page
+  if (totalPages > 1) {
+    const navRow = [];
+    if (currentPage > 0) {
+      navRow.push({ text: "⬅️ قبلی", callback_data: `tpl_page_${category}_${currentPage - 1}` });
+    }
+    navRow.push({ text: `📄 ${currentPage + 1} از ${totalPages}`, callback_data: "noop" });
+    if (currentPage < totalPages - 1) {
+      navRow.push({ text: "بعدی ➡️", callback_data: `tpl_page_${category}_${currentPage + 1}` });
+    }
+    keyboard.push(navRow);
+  }
+
+  // Admin refresh cache button
+  keyboard.push([{ text: "🔄 بروزرسانی کش قالب‌ها", callback_data: "refresh_presets_cache" }]);
+  keyboard.push(getNavKeyboardRow());
+
+  const catNames = {
+    clashfa: "کلش‌فا 🚀",
+    dns: "دی‌ان‌اس 🌐",
+    config: "کانفیگ و پروکسی 🛰️"
+  };
+
+  const currentCatName = catNames[category] || "پروژه‌ها";
+
+  return sendMessage(chatId, `📋 <b>قالب‌های دسته‌بندی ${currentCatName}:</b>\n\nقالب مورد نظر را جهت شروع فرآیند استقرار لمس کنید:`, env, false, keyboard);
+}
+
+async function sendCustomVarOptionSelection(chatId, env) {
+  const keyboard = [
+    [
+      { text: "خیر، بدون متغیر ادامه بده ⚡", callback_data: "custom_vars_none" }
+    ],
+    [
+      { text: "بله، می‌خواهم متغیر یا KV تعریف کنم 🛠️", callback_data: "custom_vars_yes" }
+    ],
+    getNavKeyboardRow()
+  ];
+  return sendMessage(chatId, "⚙️ <b>تنظیمات متغیرهای ورکر سفارشی:</b>\n\nآیا ورکر شما به دیتابیس KV، D1 یا متغیرهای محیطی اختصاصی نیاز دارد؟", env, false, keyboard);
+}
+
+async function sendCustomResourcesPrompt(chatId, env) {
+  return sendMessage(
+    chatId,
+    "📊 لطفاً تعداد منابع مورد نیاز خود را به ترتیب با فاصله وارد کنید:\n\n<code>[تعداد KV] [تعداد D1] [تعداد متغیرها]</code>\n\nمثال: <code>1 0 2</code> (یعنی ۱ عدد دیتابیس KV و ۲ عدد متغیر محیطی معمولی)",
+    env,
+    false,
+    [getNavKeyboardRow()]
+  );
+}
+
+async function sendProjectNamePrompt(chatId, env) {
+  return sendMessage(chatId, "🏷️ لطفاً <b>نام پروژه</b> خود را به انگلیسی بنویسید (فقط حروف کوچک، اعداد و خط تیره - مجاز است):\n\nمثال: <code>my-clash-worker</code>", env, false, [getNavKeyboardRow()]);
+}
+
+async function sendVarModeSelection(chatId, env) {
+  const keyboard = [
+    [
+      { text: "🎲 تولید و تنظیم خودکار متغیرها (پیشنهادی)", callback_data: "var_mode_auto" }
+    ],
+    [
+      { text: "✍️ ورود دستی تک‌تک مقادیر", callback_data: "var_mode_manual" }
+    ],
+    getNavKeyboardRow()
+  ];
+  return sendMessage(chatId, "⚙️ <b>نحوه تنظیم متغیرهای محیطی:</b>\n\nقالب انتخابی شما نیازمند تنظیم متغیرهای اختصاصی (مانند UUID، پسورد، دیتابیس و...) است. مایلید چطور تنظیم شوند؟", env, false, keyboard);
+}
+
+async function sendVariablePrompt(chatId, varName, env) {
+  const keyboard = [
+    [{ text: `🎲 تولید خودکار ${varName}`, callback_data: `auto_gen_var_${varName}` }],
+    getNavKeyboardRow()
+  ];
+  let promptText = `✍️ لطفاً مقدار متغیر محیطی <code>${escapeHTML(varName)}</code> را وارد کنید:`;
+  if (varName.startsWith("D1_ID_")) {
+    const bindingName = varName.replace("D1_ID_", "");
+    promptText = `✍️ الگوی انتخابی نیاز به دیتابیس D1 با نام متغیر <code>${escapeHTML(bindingName)}</code> دارد.\n\nلطفاً شناسه دیتابیس D1 خود را وارد کنید یا دکمه <b>تولید خودکار</b> را لمس کنید تا دیتابیس و جدول‌ها به شکل ۱۰۰٪ خودکار در کلادفلر ساخته شوند:`;
+  } else if (varName === "BOT_TOKEN") {
+    promptText = "🤖 لطفاً <b>توکن ربات تلگرام (Bot Token)</b> دریافت شده از @BotFather را ارسال فرمایید:";
+  } else if (varName === "BOT_USERNAME") {
+    promptText = "👤 لطفاً <b>نام کاربری ربات تلگرام (Bot Username)</b> را بدون علامت @ بنویسید (مثال: MySecretBot) یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "ADMIN_IDS") {
+    promptText = `👑 لطفاً <b>آیدی عددی تلگرام ادمین (Admin ID)</b> را وارد کنید (آیدی تلگرام شما: <code>${chatId}</code>) یا دکمه تولید خودکار را لمس کنید:`;
+  } else if (varName === "AES_KEY") {
+    promptText = "🔐 لطفاً کلید ۳۲ حرفی <b>AES_KEY</b> برای رمزنگاری دیتابیس را وارد کنید یا دکمه تولید خودکار را بزنید:";
+  } else if (varName === "WEBHOOK_SECRET") {
+    promptText = "🔒 لطفاً عبارت دلخواه <b>WEBHOOK_SECRET</b> را بنویسید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "SECRET_SALT") {
+    promptText = "🧂 لطفاً عبارت دلخواه <b>SECRET_SALT</b> (جهت هش شناسه‌ها) را بنویسید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "ADMIN_PASSWORD") {
+    promptText = "🔑 لطفاً یک <b>رمز عبور برای پنل مدیریت (ADMIN_PASSWORD)</b> وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "PASSWORD") {
+    promptText = "🔑 لطفاً یک <b>رمز عبور برای ورود به صفحه اصلی ورکر (PASSWORD)</b> وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "UUID" || varName === "uuid") {
+    promptText = "🆔 لطفاً یک شناسه <b>UUID</b> معتبر وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "TR_PASS") {
+    promptText = "🔑 لطفاً رمز عبور اتصال تروجان (<b>TR_PASS</b>) را وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "SUB_PATH") {
+    promptText = "🌐 لطفاً مسیر دریافت لینک ساب‌اسکریپشن (<b>SUB_PATH</b>) را وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "PROXY_IP" || varName === "PROXYIP" || varName === "proxyip") {
+    promptText = `📡 لطفاً آی‌پی یا دامنه تمیز پروکسی (<b>${escapeHTML(varName)}</b>) را وارد کنید یا دکمه تولید خودکار را لمس کنید:`;
+  } else if (varName === "SOCKS5") {
+    promptText = "🌐 در صورت تمایل، آدرس سرور پروکسی ساکس (<b>SOCKS5</b>) را وارد کرده یا دکمه تولید خودکار (خالی) را لمس کنید:";
+  } else if (varName === "ADMIN") {
+    promptText = "👤 لطفاً نام کاربری یا پسورد ادمین (<b>ADMIN</b>) را وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "KEY") {
+    promptText = "🔐 لطفاً کلید امنیتی اختصاصی ورکر (<b>KEY</b>) را وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  }
+  return sendMessage(chatId, promptText, env, false, keyboard);
+}
+
+async function sendAccountsManagement(chatId, session, env, editMsgId = null) {
+  const keyboard = [];
+  const accounts = session.accounts || [];
+
+  accounts.forEach((acc, index) => {
+    keyboard.push([
+      { text: `👤 ${acc.name}`, callback_data: `view_acc_${index}` },
+      { text: "✏️ ساب‌دومین", callback_data: `set_sub_${index}` }
+    ]);
+    keyboard.push([
+      { text: `🗑️ حذف حساب: ${acc.name}`, callback_data: `del_acc_${index}` }
+    ]);
+  });
+
+  if (accounts.length > 0) {
+    keyboard.push([{ text: "🔒 خروج و حذف تمامی حساب‌ها", callback_data: "del_all_acc" }]);
+  }
+  keyboard.push([{ text: "➕ افزودن توکن جدید", callback_data: "add_cf_token" }]);
+  keyboard.push([{ text: "🔙 منوی اصلی", callback_data: "go_main" }]);
+
+  const text = `🔑 <b>مدیریت حساب‌های متصل کلادفلر</b>\n\nتعداد حساب‌های فعال: ${accounts.length}\nجهت اتصال حساب جدید دکمه زیر را لمس کنید:`;
+  
+  if (editMsgId) {
+    await editMessageText(chatId, editMsgId, text, env);
+  }
+  await sendMessage(chatId, text, env, false, keyboard);
+}
+
+async function sendAccountSelection(chatId, session, env) {
+  const keyboard = [];
+  session.accounts.forEach((acc, index) => {
+    keyboard.push([{ text: `👤 ${acc.name}`, callback_data: `deploy_to_${index}` }]);
+  });
+  keyboard.push(getNavKeyboardRow());
+
+  return sendMessage(chatId, "👤 <b>انتخاب حساب کلادفلر:</b> حساب مقصد جهت استقرار پروژه را انتخاب کنید:", env, false, keyboard);
+}
+
+async function handleTelegramListProjects(chatId, session, env) {
+  const keyboard = [];
+  session.accounts.forEach((acc, index) => {
+    keyboard.push([{ text: `📂 ${acc.name}`, callback_data: `list_opts_${index}` }]);
+  });
+  keyboard.push([{ text: "🔙 منوی اصلی", callback_data: "go_main" }]);
+
+  return sendMessage(chatId, "🗂️ برای بررسی پروژه‌های موجود، حساب هدف را انتخاب کنید:", env, false, keyboard);
+}
+
+async function displayTelegramProjects(chatId, account, env, accIdx) {
+  await sendMessage(chatId, "⏳ در حال لود اطلاعات پروژه از سرورهای کلادفلر...", env);
+
+  try {
+    const workers = await listWorkerScripts(account.token, account.id);
+    const pages = await listPagesProjects(account.token, account.id);
+
+    let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
+    userSession.listedWorkers = workers.map(w => w.id);
+    userSession.activeAccIdx = accIdx;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    let output = `👤 حساب متصل: <b>${escapeHTML(account.name)}</b>\n\n`;
+    output += `<b>🚀 اسکریپت‌های ورکر (${workers.length}):</b>\n`;
+    
+    const keyboard = [];
+
+    if (workers.length > 0) {
+      workers.forEach((w, idx) => {
+        const modTime = w.modified_on ? new Date(w.modified_on).toLocaleDateString("fa-IR") : "نامشخص";
+        output += `${idx + 1}. <code>${escapeHTML(w.id)}</code> (آخرین ویرایش: ${modTime})\n`;
+        keyboard.push([{ text: `🛠️ مدیریت ورکر ${w.id}`, callback_data: `wk_menu_${idx}` }]);
+      });
+      
+      keyboard.push([{ text: "⚠️ حذف تمامی ورکرها ⚠️", callback_data: `conf_del_all_wrk_${accIdx}` }]);
+    } else {
+      output += "موردی ثبت نشده است.\n";
+    }
+
+    output += `\n<b>📦 پروژه‌های صفحات (${pages.length}):</b>\n`;
+    if (pages.length > 0) {
+      pages.forEach((p, idx) => {
+        output += `${idx + 1}. <code>${escapeHTML(p.name)}</code> (ساب‌دومین: ${p.subdomain})\n`;
+      });
+    } else {
+      output += "موردی ثبت نشده است.\n";
+    }
+
+    keyboard.push([{ text: "🔙 بازگشت به لیست حساب‌ها", callback_data: "list_projects" }]);
+
+    return sendMessage(chatId, output, env, false, keyboard);
+  } catch (err) {
+    return sendMessage(chatId, `❌ خطا در دریافت اطلاعات از کلادفلر:\n<code>${escapeHTML(err.message)}</code>`, env);
+  }
+}
+
+// --- VIEW & MANAGE WORKER BINDINGS ENGINE ---
+async function displayWorkerBindings(chatId, userSession, env) {
+  const workerName = userSession.activeWorker;
+  const accIdx = userSession.activeAccIdx;
+  const account = userSession.accounts[accIdx];
+
+  await sendMessage(chatId, "⏳ در حال لود لیست بایندینگ‌ها از کلادفلر...", env);
+
+  try {
+    const settings = await getWorkerSettings(account.token, account.id, workerName);
+    const bindings = settings.bindings || [];
+
+    userSession.activeBindings = bindings;
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+    let output = `⚙️ <b>لیست بایندینگ‌های ورکر:</b> <code>${escapeHTML(workerName)}</code>\n\n`;
+
+    if (bindings.length === 0) {
+      output += "⚠️ هیچ بایندینگی (KV، D1 یا متغیر محیطی) برای این ورکر ثبت نشده است.";
+      const keyboard = [
+        [{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]
+      ];
+      return sendMessage(chatId, output, env, false, keyboard);
+    }
+
+    const keyboard = [];
+
+    bindings.forEach((b, idx) => {
+      let typeLabel = "";
+      let detail = "";
+
+      if (b.type === "kv_namespace") {
+        typeLabel = "📦 [KV]";
+        detail = `شناسه: <code>${escapeHTML(b.namespace_id)}</code>`;
+      } else if (b.type === "d1") {
+        typeLabel = "🗄 [D1]";
+        detail = `شناسه: <code>${escapeHTML(b.database_id)}</code>`;
+      } else if (b.type === "plain_text") {
+        typeLabel = "⚙️ [Var]";
+        detail = `مقدار: <code>${escapeHTML(b.text)}</code>`;
+      } else if (b.type === "secret_text") {
+        typeLabel = "🔒 [Secret]";
+        detail = "مقدار: <code>(مخفی)</code>";
+      } else {
+        typeLabel = `🔌 [${escapeHTML(b.type)}]`;
+        detail = "سایر منابع";
+      }
+
+      output += `${idx + 1}. ${typeLabel} <b>${escapeHTML(b.name)}</b>\n   └─ ${detail}\n\n`;
+      keyboard.push([{ text: `🗑️ حذف بایندینگ ${b.name}`, callback_data: `del_b_${idx}` }]);
+    });
+
+    keyboard.push([{ text: "💥 حذف همه بایندینگ‌ها با هم", callback_data: "del_all_b" }]);
+    keyboard.push([{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]);
+
+    return sendMessage(chatId, output, env, false, keyboard);
+  } catch (err) {
+    return sendMessage(chatId, `❌ خطا در دریافت اطلاعات بایندینگ‌ها:\n<code>${escapeHTML(err.message)}</code>`, env);
+  }
+}
+
+// --- TELEGRAM WEBHOOK SETUP HANDLER ---
+async function handleWebhookSetup(origin, env) {
+  if (!env.TELEGRAM_BOT_TOKEN) {
+    return new Response("TELEGRAM_BOT_TOKEN is not configured.", { status: 400 });
+  }
+
+  const webhookUrl = `${origin}/`;
+  const setWebhookApi = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setWebhook`;
+  
+  const payload = {
+    url: webhookUrl,
+    drop_pending_updates: true
+  };
+  if (env.SECRET_TOKEN) {
+    payload.secret_token = env.SECRET_TOKEN;
+  }
+
+  try {
+    const res = await fetchWithTimeout(setWebhookApi, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }, 10000);
+    const data = await res.json();
+    return new Response(JSON.stringify(data, null, 2), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+
+
+
+// --- SERVICE WORKER LISTENERS ---
+addEventListener("fetch", event => {
+  event.respondWith(handleFetch(event.request, event));
+});
+
+addEventListener("scheduled", event => {
+  event.waitUntil(handleScheduled(event));
+});
+
+// --- ENVIRONMENT LOADER HELPER ---
+function getEnv() {
+  return {
+    BOT_KV: typeof BOT_KV !== "undefined" ? BOT_KV : null,
+    TELEGRAM_BOT_TOKEN: typeof TELEGRAM_BOT_TOKEN !== "undefined" ? TELEGRAM_BOT_TOKEN : null,
+    SECRET_TOKEN: typeof SECRET_TOKEN !== "undefined" ? SECRET_TOKEN : null
+  };
+}
+
+// --- SYSTEM LOGGER HELPER ---
+async function logEvent(env, message, type = "info") {
+  if (!env || !env.BOT_KV) {
+    console.log(`[${type}] ${message}`);
+    return;
+  }
+  try {
+    const logs = await env.BOT_KV.get("system:logs", { type: "json" }) || [];
+    const newLog = {
+      timestamp: new Date().toLocaleString("fa-IR", { timeZone: "Asia/Tehran" }),
+      message,
+      type
+    };
+    logs.unshift(newLog);
+    if (logs.length > 50) logs.pop();
+    await env.BOT_KV.put("system:logs", JSON.stringify(logs));
+  } catch (err) {
+    console.error("Logging error: ", err);
+  }
+}
+
+// --- SCHEDULED CRON HANDLER ---
+async function handleScheduled(event) {
+  const env = getEnv();
+  await logEvent(env, "سرویس دوره‌ای بررسی و ذخیره‌سازی نسخه‌های جدید ورکرها آغاز شد.", "info");
+  await cacheAllPresets(env);
+}
+
+// --- MAIN FETCH HANDLER ---
+async function handleFetch(request, event) {
+  const url = new URL(request.url);
+  const env = getEnv();
+
+  // Telegram Webhook Setup endpoint
+  if (url.pathname === "/setup") {
+    return await handleWebhookSetup(url.origin, env);
+  }
+
+  // --- REST API ENDPOINTS FOR WEB DASHBOARD ---
+  if (url.pathname.startsWith("/api/")) {
+    return await handleApiRoutes(request, url, env);
+  }
+
+  // --- WEB DASHBOARD UI (SERVE ON / OR /dashboard) ---
+  if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/dashboard")) {
+    return new Response(renderWebDashboard(), {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-cache"
+      }
+    });
+  }
+
+  // --- TELEGRAM WEBHOOK (POST) ---
+  if (request.method === "POST") {
+    if (env.SECRET_TOKEN) {
+      const xTelegramToken = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+      if (xTelegramToken !== env.SECRET_TOKEN) {
+        return new Response("Unauthorized", { status: 403 });
+      }
+    }
+
+    try {
+      const update = await request.json();
+      event.waitUntil(handleTelegramUpdate(update, env));
+    } catch (err) {
+      await logEvent(env, `Error parsing TG update: ${err.message}`, "error");
+    }
+    return new Response("OK", { status: 200 });
+  }
+
+  return new Response("Not Found", { status: 404 });
+}
+
+// --- REST API ROUTER ---
+async function handleApiRoutes(request, url, env) {
+  const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" }
+  });
+
+  try {
+    // 1. GET /api/presets
+    if (request.method === "GET" && url.pathname === "/api/presets") {
+      return jsonResponse(PRESETS);
+    }
+
+    // 2. GET /api/accounts
+    if (request.method === "GET" && url.pathname === "/api/accounts") {
+      const accounts = await getGlobalAccounts(env);
+      const safeAccounts = [];
+      for (const a of accounts) {
+        const sub = await env.BOT_KV.get(`subdomain:${a.id}`) || "";
+        safeAccounts.push({
+          id: a.id,
+          name: a.name,
+          subdomain: sub,
+          tokenMasked: a.token ? (a.token.substring(0, 6) + "••••••••" + a.token.slice(-4)) : ""
+        });
+      }
+      return jsonResponse(safeAccounts);
+    }
+
+    // 3. POST /api/accounts (Add Account)
+    if (request.method === "POST" && url.pathname === "/api/accounts") {
+      const body = await request.json();
+      const token = (body.token || "").trim();
+      if (!token) return jsonResponse({ success: false, error: "توکن کلادفلر الزامی است." }, 400);
+
+      const isValid = await verifyCloudflareToken(token);
+      if (!isValid) return jsonResponse({ success: false, error: "توکن کلادفلر نامعتبر است یا دسترسی‌های کافی ندارد." }, 400);
+
+      const cfAccounts = await getCloudflareAccounts(token);
+      if (!cfAccounts || cfAccounts.length === 0) {
+        return jsonResponse({ success: false, error: "هیچ حسابی یافت نشد." }, 400);
+      }
+
+      const accounts = await getGlobalAccounts(env);
+      if (accounts.some(a => a.token === token || a.id === cfAccounts[0].id)) {
+        return jsonResponse({ success: false, error: "این حساب یا توکن قبلاً اضافه شده است." }, 400);
+      }
+
+      let detectedSub = await refreshWorkerSubdomainLive(token, cfAccounts[0].id, env);
+      if (!detectedSub) {
+        detectedSub = deriveFallbackSubdomain(cfAccounts[0].name);
+      }
+      if (detectedSub && env.BOT_KV) {
+        await env.BOT_KV.put(`subdomain:${cfAccounts[0].id}`, detectedSub);
+      }
+
+      const newAcc = {
+        uid: "acc_" + Date.now(),
+        token: token,
+        id: cfAccounts[0].id,
+        name: cfAccounts[0].name,
+        subdomain: detectedSub || ""
+      };
+      accounts.push(newAcc);
+      await saveGlobalAccounts(env, accounts);
+      await logEvent(env, `حساب جدید (${newAcc.name}) با ساب‌دومین (${newAcc.subdomain}) از طریق وب اضافه شد.`, "info");
+      return jsonResponse({ success: true, account: { id: newAcc.id, name: newAcc.name, subdomain: newAcc.subdomain } });
+    }
+
+    // 4. DELETE /api/accounts
+    if (request.method === "DELETE" && url.pathname === "/api/accounts") {
+      const idx = parseInt(url.searchParams.get("idx"), 10);
+      const accounts = await getGlobalAccounts(env);
+      if (accounts[idx]) {
+        const removed = accounts.splice(idx, 1);
+        await saveGlobalAccounts(env, accounts);
+        await logEvent(env, `حساب ${removed[0].name} از طریق وب برکنار شد.`, "warning");
+        return jsonResponse({ success: true });
+      }
+      return jsonResponse({ success: false, error: "اکانت یافت نشد." }, 404);
+    }
+
+    // 5. POST /api/refresh-subdomain
+    if (request.method === "POST" && url.pathname === "/api/refresh-subdomain") {
+      const idx = parseInt(url.searchParams.get("idx"), 10);
+      const accounts = await getGlobalAccounts(env);
+      const acc = accounts[idx];
+      if (!acc) return jsonResponse({ success: false, error: "اکانت یافت نشد." }, 404);
+
+      const liveSub = await refreshWorkerSubdomainLive(acc.token, acc.id, env);
+      return jsonResponse({ success: !!liveSub, subdomain: liveSub || "" });
+    }
+
+    // 6. GET /api/workers
+    if (request.method === "GET" && url.pathname === "/api/workers") {
+      const accIdx = parseInt(url.searchParams.get("accIdx"), 10);
+      const accounts = await getGlobalAccounts(env);
+      const acc = accounts[accIdx];
+      if (!acc) return jsonResponse([], 200);
+
+      const workers = await listWorkerScripts(acc.token, acc.id);
+      return jsonResponse(workers);
+    }
+
+    // 7. GET /api/worker-source
+    if (request.method === "GET" && url.pathname === "/api/worker-source") {
+      const accIdx = parseInt(url.searchParams.get("accIdx"), 10);
+      const workerName = url.searchParams.get("name");
+      const accounts = await getGlobalAccounts(env);
+      const acc = accounts[accIdx];
+      if (!acc || !workerName) return new Response("Not found", { status: 404 });
+
+      const code = await getWorkerScriptCode(acc.token, acc.id, workerName);
+      return new Response(code, {
+        headers: {
+          "Content-Type": "application/javascript; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${workerName}.js"`
+        }
+      });
+    }
+
+    // 8. DELETE /api/workers
+    if (request.method === "DELETE" && url.pathname === "/api/workers") {
+      const accIdx = parseInt(url.searchParams.get("accIdx"), 10);
+      const workerName = url.searchParams.get("name");
+      const cleanBindings = url.searchParams.get("cleanBindings") === "true";
+      const accounts = await getGlobalAccounts(env);
+      const acc = accounts[accIdx];
+      if (!acc || !workerName) return jsonResponse({ success: false, error: "ورکر یافت نشد." }, 404);
+
+      let cleanedResourcesCount = 0;
+      if (cleanBindings) {
+        try {
+          const settings = await getWorkerSettings(acc.token, acc.id, workerName);
+          if (settings && Array.isArray(settings.bindings)) {
+            for (const b of settings.bindings) {
+              if (b.type === "kv_namespace" && b.namespace_id) {
+                const ok = await deleteKVNamespace(acc.token, acc.id, b.namespace_id);
+                if (ok) cleanedResourcesCount++;
+              } else if (b.type === "d1" && b.database_id) {
+                const ok = await deleteD1Database(acc.token, acc.id, b.database_id);
+                if (ok) cleanedResourcesCount++;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      const cleanMsg = cleanBindings ? ("به همراه " + cleanedResourcesCount + " منبع متصل ") : "";
+      await logEvent(env, "ورکر " + workerName + " " + cleanMsg + "از طریق پنل وب حذف شد.", "warning");
+      return jsonResponse({ success: true, cleanedResourcesCount });
+    }
+
+    // 9. GET /api/worker-bindings
+    if (request.method === "GET" && url.pathname === "/api/worker-bindings") {
+      const accIdx = parseInt(url.searchParams.get("accIdx"), 10);
+      const workerName = url.searchParams.get("name");
+      const accounts = await getGlobalAccounts(env);
+      const acc = accounts[accIdx];
+      if (!acc || !workerName) return jsonResponse({ bindings: [] }, 404);
+
+      const settings = await getWorkerSettings(acc.token, acc.id, workerName);
+      return jsonResponse({ bindings: settings.bindings || [] });
+    }
+
+    // 10. DELETE /api/worker-bindings
+    if (request.method === "DELETE" && url.pathname === "/api/worker-bindings") {
+      const accIdx = parseInt(url.searchParams.get("accIdx"), 10);
+      const workerName = url.searchParams.get("name");
+      const accounts = await getGlobalAccounts(env);
+      const acc = accounts[accIdx];
+      if (!acc || !workerName) return jsonResponse({ success: false }, 404);
+
+      const isAll = url.searchParams.get("all") === "true";
+      if (isAll) {
+        await updateWorkerBindings(acc.token, acc.id, workerName, []);
+        await logEvent(env, `تمامی بایندینگ‌های ورکر ${workerName} از طریق وب حذف شدند.`, "warning");
+        return jsonResponse({ success: true });
+      }
+
+      const bindingIdx = parseInt(url.searchParams.get("idx"), 10);
+      const settings = await getWorkerSettings(acc.token, acc.id, workerName);
+      const current = settings.bindings || [];
+      const updated = current.filter((_, i) => i !== bindingIdx);
+      await updateWorkerBindings(acc.token, acc.id, workerName, updated);
+      await logEvent(env, `یک بایندینگ از ورکر ${workerName} از طریق وب حذف شد.`, "warning");
+      return jsonResponse({ success: true });
+    }
+
+    // 11. POST /api/deploy (Web 1-Click Deploy)
+    if (request.method === "POST" && url.pathname === "/api/deploy") {
+      const body = await request.json();
+      const { accIdx, presetId, workerName, vars, customUrl } = body;
+
+      const accounts = await getGlobalAccounts(env);
+      const account = accounts[accIdx];
+      if (!account) return jsonResponse({ success: false, error: "اکانت کلادفلر انتخاب نشده است." }, 400);
+
+      const preset = PRESETS.find(p => p.id === presetId);
+      if (!preset && !customUrl) return jsonResponse({ success: false, error: "قالب نامعتبر است." }, 400);
+
+      // Download code
+      const code = preset ? await getPresetCode(preset, env) : await getPresetCode(null, env, customUrl);
+      const signedCode = code + `\n\n/* Signed Web: ${generateRandomString(CharsetAlphaNumeric, 24)} */`;
+
+      const activeBindings = [];
+
+      // Create preset KVs if applicable
+      if (preset && preset.kvBindings && preset.kvBindings.length > 0) {
+        for (const kvName of preset.kvBindings) {
+          const kvId = await createKVNamespace(account.token, account.id, `${workerName}-${kvName}`);
+          activeBindings.push({ name: kvName, namespace_id: kvId, type: "kv_namespace" });
+        }
+      }
+
+      // Process variables & D1
+      const finalVars = autoGenerateVars(preset ? preset.vars : Object.keys(vars || {}), vars || {});
+      for (const [k, v] of Object.entries(finalVars)) {
+        if (k.startsWith("D1_ID_")) {
+          const bindingName = k.replace("D1_ID_", "");
+          let dbId = v;
+          if (dbId === "auto" || !dbId) {
+            const dbName = `${workerName}-${bindingName}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            dbId = await createD1Database(account.token, account.id, dbName);
+          }
+          activeBindings.push({ name: bindingName, database_id: dbId, type: "d1" });
+
+          if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
+            const schemaSql = `
+CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, gender TEXT, target_gender TEXT, status TEXT DEFAULT 'idle', chat_id TEXT DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS chats (chat_id TEXT PRIMARY KEY, user1 INTEGER, user2 INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, details TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+`;
+            await executeD1Statements(account.token, account.id, dbId, schemaSql);
+          }
+        } else {
+          activeBindings.push({ name: k, text: v ? v.toString() : "", type: "plain_text" });
+        }
+      }
+
+      await deployWorkerScript(account.token, account.id, workerName, signedCode, activeBindings);
+      await enableWorkerSubdomain(account.token, account.id, workerName);
+
+      let sub = account.subdomain;
+      if (!sub || !sub.trim()) {
+        sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
+      }
+      const cleanSub = sub ? sub.trim().replace(/^.+|.+$/g, "") : deriveFallbackSubdomain(account.name);
+      const pathSuffix = resolvePathSuffix(preset, finalVars);
+      const rawBaseUrl = cleanSub ? `https://${workerName}.${cleanSub}.workers.dev` : `https://${workerName}.workers.dev`;
+      const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+
+      // Automated post-deploy actions for bot presets
+      if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
+        try {
+          await new Promise(r => setTimeout(r, 2500));
+          await fetchWithTimeout(`${rawBaseUrl}/setup`, {}, 8000).catch(() => {});
+        } catch (_) {}
+      } else if (preset && preset.id === "tg_proxy_assistant" && finalVars.BOT_TOKEN) {
+        try {
+          const webhookTarget = `${rawBaseUrl}/webhook`;
+          await fetchWithTimeout(`https://api.telegram.org/bot${finalVars.BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookTarget)}`, {}, 8000).catch(() => {});
+        } catch (_) {}
+      }
+
+      await logEvent(env, `استقرار موفق ورکر ${workerName} از طریق پنل وب.`, "info");
+      return jsonResponse({ success: true, url: finalUrl, pathSuffix });
+    }
+
+    // 12. GET /api/logs
+    if (request.method === "GET" && url.pathname === "/api/logs") {
+      const logs = await env.BOT_KV.get("system:logs", { type: "json" }) || [];
+      return jsonResponse(logs);
+    }
+
+    // 13. POST /api/refresh-cache
+    if (request.method === "POST" && url.pathname === "/api/refresh-cache") {
+      await cacheAllPresets(env);
+      return jsonResponse({ success: true });
+    }
+
+    return jsonResponse({ error: "Endpoint not found" }, 404);
+
+  } catch (err) {
+    return jsonResponse({ success: false, error: err.message }, 500);
+  }
+}
+
+// Helper to access shared accounts across Web & Telegram
+async function getGlobalAccounts(env) {
+  // First check if dedicated web accounts exist in KV
+  let accounts = await env.BOT_KV.get("system:accounts", { type: "json" });
+  if (accounts && Array.isArray(accounts) && accounts.length > 0) return accounts;
+
+  // Fallback: check session accounts from telegram users if any
+  // e.g. list sessions and gather accounts
+  return [];
+}
+
+async function saveGlobalAccounts(env, accounts) {
+  await env.BOT_KV.put("system:accounts", JSON.stringify(accounts));
+}
+
+// --- CLOUDFLARE WORKER EVENT LISTENERS ---
+if (typeof addEventListener !== "undefined") {
+  addEventListener("fetch", event => {
+    event.respondWith(handleFetch(event.request, event));
+  });
+
+  addEventListener("scheduled", event => {
+    event.waitUntil(handleScheduled(event));
+  });
+}

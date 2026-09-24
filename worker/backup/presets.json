@@ -1,0 +1,418 @@
+[
+  {
+    "id": "irnova",
+    "name": "IRNova (Nova-Proxy) 🛡️",
+    "url": "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",
+    "pathSuffix": "/admin",
+    "kvBindings": [
+      "KV"
+    ],
+    "vars": [
+      {
+        "name": "D1_ID_DB",
+        "required": true,
+        "autoGenType": "d1_auto"
+      }
+    ],
+    "description": "پروکسی قدرتمند نوا مبتنی بر دیتابیس D1 (با نام DB) و دیتابیس KV (با نام KV).\nپس از دیپلوی، پنل با مسیر /admin و رمز پیش‌فرض admin123 در دسترس است.",
+    "category": "config"
+  },
+  {
+    "id": "nahan",
+    "name": "Nahan Project (itsyebekhe) 🛡️",
+    "url": "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
+    "pathSuffix": "/sync/dash",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "D1_ID_IOT_DB",
+        "required": true,
+        "autoGenType": "d1_auto"
+      }
+    ],
+    "description": "پروژه نهان (Nahan) - توزیع ترافیک و پروکسی معکوس بدون سرور مبتنی بر دیتابیس D1 (با نام متغیر IOT_DB).\nپس از دپلو، با وارد کردن مسیر /sync/dash و رمز عبور پیشفرض admin وارد پنل شوید.",
+    "category": "config"
+  },
+  {
+    "id": "edgetunnel",
+    "name": "EdgeTunnel (cmliu) 🚀",
+    "url": "https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js",
+    "pathSuffix": "/admin",
+    "kvBindings": [
+      "KV"
+    ],
+    "vars": [
+      {
+        "name": "ADMIN",
+        "required": true,
+        "autoGenType": "alphanumeric"
+      },
+      {
+        "name": "KEY",
+        "required": true,
+        "autoGenType": "alphanumeric"
+      },
+      {
+        "name": "UUID",
+        "required": true,
+        "autoGenType": "uuid"
+      },
+      {
+        "name": "PROXYIP",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "bpb.yousef.isegaro.com"
+      }
+    ],
+    "description": "تونل عبور ترافیک پیشرفته edgetunnel مبتنی بر پروتکل‌های VLESS/Trojan/Shadowsocks.",
+    "category": "config"
+  },
+  {
+    "id": "netra_panel",
+    "name": "Netra Panel 💜",
+    "url": "https://raw.githubusercontent.com/netrair/netra-panel/main/worker.js",
+    "pathSuffix": "/panel",
+    "kvBindings": [
+      "kv"
+    ],
+    "vars": [],
+    "description": "پنل پروکسی قدرتمند VLESS و Trojan با پشتیبانی از وارپ، فرگمنت و مدیریت آسان.",
+    "category": "config"
+  },
+  {
+    "id": "cf_proxy_eooce",
+    "name": "Cloudflare Proxy (eooce) 🚀",
+    "url": "https://raw.githubusercontent.com/eooce/Cloudflare-proxy/main/_worker.js",
+    "pathSuffix": "/?ed=2560",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "PASSWORD",
+        "required": true,
+        "autoGenType": "alphanumeric"
+      },
+      {
+        "name": "UUID",
+        "required": false,
+        "autoGenType": "uuid",
+        "defaultValue": "5dc15e15-f285-4a9d-959b-0e4fbdd77b63"
+      },
+      {
+        "name": "PROXYIP",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "13.230.34.30"
+      },
+      {
+        "name": "SUB_PATH",
+        "required": false,
+        "autoGenType": "uri_path",
+        "defaultValue": "link"
+      },
+      {
+        "name": "DISABLE_TROJAN",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "false"
+      }
+    ],
+    "description": "پروکسی چندپروتکله با کنترل دسترسی رمزگذاری‌شده، پنل تحت وب و مسیر ساب‌اسکریپشن.",
+    "category": "config"
+  },
+  {
+    "id": "foxcloud",
+    "name": "FoxCloud (code3-dev) 🦊",
+    "url": "https://github.com/code3-dev/foxcloud/releases/latest/download/worker.js",
+    "pathSuffix": "/sub",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "UUID",
+        "required": true,
+        "autoGenType": "uuid"
+      },
+      {
+        "name": "PROXY_IP",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": ""
+      }
+    ],
+    "description": "پروکسی پیشرفته و پایدار VLESS با رابط کاربری وب، کد QR و خروجی‌های کلاینت.",
+    "category": "config"
+  },
+  {
+    "id": "emotional_damage",
+    "name": "Emotional Damage (NiREvil) 🛡️",
+    "url": "https://raw.githubusercontent.com/NiREvil/Emotional-Damage/main/_worker.js",
+    "pathSuffix": "/{UUID}",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "UUID",
+        "required": true,
+        "autoGenType": "uuid"
+      },
+      {
+        "name": "PROXYIP",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": ""
+      },
+      {
+        "name": "SOCKS5",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": ""
+      },
+      {
+        "name": "SOCKS5_RELAY",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "false"
+      }
+    ],
+    "description": "انشعاب بهینه‌سازی‌شده EDtunnel با قابلیت زنجیره‌سازی و رله پروکسی‌های SOCKS5.",
+    "category": "config"
+  },
+  {
+    "id": "cf_vless_trojan_yongge",
+    "name": "CF VLESS & Trojan (yonggekkk) 👑",
+    "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
+    "pathSuffix": "/{UUID}",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "uuid",
+        "required": true,
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری اتصال (UUID)"
+      },
+      {
+        "name": "UUID",
+        "required": true,
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری پشتیبان"
+      },
+      {
+        "name": "pswd",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "description": "رمز عبور تروجان"
+      },
+      {
+        "name": "proxyip",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "speed.cloudflare.com",
+        "description": "آدرس IP تمیز کلادفلر"
+      }
+    ],
+    "description": "سیستم اشتراک و ساب‌اسکریپشن VLESS و Trojan پایدار برای برنامه‌های کلاینت.",
+    "category": "config"
+  },
+  {
+    "id": "clashfa_mirror",
+    "name": "ClashFa Mirror Pro ⚡",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.txt",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "ابزاری همه‌کاره برای میرور کردن لینک‌ها با بالاترین سرعت.",
+    "category": "clashfa"
+  },
+  {
+    "id": "mihomo_converter",
+    "name": "Great Mihomo Converter 🛠️",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "مبدل فوق‌العاده لینک‌های اشتراک همراه با رابط کاربری وب اختصاصی (Mihomo/Clash).",
+    "category": "clashfa"
+  },
+  {
+    "id": "tg_proxy_assistant",
+    "name": "TG Proxy Assistant 🤖",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/TG-Proxy_Assistant",
+    "pathSuffix": "",
+    "kvBindings": [
+      "PROXY_KV"
+    ],
+    "vars": [
+      {
+        "name": "BOT_TOKEN",
+        "required": true,
+        "autoGenType": "manual"
+      },
+      {
+        "name": "ADMIN_PASSWORD",
+        "required": true,
+        "autoGenType": "alphanumeric"
+      }
+    ],
+    "description": "ربات دستیار تلگرام و کنترل‌کننده پروکسی و کانفیگ‌ها بر بستر کلادفلر ورکرز.",
+    "category": "clashfa"
+  },
+  {
+    "id": "iran_proxy",
+    "name": "Iran Proxy 🛡️",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "ابزاری برای جمع‌آوری پروکسی‌های ساکس با آی‌پی تمیز ایران.",
+    "category": "clashfa"
+  },
+  {
+    "id": "iptv_player",
+    "name": "IPTV Player 📺",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند و پرسرعت بر روی ورکرز کلادفلر.",
+    "category": "clashfa"
+  },
+  {
+    "id": "faceless-bot",
+    "name": "ربات پیشرفته چت و پیام ناشناس (Faceless) 🎭",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
+    "pathSuffix": "/setup",
+    "author": "ClashFa Team",
+    "version": "2.2.0",
+    "icon": "🎭",
+    "repo": "https://github.com/10ium/free-config",
+    "branch": "main",
+    "entrypoint": "worker/faceless_chat_bot",
+    "compatibility_date": "2024-09-01",
+    "kvBindings": [],
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "faceless_db"
+      }
+    ],
+    "vars": [
+      {
+        "name": "D1_ID_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس D1 ابری فیسلس (DB)"
+      },
+      {
+        "name": "BOT_USERNAME",
+        "required": true,
+        "defaultValue": "facelesscahtbot",
+        "autoGenType": "manual",
+        "description": "آیدی ربات بدون @"
+      },
+      {
+        "name": "ADMIN_IDS",
+        "required": true,
+        "autoGenType": "manual",
+        "description": "شناسه عددی ادمین اصلی"
+      },
+      {
+        "name": "BOT_TOKEN",
+        "required": true,
+        "autoGenType": "manual",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "WEBHOOK_SECRET",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "کلید امنیتی وب‌هوک"
+      },
+      {
+        "name": "SECRET_SALT",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "رشته Salt رمزنگاری"
+      },
+      {
+        "name": "AES_KEY",
+        "required": false,
+        "autoGenType": "aes_key",
+        "length": 32,
+        "description": "کلید رمزنگاری AES"
+      }
+    ],
+    "post_deploy": {
+      "action": "open_url",
+      "pathSuffix": "/setup",
+      "description": "راه‌اندازی خودکار ۳ در ۱: ساخت جداول D1، فعال‌سازی وب‌هوک و ثبت منوی دستورات"
+    },
+    "description": "ربات پیام ناشناس مدرن با لینک اختصاصی، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، فیلتر مدیا، پاسخ مستقیم و حفظ حریم خصوصی. (راه‌اندازی خودکار ۳ در ۱ در مسیر /setup).",
+    "category": "clashfa"
+  },
+  {
+    "id": "clashfa_cf_deployer_bot",
+    "name": "ClashFa CF Deployer Bot 🤖",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
+    "isLegacy": false,
+    "kvBindings": [
+      "BOT_KV"
+    ],
+    "vars": [
+      {
+        "name": "TELEGRAM_BOT_TOKEN",
+        "required": true,
+        "autoGenType": "manual",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "SECRET_TOKEN",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "description": "توکن امنیتی وب‌هوک"
+      }
+    ],
+    "pathSuffix": "",
+    "description": "ربات تلگرام و داشبورد جامع وب برای استقرار، ارکستراسیون و مدیریت خودکار ورکرها و پیجز بر بستر کلادفلر.",
+    "category": "clashfa"
+  },
+  {
+    "id": "doh_4n0nymou3",
+    "name": "Cloudflare DoH Proxy (4n0nymou3) 🌐",
+    "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پروکسی ایمن و سبک DNS over HTTPS (DoH) بر روی کلادفلر ورکرز.",
+    "category": "dns"
+  },
+  {
+    "id": "doh_thegreatazizi",
+    "name": "Secure DoH (TheGreatAzizi) 🔒",
+    "url": "https://raw.githubusercontent.com/TheGreatAzizi/Secure-DNS-over-HTTPS-Cloudflare-Worker/main/Worker.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پروکسی دی‌ان‌اس اختصاصی با امنیت پیشرفته و تاخیر بسیار کم.",
+    "category": "dns"
+  },
+  {
+    "id": "doh_code3_dev",
+    "name": "DoH Proxy (code3-dev) ⚡",
+    "url": "https://raw.githubusercontent.com/code3-dev/doh-proxy-worker/master/workers.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "پروکسی ساده و فوق‌العاده سریع DNS-over-HTTPS.",
+    "category": "dns"
+  },
+  {
+    "id": "doh_seramo",
+    "name": "DoH Proxy (seramo) 🌐",
+    "url": "https://raw.githubusercontent.com/seramo/doh-proxy-worker/main/worker.js",
+    "pathSuffix": "",
+    "kvBindings": [],
+    "vars": [],
+    "description": "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
+    "category": "dns"
+  }
+]

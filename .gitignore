@@ -1,1 +1,5 @@
 .backups/
+
+worker/backup/
+*.bak
+

@@ -218,18 +218,8 @@
     "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
-    "description": "ابزاری همه‌کاره و فوق‌سریع برای پروکسی و میرور انواع لینک‌های گیت‌هاب (ریلیزها، فایل‌ها، صفحات، کلون ریپازیتوری)، گیت‌لب، هاگینگ‌فیس، ساب‌اسکریپشن‌های کلش و لینک‌های دانلود مستقیم همراه با کش ابری لبه (Edge Cache) و رابط کاربری واکنش‌گرا برای موبایل.",
-    "category": "clashfa",
-    "author": "ClashFa Team",
-    "version": "2.1.0",
-    "icon": "⚡",
-    "repo": "https://github.com/10ium/free-config",
-    "branch": "main",
-    "entrypoint": "worker/ClashFa_Mirror_Pro.txt",
-    "compatibility_date": "2024-09-23",
-    "compatibility_flags": [
-      "nodejs_compat"
-    ]
+    "description": "ابزاری همه‌کاره برای میرور کردن لینک‌ها با بالاترین سرعت.",
+    "category": "clashfa"
   },
   {
     "id": "mihomo_converter",
@@ -266,40 +256,23 @@
   },
   {
     "id": "iran_proxy",
-    "name": "مرکز پروکسی‌های ایران (Iran Proxy Hub) 🛡️",
+    "name": "Iran Proxy 🛡️",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
     "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
-    "description": "سامانه تجمیع خودکار، اعتبارسنجی زنده و توزیع ابری پروکسی‌های تمیز ایران (SOCKS5, HTTP, HTTPS, SOCKS4) با کش لبه کلادفلر، خروجی‌های اختصاصی کلش (Clash Provider)، ایکس‌ری (Xray) و API (JSON) همراه با رابط کاربری سایبر-گلس‌مورفیسم واکنش‌گرا و مدرن ۲۰۵۵.",
-    "category": "clashfa",
-    "author": "ClashFa Team",
-    "version": "2.1.0",
-    "icon": "🛡️",
-    "repo": "https://github.com/10ium/free-config",
-    "branch": "main",
-    "entrypoint": "worker/iran_proxy.txt",
-    "compatibility_date": "2024-09-23",
-    "compatibility_flags": [
-      "nodejs_compat"
-    ]
+    "description": "ابزاری برای جمع‌آوری پروکسی‌های ساکس با آی‌پی تمیز ایران.",
+    "category": "clashfa"
   },
   {
     "id": "iptv_player",
-    "name": "IPTV Pro Player 📺",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iptv_player.txt",
+    "name": "IPTV Player 📺",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
     "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
-    "description": "پخش‌کننده تلویزیون اینترنتی IPTV فوق‌پیشرفته و هوشمند بر روی ورکرز کلادفلر همراه با موتور هیبریدی HLS، پروکسی ضدتحریم، رمزگشایی پلوتو تی‌وی و رابط کاربری واکنش‌گرا و مدرن اندروید و دسکتاپ.",
-    "category": "clashfa",
-    "author": "ClashFa Team",
-    "version": "3.5.0",
-    "icon": "📺",
-    "repo": "https://github.com/10ium/free-config",
-    "branch": "main",
-    "entrypoint": "worker/iptv_player.txt",
-    "compatibility_date": "2024-09-01"
+    "description": "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند و پرسرعت بر روی ورکرز کلادفلر.",
+    "category": "clashfa"
   },
   {
     "id": "faceless-bot",
@@ -307,7 +280,7 @@
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
     "pathSuffix": "/setup",
     "author": "ClashFa Team",
-    "version": "2.5.0",
+    "version": "2.2.0",
     "icon": "🎭",
     "repo": "https://github.com/10ium/free-config",
     "branch": "main",
@@ -373,7 +346,7 @@
       "pathSuffix": "/setup",
       "description": "راه‌اندازی خودکار ۳ در ۱: ساخت جداول D1، فعال‌سازی وب‌هوک و ثبت منوی دستورات"
     },
-    "description": "ربات پیشرفته و فوق‌امن چت و پیام ناشناس (Zero-Knowledge) مجهز به چت تصادفی هوشمند، انتخاب لینک اختصاصی دلخواه، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، بافر ضد به‌هم‌ریختگی فوروارد، فیلتر مدیا و راه‌اندازی خودکار ۳ در ۱ در مسیر /setup.",
+    "description": "ربات پیام ناشناس مدرن با لینک اختصاصی، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، فیلتر مدیا، پاسخ مستقیم و حفظ حریم خصوصی. (راه‌اندازی خودکار ۳ در ۱ در مسیر /setup).",
     "category": "clashfa"
   },
   {
@@ -400,61 +373,6 @@
     ],
     "pathSuffix": "",
     "description": "ربات تلگرام و داشبورد جامع وب برای استقرار، ارکستراسیون و مدیریت خودکار ورکرها و پیجز بر بستر کلادفلر.",
-    "category": "clashfa"
-  },
-  {
-    "id": "cf_decryptor_bot",
-    "name": "CF Decryptor Bot 🔓 (دیکریپتور و مبدل کانفیگ)",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/cf_decryptor_bot",
-    "pathSuffix": "/setup",
-    "author": "ClashFa Team",
-    "version": "1.0.0",
-    "icon": "🔓",
-    "repo": "https://github.com/10ium/free-config",
-    "branch": "main",
-    "entrypoint": "worker/cf_decryptor_bot",
-    "compatibility_date": "2024-09-01",
-    "compatibility_flags": [
-      "nodejs_compat"
-    ],
-    "kvBindings": [
-      "BOT_KV"
-    ],
-    "vars": [
-      {
-        "name": "BOT_TOKEN",
-        "required": true,
-        "autoGenType": "manual",
-        "description": "توکن ربات تلگرام از BotFather"
-      },
-      {
-        "name": "DEFAULT_OUTPUT_FORMAT",
-        "required": false,
-        "defaultValue": "xray",
-        "autoGenType": "static",
-        "description": "فرمت پیش‌فرض خروجی (xray / singbox / mihomo)"
-      },
-      {
-        "name": "DEFAULT_MERGE_OUTPUT",
-        "required": false,
-        "defaultValue": "true",
-        "autoGenType": "static",
-        "description": "ادغام فایل‌ها در یک خروجی واحد (true / false)"
-      },
-      {
-        "name": "DEFAULT_IGNORE_EXPIRED",
-        "required": false,
-        "defaultValue": "true",
-        "autoGenType": "static",
-        "description": "فیلتر خودکار کانفیگ‌های منقضی‌شده (true / false)"
-      }
-    ],
-    "post_deploy": {
-      "action": "open_url",
-      "pathSuffix": "/setup",
-      "description": "راه‌اندازی آسان و ثبت خودکار وب‌هوک ربات تلگرام در مسیر /setup"
-    },
-    "description": "ربات جامع تلگرام و وب‌سرویس رمزگشایی انواع کانفیگ‌های قفل‌شده (نپسترنت، HTTP Custom، دارک‌تانل و...) و تبدیل پیشرفته به میهومو/کلش، سینگ‌باکس و ایکس‌ری با ساخت ساب‌اسکریپشن اختصاصی.",
     "category": "clashfa"
   },
   {
@@ -496,5 +414,39 @@
     "vars": [],
     "description": "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
     "category": "dns"
+  },
+  {
+    "id": "hamed_panel",
+    "name": "Hamed Panel (Aurora) 🦊",
+    "url": "https://raw.githubusercontent.com/hamedp-71/Hamed_Panel/main/_worker.js",
+    "pathSuffix": "/panel",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "D1_ID_IOT_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس ابری D1 برای ذخیره کاربران و تنظیمات پنل حامد (IOT_DB)"
+      }
+    ],
+    "description": "پنل پروکسی قدرتمند و چندکاربره حامد (Hamed Panel - Aurora Edition v1.0.9) مبتنی بر دیتابیس D1. پس از استقرار، از مسیر /panel با رمز پیش‌فرض admin وارد شوید.",
+    "category": "config"
+  },
+  {
+    "id": "apex_panel",
+    "name": "Apex Panel (Netra) ⚡",
+    "url": "https://raw.githubusercontent.com/netrair/Apex/main/worker.js",
+    "pathSuffix": "/apex/panel",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "D1_ID_NETRA",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس ابری D1 برای ذخیره کاربران و تنظیمات پنل اپکس (netra)"
+      }
+    ],
+    "description": "پنل پیشرفته و چندکاربره Apex (محصول تیم نترا) با مدیریت ترافیک، انقضا و سابسکریپشن بر بستر ورکرز و D1. پس از استقرار از مسیر /apex/panel رمز پنل خود را تعیین کنید.",
+    "category": "config"
   }
 ]

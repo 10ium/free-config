@@ -3,7 +3,7 @@
  * Language: Persian (Farsi)
  * 
  * Features:
- * - 19 Presets (ClashFa, Config & Proxy, DNS, Custom)
+ * - 21 Presets (ClashFa, Config & Proxy, DNS, Custom)
  * - Telegram Bot with HTML-safe rendering & message chunking
  * - Full-Featured Persian Modern Responsive Web Dashboard (at / and /dashboard)
  * - Cloudflare API v4 layer with timeout resilience & token permissions audit
@@ -246,6 +246,28 @@ const PRESETS = [
     pathSuffix: "",
     description: "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
     category: "dns"
+  },
+  {
+    id: "hamed_panel",
+    name: "Hamed Panel (Aurora) 🦊",
+    url: "https://raw.githubusercontent.com/hamedp-71/Hamed_Panel/main/_worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["D1_ID_IOT_DB"],
+    pathSuffix: "/panel",
+    description: "پنل پروکسی قدرتمند و چندکاربره حامد (Hamed Panel - Aurora Edition v1.0.9) مبتنی بر دیتابیس D1.\nپس از استقرار، از مسیر /panel با رمز پیش‌فرض admin وارد شوید.",
+    category: "config"
+  },
+  {
+    id: "apex_panel",
+    name: "Apex Panel (Netra) ⚡",
+    url: "https://raw.githubusercontent.com/netrair/Apex/main/worker.js",
+    isLegacy: false,
+    kvBindings: [],
+    vars: ["D1_ID_NETRA"],
+    pathSuffix: "/apex/panel",
+    description: "پنل پیشرفته و چندکاربره Apex (محصول تیم نترا) با مدیریت ترافیک، انقضا و سابسکریپشن بر بستر ورکرز و D1.\nپس از استقرار از مسیر /apex/panel رمز پنل خود را تعیین کنید.",
+    category: "config"
   }
 ];
 
@@ -260,6 +282,8 @@ function resolvePathSuffix(preset, vars = {}) {
     return u ? `/${u}` : "/";
   }
   if (preset.id === "nahan") return "/sync/dash";
+  if (preset.id === "hamed_panel") return "/panel";
+  if (preset.id === "apex_panel") return "/apex/panel";
   if (preset.id === "edgetunnel" || preset.id === "irnova") return "/admin";
   if (preset.id === "netra_panel") return "/panel";
   if (preset.id === "foxcloud") return "/sub";
@@ -274,10 +298,24 @@ function resolvePathSuffix(preset, vars = {}) {
 
 
 function renderWebDashboard() {
-  return "<!DOCTYPE html>\n<html lang=\"fa\" dir=\"rtl\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>ClashFa Deployer & Orchestrator</title>\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <link href=\"https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css\" rel=\"stylesheet\" type=\"text/css\" />\n  <style>\n    body { font-family: 'Vazirmatn', sans-serif; }\n    .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }\n    .glass-card { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.08); }\n    ::-webkit-scrollbar { width: 6px; height: 6px; }\n    ::-webkit-scrollbar-track { background: #0f172a; }\n    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }\n    ::-webkit-scrollbar-thumb:hover { background: #475569; }\n  </style>\n</head>\n<body class=\"bg-slate-950 text-slate-100 min-h-screen flex flex-col\">\n  <!-- Navbar -->\n  <header class=\"sticky top-0 z-50 glass border-b border-slate-800 px-4 py-3\">\n    <div class=\"max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4\">\n      <div class=\"flex items-center gap-3\">\n        <div class=\"w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30\">\n          ⚡\n        </div>\n        <div>\n          <h1 class=\"font-bold text-lg text-white tracking-wide\">ClashFa Deployer & Orchestrator</h1>\n          <p class=\"text-xs text-slate-400\">سامانه جامع استقرار و مدیریت ورکرهای کلادفلر</p>\n        </div>\n      </div>\n\n      <!-- Navigation Tabs -->\n      <nav class=\"flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-sm\">\n        <button onclick=\"switchTab('templates')\" id=\"tab-templates\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition bg-indigo-600 text-white\">🚀 قالب‌ها</button>\n        <button onclick=\"switchTab('workers')\" id=\"tab-workers\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">📂 مدیریت ورکرها</button>\n        <button onclick=\"switchTab('accounts')\" id=\"tab-accounts\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">🔑 اکانت‌ها</button>\n        <button onclick=\"switchTab('logs')\" id=\"tab-logs\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">📋 لاگ‌های سیستم</button>\n      </nav>\n\n      <!-- Refresh cache button -->\n      <div class=\"flex items-center gap-2\">\n        <button onclick=\"refreshPresetsCache()\" class=\"px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 transition\">\n          <span id=\"cache-icon\">🔄</span> بروزرسانی کش قالب‌ها\n        </button>\n      </div>\n    </div>\n  </header>\n\n  <!-- Main Content Area -->\n  <main class=\"flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6\">\n    <!-- Notice Banner -->\n    <div id=\"alert-banner\" class=\"hidden mb-6 p-4 rounded-xl border text-sm flex items-center justify-between transition\"></div>\n\n    <!-- TAB 1: TEMPLATES -->\n    <section id=\"content-templates\" class=\"tab-content\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white flex items-center gap-2\">🚀 قالب‌های آماده استقرار</h2>\n          <p class=\"text-sm text-slate-400\">انتخاب از میان ۱۹ ورکر بهینه‌سازی‌شده برای کلش‌فا، پروکسی و دی‌ان‌اس</p>\n        </div>\n        <div class=\"flex items-center gap-2\">\n          <button onclick=\"filterCategory('all')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white\">همه (۱۹)</button>\n          <button onclick=\"filterCategory('clashfa')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">کلش‌فا (۶)</button>\n          <button onclick=\"filterCategory('config')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">کانفیگ و پروکسی (۹)</button>\n          <button onclick=\"filterCategory('dns')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">دی‌ان‌اس (۴)</button>\n        </div>\n      </div>\n\n      <div id=\"presets-grid\" class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5\">\n        <!-- Injected via JS -->\n      </div>\n    </section>\n\n    <!-- TAB 2: WORKERS MANAGER -->\n    <section id=\"content-workers\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">📂 مدیریت ورکرها و بایندینگ‌ها</h2>\n          <p class=\"text-sm text-slate-400\">مشاهده اسکریپت‌ها، دریافت سورس‌کد، تنظیمات متغیرها و حذف ورکرها</p>\n        </div>\n        <div class=\"flex items-center gap-3\">\n          <label class=\"text-xs text-slate-400\">انتخاب اکانت:</label>\n          <select id=\"workers-account-select\" onchange=\"loadWorkersList()\" class=\"bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 outline-none\">\n            <!-- Injected via JS -->\n          </select>\n          <button onclick=\"loadWorkersList()\" class=\"px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg transition\">🔄 بروزرسانی لیست</button>\n        </div>\n      </div>\n\n      <div class=\"glass-card rounded-2xl p-4 overflow-x-auto\">\n        <table class=\"w-full text-sm text-right\">\n          <thead class=\"text-xs text-slate-400 border-b border-slate-800\">\n            <tr>\n              <th class=\"p-3\">#</th>\n              <th class=\"p-3\">نام ورکر</th>\n              <th class=\"p-3\">آخرین بروزرسانی</th>\n              <th class=\"p-3\">لینک ورکر</th>\n              <th class=\"p-3 text-center\">عملیات</th>\n            </tr>\n          </thead>\n          <tbody id=\"workers-table-body\">\n            <tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">در حال دریافت اطلاعات ورکرها...</td></tr>\n          </tbody>\n        </table>\n      </div>\n    </section>\n\n    <!-- TAB 3: ACCOUNTS -->\n    <section id=\"content-accounts\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">🔑 حساب‌های متصل کلادفلر</h2>\n          <p class=\"text-sm text-slate-400\">مدیریت توکن‌های API کلادفلر، بررسی مجوزها و ساب‌دامین ورکرز</p>\n        </div>\n        <button onclick=\"openAddAccountModal()\" class=\"px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-xl font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5\">\n          ➕ افزودن اکانت جدید\n        </button>\n      </div>\n\n      <div id=\"accounts-cards\" class=\"grid grid-cols-1 md:grid-cols-2 gap-5\">\n        <!-- Injected via JS -->\n      </div>\n    </section>\n\n    <!-- TAB 4: LOGS -->\n    <section id=\"content-logs\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">📋 لاگ‌ها و رخدادهای سیستم</h2>\n          <p class=\"text-sm text-slate-400\">گزارش ۵۰ رخداد اخیر دیپلوی، تغییرات بایندینگ و ارتباطات با سرورها</p>\n        </div>\n        <div class=\"flex items-center gap-2\">\n          <button onclick=\"loadLogs()\" class=\"px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 transition\">🔄 بروزرسانی لاگ‌ها</button>\n        </div>\n      </div>\n\n      <div class=\"glass-card rounded-2xl p-4 overflow-x-auto\">\n        <table class=\"w-full text-xs text-right font-mono\">\n          <thead class=\"text-slate-400 border-b border-slate-800\">\n            <tr>\n              <th class=\"p-3 w-40\">زمان (تهران)</th>\n              <th class=\"p-3 w-28\">نوع</th>\n              <th class=\"p-3\">پیام رخداد</th>\n            </tr>\n          </thead>\n          <tbody id=\"logs-table-body\">\n            <tr><td colspan=\"3\" class=\"p-6 text-center text-slate-500\">در حال دریافت لاگ‌ها...</td></tr>\n          </tbody>\n        </table>\n      </div>\n    </section>\n  </main>\n\n  <!-- MODAL: DEPLOY WORKER -->\n  <div id=\"deploy-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative max-h-[90vh] flex flex-col\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 id=\"modal-preset-title\" class=\"font-bold text-lg text-white\">استقرار ورکر</h3>\n        <button onclick=\"closeDeployModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div id=\"modal-form-body\" class=\"overflow-y-auto flex-1 space-y-4 pr-1\">\n        <!-- Injected via JS -->\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-4 flex items-center justify-end gap-3\">\n        <button onclick=\"closeDeployModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">لغو</button>\n        <button id=\"btn-submit-deploy\" onclick=\"executeDeployFromWeb()\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-2\">\n          <span>🚀 آغاز استقرار</span>\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- MODAL: BINDINGS MANAGER -->\n  <div id=\"bindings-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-2xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative max-h-[85vh] flex flex-col\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 id=\"modal-bindings-title\" class=\"font-bold text-lg text-white\">مدیریت بایندینگ‌های ورکر</h3>\n        <button onclick=\"closeBindingsModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div id=\"modal-bindings-body\" class=\"overflow-y-auto flex-1 space-y-3\">\n        <!-- Injected via JS -->\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-4 flex items-center justify-between\">\n        <button onclick=\"deleteAllBindingsWeb()\" class=\"px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-600/30 rounded-xl text-xs transition\">💥 حذف همه بایندینگ‌ها</button>\n        <button onclick=\"closeBindingsModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">بستن</button>\n      </div>\n    </div>\n  </div>\n\n  <!-- MODAL: ADD ACCOUNT -->\n  <div id=\"add-account-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 class=\"font-bold text-lg text-white\">➕ افزودن حساب کلادفلر</h3>\n        <button onclick=\"closeAddAccountModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div class=\"space-y-4 text-sm\">\n        <div>\n          <label class=\"block text-slate-400 mb-1 text-xs\">توکن اختصاصی کلادفلر (Cloudflare API Token):</label>\n          <input type=\"password\" id=\"input-cf-token\" placeholder=\"توکن API با دسترسی‌های کامل...\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-indigo-500 transition\">\n        </div>\n        <div class=\"bg-indigo-950/40 border border-indigo-800/40 rounded-xl p-3 text-xs text-indigo-300\">\n          💡 راهنما: توکن شما باید حداقل دارای مجوزهای <b>Account.Workers Scripts:Edit</b> و <b>Account.Workers KV Storage:Edit</b> و <b>Account.D1:Edit</b> باشد.\n        </div>\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-6 flex items-center justify-end gap-3\">\n        <button onclick=\"closeAddAccountModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">لغو</button>\n        <button id=\"btn-save-account\" onclick=\"saveNewAccountWeb()\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-2\">\n          <span>تایید و اتصال</span>\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- Client JavaScript -->\n  <script>\n    let globalPresets = [];\n    let globalAccounts = [];\n    let activePreset = null;\n    let currentBindingsContext = null;\n\n    async function init() {\n      await loadPresets();\n      await loadAccounts();\n    }\n\n    function switchTab(tabId) {\n      document.querySelectorAll('.tab-btn').forEach(btn => {\n        btn.classList.remove('bg-indigo-600', 'text-white');\n        btn.classList.add('text-slate-400');\n      });\n      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));\n\n      document.getElementById('tab-' + tabId).classList.add('bg-indigo-600', 'text-white');\n      document.getElementById('tab-' + tabId).classList.remove('text-slate-400');\n      document.getElementById('content-' + tabId).classList.remove('hidden');\n\n      if (tabId === 'workers') loadWorkersList();\n      if (tabId === 'logs') loadLogs();\n      if (tabId === 'accounts') renderAccounts();\n    }\n\n    function showAlert(message, type) {\n      const banner = document.getElementById('alert-banner');\n      banner.classList.remove('hidden', 'bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300', 'bg-rose-950/60', 'border-rose-800', 'text-rose-300', 'bg-indigo-950/60', 'border-indigo-800', 'text-indigo-300');\n      if (type === 'success') {\n        banner.classList.add('bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300');\n      } else if (type === 'error') {\n        banner.classList.add('bg-rose-950/60', 'border-rose-800', 'text-rose-300');\n      } else {\n        banner.classList.add('bg-indigo-950/60', 'border-indigo-800', 'text-indigo-300');\n      }\n      banner.innerHTML = '<span>' + message + '</span><button onclick=\"this.parentElement.classList.add(\\'hidden\\')\" class=\"text-xs opacity-70 hover:opacity-100\">&times;</button>';\n      setTimeout(() => banner.classList.add('hidden'), 8000);\n    }\n\n    async function loadPresets() {\n      try {\n        const res = await fetch('/api/presets');\n        globalPresets = await res.json();\n        renderPresets(globalPresets);\n      } catch (err) {\n        console.error(\"Presets loading error:\", err);\n      }\n    }\n\n    function renderPresets(presets) {\n      const container = document.getElementById('presets-grid');\n      container.innerHTML = presets.map((p) => {\n        let kvBadge = (p.kvBindings && p.kvBindings.length > 0) ? '<span class=\"bg-indigo-950/80 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800/50\">KV</span>' : '';\n        let d1Badge = (p.vars && p.vars.some(v => v.startsWith('D1_'))) ? '<span class=\"bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/50\">D1</span>' : '';\n        let varsBadge = (p.vars && p.vars.length > 0) ? '<span class=\"bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded\">' + p.vars.length + ' متغیر</span>' : '';\n\n        return '<div class=\"glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-indigo-500/50 transition group\">' +\n          '<div>' +\n            '<div class=\"flex items-center justify-between gap-2 mb-3\">' +\n              '<span class=\"px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700\">' + getCatTitle(p.category) + '</span>' +\n              '<span class=\"text-xs text-slate-500 font-mono\">#' + p.id + '</span>' +\n            '</div>' +\n            '<h3 class=\"font-bold text-base text-white group-hover:text-indigo-400 transition mb-2\">' + p.name + '</h3>' +\n            '<p class=\"text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4\">' + (p.description || 'بدون توضیح') + '</p>' +\n          '</div>' +\n          '<div class=\"border-t border-slate-800/80 pt-4 flex items-center justify-between gap-2\">' +\n            '<div class=\"flex items-center gap-1.5 text-[11px] text-slate-400\">' + kvBadge + d1Badge + varsBadge + '</div>' +\n            '<button onclick=\"openDeployModal(\\'' + p.id + '\\')\" class=\"px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-xl font-medium shadow-md shadow-indigo-600/20 transition\">استقرار 🚀</button>' +\n          '</div>' +\n        '</div>';\n      }).join('');\n    }\n\n    function getCatTitle(c) {\n      if (c === 'clashfa') return '🚀 کلش‌فا';\n      if (c === 'dns') return '🌐 دی‌ان‌اس';\n      if (c === 'config') return '🛰️ کانفیگ';\n      return 'سایر';\n    }\n\n    function filterCategory(cat) {\n      document.querySelectorAll('.cat-filter').forEach(b => {\n        b.classList.remove('bg-indigo-600', 'text-white');\n        b.classList.add('bg-slate-800', 'text-slate-400');\n      });\n      event.target.classList.add('bg-indigo-600', 'text-white');\n      event.target.classList.remove('bg-slate-800', 'text-slate-400');\n\n      if (cat === 'all') {\n        renderPresets(globalPresets);\n      } else {\n        renderPresets(globalPresets.filter(p => p.category === cat));\n      }\n    }\n\n    async function loadAccounts() {\n      try {\n        const res = await fetch('/api/accounts');\n        globalAccounts = await res.json();\n        renderAccounts();\n        updateAccountSelects();\n      } catch (err) {\n        console.error(\"Accounts error:\", err);\n      }\n    }\n\n    function updateAccountSelects() {\n      const select = document.getElementById('workers-account-select');\n      if (!select) return;\n      if (globalAccounts.length === 0) {\n        select.innerHTML = '<option value=\"\">هیچ حسابی متصل نیست</option>';\n        return;\n      }\n      select.innerHTML = globalAccounts.map((a, i) => '<option value=\"' + i + '\">' + a.name + ' (' + a.id.substring(0, 8) + '...)</option>').join('');\n    }\n\n    function renderAccounts() {\n      const container = document.getElementById('accounts-cards');\n      if (globalAccounts.length === 0) {\n        container.innerHTML = '<div class=\"col-span-2 p-8 text-center glass-card rounded-2xl text-slate-400\">هنوز هیچ حساب کلادفلری متصل نشده است. روی دکمه «افزودن اکانت جدید» کلیک کنید.</div>';\n        return;\n      }\n\n      container.innerHTML = globalAccounts.map((a, idx) => {\n        return '<div class=\"glass-card rounded-2xl p-5 border border-slate-800 relative\">' +\n          '<div class=\"flex items-center justify-between mb-4\">' +\n            '<div class=\"flex items-center gap-3\">' +\n              '<div class=\"w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg\">👤</div>' +\n              '<div>' +\n                '<h3 class=\"font-bold text-white text-base\">' + a.name + '</h3>' +\n                '<p class=\"text-xs text-slate-400 font-mono\">شناسه: ' + a.id + '</p>' +\n              '</div>' +\n            '</div>' +\n            '<button onclick=\"deleteAccountWeb(' + idx + ')\" class=\"text-rose-400 hover:text-rose-300 text-xs px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-800/40 transition\">حذف اکانت</button>' +\n          '</div>' +\n          '<div class=\"bg-slate-900/90 rounded-xl p-3 text-xs space-y-2 mb-4\">' +\n            '<div class=\"flex items-center justify-between\">' +\n              '<span class=\"text-slate-400\">ساب‌دامین ورکرز:</span>' +\n              '<span class=\"font-mono text-indigo-300\">' + (a.subdomain || 'دریافت نشده') + '</span>' +\n            '</div>' +\n            '<div class=\"flex items-center justify-between\">' +\n              '<span class=\"text-slate-400\">توکن:</span>' +\n              '<span class=\"font-mono text-slate-500\">' + (a.tokenMasked || '••••••••••••') + '</span>' +\n            '</div>' +\n          '</div>' +\n          '<div class=\"flex items-center justify-between gap-2\">' +\n            '<button onclick=\"refreshSubdomainWeb(' + idx + ')\" class=\"px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl border border-slate-700 transition\">🔄 استعلام زنده ساب‌دامین</button>' +\n          '</div>' +\n        '</div>';\n      }).join('');\n    }\n\n    function openDeployModal(presetId) {\n      activePreset = globalPresets.find(p => p.id === presetId);\n      if (!activePreset) return;\n\n      document.getElementById('modal-preset-title').textContent = 'استقرار ' + activePreset.name;\n      const form = document.getElementById('modal-form-body');\n\n      let html = '<div>' +\n        '<label class=\"block text-xs text-slate-400 mb-1\">حساب مقصد کلادفلر:</label>' +\n        '<select id=\"deploy-acc-idx\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n          globalAccounts.map((a, i) => '<option value=\"' + i + '\">' + a.name + '</option>').join('') +\n        '</select>' +\n      '</div>' +\n      '<div>' +\n        '<label class=\"block text-xs text-slate-400 mb-1\">نام پروژه ورکر (حروف کوچک و خط تیره):</label>' +\n        '<input type=\"text\" id=\"deploy-worker-name\" value=\"' + activePreset.id + '-' + Math.random().toString(36).substring(2, 6) + '\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n      '</div>';\n\n      if (activePreset.vars && activePreset.vars.length > 0) {\n        html += '<div class=\"border-t border-slate-800 pt-3\"><p class=\"text-xs font-bold text-slate-300 mb-2\">متغیرهای محیطی قالب:</p>';\n        activePreset.vars.forEach(v => {\n          let placeholder = 'مقدار ' + v;\n          let isD1 = v.startsWith('D1_ID_');\n          html += '<div class=\"mb-3\">' +\n            '<div class=\"flex items-center justify-between mb-1\">' +\n              '<label class=\"text-xs text-slate-400 font-mono\">' + v + '</label>' +\n              '<button type=\"button\" onclick=\"autoFillVar(\\'' + v + '\\')\" class=\"text-[11px] text-indigo-400 hover:text-indigo-300\">🎲 مقدار خودکار</button>' +\n            '</div>' +\n            '<input type=\"text\" id=\"var-' + v + '\" placeholder=\"' + (isD1 ? 'شناسه دیتابیس D1 یا خالی برای ساخت خودکار' : placeholder) + '\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n          '</div>';\n        });\n        html += '</div>';\n      }\n\n      form.innerHTML = html;\n      document.getElementById('deploy-modal').classList.remove('hidden');\n    }\n\n    function closeDeployModal() {\n      document.getElementById('deploy-modal').classList.add('hidden');\n    }\n\n    function autoFillVar(varName) {\n      const input = document.getElementById('var-' + varName);\n      if (!input) return;\n      if (varName === 'UUID' || varName === 'uuid') {\n        input.value = crypto.randomUUID();\n      } else if (varName.startsWith('D1_ID_')) {\n        input.value = 'auto';\n      } else if (varName === 'AES_KEY') {\n        input.value = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');\n      } else if (varName === 'WEBHOOK_SECRET' || varName === 'SECRET_SALT') {\n        input.value = Math.random().toString(36).substring(2, 14);\n      } else if (varName === 'PROXY_IP' || varName === 'PROXYIP' || varName === 'proxyip') {\n        input.value = 'speed.cloudflare.com';\n      } else if (varName === 'SUB_PATH') {\n        input.value = '/sub/' + Math.random().toString(36).substring(2, 8);\n      } else {\n        input.value = Math.random().toString(36).substring(2, 10);\n      }\n    }\n\n    async function executeDeployFromWeb() {\n      if (!activePreset) return;\n      const accIdx = parseInt(document.getElementById('deploy-acc-idx').value, 10);\n      const workerName = document.getElementById('deploy-worker-name').value.trim();\n\n      if (!workerName) {\n        alert('لطفاً نام پروژه را وارد کنید.');\n        return;\n      }\n\n      const vars = {};\n      if (activePreset.vars) {\n        activePreset.vars.forEach(v => {\n          const el = document.getElementById('var-' + v);\n          if (el) vars[v] = el.value.trim();\n        });\n      }\n\n      const btn = document.getElementById('btn-submit-deploy');\n      btn.disabled = true;\n      btn.innerHTML = '<span>⏳ در حال استقرار...</span>';\n\n      try {\n        const res = await fetch('/api/deploy', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({\n            accIdx,\n            presetId: activePreset.id,\n            workerName,\n            vars\n          })\n        });\n        const data = await res.json();\n        if (data.success) {\n          closeDeployModal();\n          showAlert('✅ ورکر ' + workerName + ' با موفقیت بر روی کلادفلر استقرار یافت! آدرس: ' + (data.url || ''), 'success');\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در استقرار: ' + (data.error || 'خطای نامشخص'), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط با سرور: ' + err.message, 'error');\n      } finally {\n        btn.disabled = false;\n        btn.innerHTML = '<span>🚀 آغاز استقرار</span>';\n      }\n    }\n\n    async function loadWorkersList() {\n      const select = document.getElementById('workers-account-select');\n      const tbody = document.getElementById('workers-table-body');\n      if (!select || !select.value) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">حسابی انتخاب نشده است.</td></tr>';\n        return;\n      }\n\n      const accIdx = parseInt(select.value, 10);\n      tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-400\">⏳ در حال دریافت لیست ورکرها از کلادفلر...</td></tr>';\n\n      try {\n        const res = await fetch('/api/workers?accIdx=' + accIdx);\n        const workers = await res.json();\n        if (!Array.isArray(workers) || workers.length === 0) {\n          tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">هیچ ورکری در این اکانت یافت نشد.</td></tr>';\n          return;\n        }\n\n        tbody.innerHTML = workers.map((w, idx) => {\n          let rawSub = (globalAccounts[accIdx] && globalAccounts[accIdx].subdomain) ? globalAccounts[accIdx].subdomain.trim().replace(/^\\.+|\\.+$/g, \"\") : \"\";\n          let baseDomain = rawSub ? (rawSub.endsWith(\"workers.dev\") ? rawSub : rawSub + \".workers.dev\") : \"workers.dev\";\n          let workerUrl = \"https://\" + w.id + \".\" + baseDomain;\n          return '<tr class=\"border-b border-slate-800/60 hover:bg-slate-900/40 transition\">' +\n            '<td class=\"p-3 text-slate-500\">' + (idx + 1) + '</td>' +\n            '<td class=\"p-3 font-medium text-white font-mono\">' + w.id + '</td>' +\n            '<td class=\"p-3 text-xs text-slate-400\">' + new Date(w.modified_on).toLocaleDateString('fa-IR') + '</td>' +\n            '<td class=\"p-3 text-xs text-indigo-400 font-mono\"><a href=\"' + workerUrl + '\" target=\"_blank\" class=\"hover:underline\">مشاهده ↗</a></td>' +\n            '<td class=\"p-3 text-center\">' +\n              '<div class=\"flex items-center justify-center gap-2\">' +\n                '<button onclick=\"openBindingsModal(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg transition\">⚙️ بایندینگ‌ها</button>' +\n                '<button onclick=\"downloadWorkerCodeWeb(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/40 text-xs rounded-lg transition\">📥 دانلود کد</button>' +\n                '<button onclick=\"deleteWorkerWeb(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-800/40 text-xs rounded-lg transition\">🗑️ حذف</button>' +\n              '</div>' +\n            '</td>' +\n          '</tr>';\n        }).join('');\n      } catch (err) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-rose-400\">خطا در دریافت اطلاعات: ' + err.message + '</td></tr>';\n      }\n    }\n\n    async function downloadWorkerCodeWeb(accIdx, workerName) {\n      try {\n        const res = await fetch('/api/worker-source?accIdx=' + accIdx + '&name=' + workerName);\n        const code = await res.text();\n        const blob = new Blob([code], { type: 'application/javascript' });\n        const url = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = url;\n        a.download = workerName + '.js';\n        document.body.appendChild(a);\n        a.click();\n        document.body.removeChild(a);\n        URL.revokeObjectURL(url);\n        showAlert('✅ سورس‌کد ورکر با موفقیت دانلود شد.', 'success');\n      } catch (err) {\n        showAlert('❌ خطا در دریافت سورس‌کد: ' + err.message, 'error');\n      }\n    }\n\n    async function deleteWorkerWeb(accIdx, workerName) {\n      if (!confirm('آیا مطمئن هستید که می‌خواهید ورکر ' + workerName + ' را حذف کنید؟')) return;\n      const cleanBindings = confirm('آیا می‌خواهید منابع متصل به این ورکر (فضاهای KV و دیتابیس‌های اختصاصی D1) نیز حذف شوند؟\\n\\n[OK]: حذف ورکر + منابع متصل\\n[Cancel]: فقط حذف خود ورکر و نگه‌داری منابع');\n      try {\n        const res = await fetch('/api/workers?accIdx=' + accIdx + '&name=' + encodeURIComponent(workerName) + '&cleanBindings=' + cleanBindings, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ ورکر ' + workerName + ' با موفقیت حذف شد.', 'success');\n          loadWorkersList();\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در حذف ورکر: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در حذف: ' + err.message, 'error');\n      }\n    }\n\n    async function openBindingsModal(accIdx, workerName) {\n      currentBindingsContext = { accIdx, workerName };\n      document.getElementById('modal-bindings-title').textContent = 'مدیریت بایندینگ‌های ' + workerName;\n      const body = document.getElementById('modal-bindings-body');\n      body.innerHTML = '<p class=\"text-xs text-slate-400 text-center p-4\">⏳ در حال دریافت بایندینگ‌ها...</p>';\n      document.getElementById('bindings-modal').classList.remove('hidden');\n\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + accIdx + '&name=' + workerName);\n        const data = await res.json();\n        const bindings = data.bindings || [];\n\n        if (bindings.length === 0) {\n          body.innerHTML = '<p class=\"text-xs text-slate-500 text-center p-4\">هیچ بایندینگی برای این ورکر ثبت نشده است.</p>';\n          return;\n        }\n\n        body.innerHTML = bindings.map((b, idx) => {\n          return '<div class=\"glass-card rounded-xl p-3 flex items-center justify-between text-xs border border-slate-800\">' +\n            '<div>' +\n              '<span class=\"font-bold text-white font-mono\">' + b.name + '</span>' +\n              '<span class=\"text-slate-400 mr-2\">(' + b.type + ')</span>' +\n              '<p class=\"text-slate-500 font-mono text-[11px] mt-1\">' + (b.namespace_id || b.database_id || b.text || '(مقدار رمز)') + '</p>' +\n            '</div>' +\n            '<button onclick=\"deleteSingleBindingWeb(' + idx + ')\" class=\"text-rose-400 hover:text-rose-300 px-2 py-1 bg-rose-950/40 rounded border border-rose-800/40 transition\">حذف بایندینگ</button>' +\n          '</div>';\n        }).join('');\n      } catch (err) {\n        body.innerHTML = '<p class=\"text-xs text-rose-400 text-center p-4\">خطا: ' + err.message + '</p>';\n      }\n    }\n\n    function closeBindingsModal() {\n      document.getElementById('bindings-modal').classList.add('hidden');\n    }\n\n    async function deleteSingleBindingWeb(bindingIdx) {\n      if (!currentBindingsContext) return;\n      if (!confirm('آیا از حذف این بایندینگ مطمئن هستید؟')) return;\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + currentBindingsContext.accIdx + '&name=' + currentBindingsContext.workerName + '&idx=' + bindingIdx, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ بایندینگ با موفقیت حذف شد.', 'success');\n          openBindingsModal(currentBindingsContext.accIdx, currentBindingsContext.workerName);\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در حذف: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function deleteAllBindingsWeb() {\n      if (!currentBindingsContext) return;\n      if (!confirm('آیا مطمئن هستید که می‌خواهید تمامی بایندینگ‌های این ورکر را یکجا پاک کنید؟')) return;\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + currentBindingsContext.accIdx + '&name=' + currentBindingsContext.workerName + '&all=true', { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ تمامی بایندینگ‌ها حذف شدند.', 'success');\n          closeBindingsModal();\n          loadLogs();\n        } else {\n          showAlert('❌ خطا: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    function openAddAccountModal() {\n      document.getElementById('input-cf-token').value = '';\n      document.getElementById('add-account-modal').classList.remove('hidden');\n    }\n\n    function closeAddAccountModal() {\n      document.getElementById('add-account-modal').classList.add('hidden');\n    }\n\n    async function saveNewAccountWeb() {\n      const token = document.getElementById('input-cf-token').value.trim();\n      if (!token) {\n        alert('لطفاً توکن را وارد کنید.');\n        return;\n      }\n\n      const btn = document.getElementById('btn-save-account');\n      btn.disabled = true;\n      btn.innerHTML = '<span>⏳ در حال بررسی مجوزها...</span>';\n\n      try {\n        const res = await fetch('/api/accounts', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({ token })\n        });\n        const data = await res.json();\n        if (data.success) {\n          closeAddAccountModal();\n          showAlert('✅ حساب کلادفلر با موفقیت اضافه شد!', 'success');\n          await loadAccounts();\n          loadLogs();\n        } else {\n          showAlert('❌ ' + (data.error || 'خطا در احراز هویت توکن'), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط: ' + err.message, 'error');\n      } finally {\n        btn.disabled = false;\n        btn.innerHTML = '<span>تایید و اتصال</span>';\n      }\n    }\n\n    async function deleteAccountWeb(idx) {\n      if (!confirm('آیا از حذف این حساب اطمینان دارید؟')) return;\n      try {\n        const res = await fetch('/api/accounts?idx=' + idx, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ حساب کلادفلر حذف شد.', 'success');\n          await loadAccounts();\n          loadLogs();\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function refreshSubdomainWeb(idx) {\n      try {\n        const res = await fetch('/api/refresh-subdomain?idx=' + idx, { method: 'POST' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ ساب‌دامین استعلام شد: ' + data.subdomain, 'success');\n          await loadAccounts();\n        } else {\n          showAlert('❌ خطا در استعلام: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function refreshPresetsCache() {\n      const icon = document.getElementById('cache-icon');\n      icon.classList.add('animate-spin');\n      try {\n        const res = await fetch('/api/refresh-cache', { method: 'POST' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ تمام ۱۹ قالب با موفقیت از گیت‌هاب دانلود و کش شدند.', 'success');\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در کش کردن قالب‌ها: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط: ' + err.message, 'error');\n      } finally {\n        icon.classList.remove('animate-spin');\n      }\n    }\n\n    async function loadLogs() {\n      const tbody = document.getElementById('logs-table-body');\n      try {\n        const res = await fetch('/api/logs');\n        const logs = await res.json();\n        if (!Array.isArray(logs) || logs.length === 0) {\n          tbody.innerHTML = '<tr><td colspan=\"3\" class=\"p-6 text-center text-slate-500\">هیچ لاگی ثبت نشده است.</td></tr>';\n          return;\n        }\n\n        tbody.innerHTML = logs.map(l => {\n          let badgeClass = 'bg-slate-800 text-slate-300';\n          if (l.type === 'error') badgeClass = 'bg-rose-950 text-rose-300 border border-rose-800/40';\n          if (l.type === 'warning') badgeClass = 'bg-amber-950 text-amber-300 border border-amber-800/40';\n          if (l.type === 'info') badgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-800/40';\n\n          return '<tr class=\"border-b border-slate-800/40 hover:bg-slate-900/30 transition\">' +\n            '<td class=\"p-3 text-slate-400\">' + l.timestamp + '</td>' +\n            '<td class=\"p-3\"><span class=\"px-2 py-0.5 rounded text-[10px] uppercase font-bold ' + badgeClass + '\">' + l.type + '</span></td>' +\n            '<td class=\"p-3 text-slate-200 break-all\">' + l.message + '</td>' +\n          '</tr>';\n        }).join('');\n      } catch (err) {\n        tbody.innerHTML = '<tr><td colspan=\"3\" class=\"p-6 text-center text-rose-400\">خطا در بارگذاری لاگ‌ها: ' + err.message + '</td></tr>';\n      }\n    }\n\n    window.addEventListener('DOMContentLoaded', init);\n  </script>\n</body>\n</html>\n";
+  return "<!DOCTYPE html>\n<html lang=\"fa\" dir=\"rtl\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>ClashFa Deployer & Orchestrator</title>\n  <script src=\"https://cdn.tailwindcss.com\">\n    function copyText(val, btn) {\n      navigator.clipboard.writeText(val).then(() => {\n        const orig = btn.innerHTML;\n        btn.innerHTML = '✅ کپی شد!';\n        btn.classList.add('bg-emerald-600', 'text-white');\n        setTimeout(() => {\n          btn.innerHTML = orig;\n          btn.classList.remove('bg-emerald-600', 'text-white');\n        }, 2000);\n      }).catch(() => {\n        alert('مقدار: ' + val);\n      });\n    }\n\n    function showDeploySuccessModal(name, url, vars, preset) {\n      let modal = document.getElementById('success-result-modal');\n      if (!modal) {\n        modal = document.createElement('div');\n        modal.id = 'success-result-modal';\n        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';\n        document.body.appendChild(modal);\n      }\n\n      let varsHtml = '';\n      if (vars && Object.keys(vars).length > 0) {\n        varsHtml += '<div class=\"mt-4 border-t border-slate-800 pt-3\"><p class=\"text-xs font-bold text-slate-300 mb-2\">🔑 مشخصات و متغیرهای ثبت‌شده (برای کپی کلیک کنید):</p>';\n        for (const [k, v] of Object.entries(vars)) {\n          const displayKey = k.startsWith('D1_ID_') ? k.replace('D1_ID_', 'D1_DB_') : k;\n          varsHtml += '<div class=\"flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-2.5 mb-2\">' +\n            '<div class=\"flex flex-col text-right overflow-hidden mr-2\">' +\n              '<span class=\"text-[11px] text-slate-400 font-mono\">' + displayKey + '</span>' +\n              '<span class=\"text-xs text-emerald-400 font-mono font-medium truncate\">' + v + '</span>' +\n            '</div>' +\n            '<button onclick=\"copyText(\\'' + v + '\\', this)\" class=\"px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition shrink-0\">📋 کپی</button>' +\n          '</div>';\n        }\n        varsHtml += '</div>';\n      }\n\n      let panelNotice = '';\n      if (preset) {\n        if (preset.id === 'netra_panel') {\n          panelNotice = '<div class=\"mt-3 p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-xs text-indigo-200 leading-relaxed\">🖥️ <b>اطلاعات پنل نترا:</b> مسیر پنل <code>/panel</code> و متغیر KV متصل شد. در ورود اول رمز دلخواه خود را تعیین کنید.</div>';\n        } else if (preset.id === 'nahan') {\n          panelNotice = '<div class=\"mt-3 p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-xs text-indigo-200 leading-relaxed\">🖥️ <b>اطلاعات پنل نهان:</b> مسیر پنل <code>/sync/dash</code> و نام کاربری/رمز پیش‌فرض <code>admin</code> است.</div>';\n        } else if (preset.id === 'irnova') {\n          panelNotice = '<div class=\"mt-3 p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-xs text-indigo-200 leading-relaxed\">🖥️ <b>اطلاعات پنل نوا:</b> مسیر پنل <code>/admin</code> و رمز پیش‌فرض <code>admin123</code> است.</div>';\n        } else if (preset.id === 'hamed_panel') {\n          panelNotice = '<div class=\"mt-3 p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-xs text-indigo-200 leading-relaxed\">🖥️ <b>اطلاعات پنل حامد:</b> مسیر پنل <code>/panel</code> و دیتابیس D1 متصل شد. رمز عبور پیش‌فرض <code>admin</code> است.</div>';\n        } else if (preset.id === 'apex_panel') {\n          panelNotice = '<div class=\"mt-3 p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-xs text-indigo-200 leading-relaxed\">🖥️ <b>اطلاعات پنل Apex:</b> مسیر پنل <code>/apex/panel</code>، دیتابیس D1 آماده و جداول ساخته شدند. در ورود اول رمز دلخواه خود را تعیین کنید.</div>';\n        }\n      }\n\n      modal.innerHTML = '<div class=\"glass-card max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-emerald-500/30 text-right\">' +\n        '<div class=\"flex items-center justify-between mb-4\">' +\n          '<h3 class=\"text-lg font-bold text-white flex items-center gap-2\">🎉 استقرار با موفقیت کامل انجام شد!</h3>' +\n          '<button onclick=\"document.getElementById(\\'success-result-modal\\').classList.add(\\'hidden\\')\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>' +\n        '</div>' +\n        '<p class=\"text-xs text-slate-400 mb-4\">پروژه <b>' + name + '</b> با موفقیت بر روی کلادفلر منتشر شد.</p>' +\n        '<div class=\"bg-slate-900 border border-slate-800 rounded-xl p-3 mb-3\">' +\n          '<div class=\"flex items-center justify-between mb-1\">' +\n            '<span class=\"text-xs text-slate-400 font-medium\">🌐 آدرس نهایی ورکر:</span>' +\n            '<button onclick=\"copyText(\\'' + (url || '') + '\\', this)\" class=\"px-2 py-0.5 bg-indigo-600/80 hover:bg-indigo-600 text-white rounded text-[11px] font-medium transition\">📋 کپی آدرس</button>' +\n          '</div>' +\n          '<a href=\"' + (url || '#') + '\" target=\"_blank\" class=\"text-xs text-indigo-400 hover:underline break-all font-mono\">' + (url || '') + '</a>' +\n        '</div>' +\n        panelNotice +\n        varsHtml +\n        '<div class=\"mt-6 flex justify-end\">' +\n          '<button onclick=\"document.getElementById(\\'success-result-modal\\').classList.add(\\'hidden\\')\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-xl font-medium transition\">متوجه شدم و بستن</button>' +\n        '</div>' +\n      '</div>';\n\n      modal.classList.remove('hidden');\n    }\n\n  </script>\n  <link href=\"https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css\" rel=\"stylesheet\" type=\"text/css\" />\n  <style>\n    body { font-family: 'Vazirmatn', sans-serif; }\n    .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }\n    .glass-card { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.08); }\n    ::-webkit-scrollbar { width: 6px; height: 6px; }\n    ::-webkit-scrollbar-track { background: #0f172a; }\n    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }\n    ::-webkit-scrollbar-thumb:hover { background: #475569; }\n  </style>\n</head>\n<body class=\"bg-slate-950 text-slate-100 min-h-screen flex flex-col\">\n  <!-- Navbar -->\n  <header class=\"sticky top-0 z-50 glass border-b border-slate-800 px-4 py-3\">\n    <div class=\"max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4\">\n      <div class=\"flex items-center gap-3\">\n        <div class=\"w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30\">\n          ⚡\n        </div>\n        <div>\n          <h1 class=\"font-bold text-lg text-white tracking-wide\">ClashFa Deployer & Orchestrator</h1>\n          <p class=\"text-xs text-slate-400\">سامانه جامع استقرار و مدیریت ورکرهای کلادفلر</p>\n        </div>\n      </div>\n\n      <!-- Navigation Tabs -->\n      <nav class=\"flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-sm\">\n        <button onclick=\"switchTab('templates')\" id=\"tab-templates\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition bg-indigo-600 text-white\">🚀 قالب‌ها</button>\n        <button onclick=\"switchTab('workers')\" id=\"tab-workers\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">📂 مدیریت ورکرها</button>\n        <button onclick=\"switchTab('accounts')\" id=\"tab-accounts\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">🔑 اکانت‌ها</button>\n        <button onclick=\"switchTab('logs')\" id=\"tab-logs\" class=\"tab-btn px-4 py-2 rounded-lg font-medium transition text-slate-400 hover:text-white\">📋 لاگ‌های سیستم</button>\n      </nav>\n\n      <!-- Refresh cache button -->\n      <div class=\"flex items-center gap-2\">\n        <button onclick=\"refreshPresetsCache()\" class=\"px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 flex items-center gap-1.5 transition\">\n          <span id=\"cache-icon\">🔄</span> بروزرسانی کش قالب‌ها\n        </button>\n      </div>\n    </div>\n  </header>\n\n  <!-- Main Content Area -->\n  <main class=\"flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6\">\n    <!-- Notice Banner -->\n    <div id=\"alert-banner\" class=\"hidden mb-6 p-4 rounded-xl border text-sm flex items-center justify-between transition\"></div>\n\n    <!-- TAB 1: TEMPLATES -->\n    <section id=\"content-templates\" class=\"tab-content\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white flex items-center gap-2\">🚀 قالب‌های آماده استقرار</h2>\n          <p class=\"text-sm text-slate-400\">انتخاب از میان <span id=\"presets-total-count\">۲۱</span> ورکر بهینه‌سازی‌شده برای کلش‌فا، پروکسی و دی‌ان‌اس</p>\n        </div>\n        <div class=\"flex items-center gap-2\">\n          <button id=\"cat-all-btn\" onclick=\"filterCategory('all')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white\">همه (۲۱)</button>\n          <button id=\"cat-clashfa-btn\" onclick=\"filterCategory('clashfa')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">کلش‌فا (۶)</button>\n          <button id=\"cat-config-btn\" onclick=\"filterCategory('config')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">کانفیگ و پروکسی (۱۱)</button>\n          <button id=\"cat-dns-btn\" onclick=\"filterCategory('dns')\" class=\"cat-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white\">دی‌ان‌اس (۴)</button>\n        </div>\n      </div>\n\n      <div id=\"presets-grid\" class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5\">\n        <!-- Injected via JS -->\n      </div>\n    </section>\n\n    <!-- TAB 2: WORKERS MANAGER -->\n    <section id=\"content-workers\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">📂 مدیریت ورکرها و بایندینگ‌ها</h2>\n          <p class=\"text-sm text-slate-400\">مشاهده اسکریپت‌ها، دریافت سورس‌کد، تنظیمات متغیرها و حذف ورکرها</p>\n        </div>\n        <div class=\"flex items-center gap-3\">\n          <label class=\"text-xs text-slate-400\">انتخاب اکانت:</label>\n          <select id=\"workers-account-select\" onchange=\"loadWorkersList()\" class=\"bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 outline-none\">\n            <!-- Injected via JS -->\n          </select>\n          <button onclick=\"loadWorkersList()\" class=\"px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg transition\">🔄 بروزرسانی لیست</button>\n        </div>\n      </div>\n\n      <div class=\"glass-card rounded-2xl p-4 overflow-x-auto\">\n        <table class=\"w-full text-sm text-right\">\n          <thead class=\"text-xs text-slate-400 border-b border-slate-800\">\n            <tr>\n              <th class=\"p-3\">#</th>\n              <th class=\"p-3\">نام ورکر</th>\n              <th class=\"p-3\">آخرین بروزرسانی</th>\n              <th class=\"p-3\">لینک ورکر</th>\n              <th class=\"p-3 text-center\">عملیات</th>\n            </tr>\n          </thead>\n          <tbody id=\"workers-table-body\">\n            <tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">در حال دریافت اطلاعات ورکرها...</td></tr>\n          </tbody>\n        </table>\n      </div>\n    </section>\n\n    <!-- TAB 3: ACCOUNTS -->\n    <section id=\"content-accounts\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">🔑 حساب‌های متصل کلادفلر</h2>\n          <p class=\"text-sm text-slate-400\">مدیریت توکن‌های API کلادفلر، بررسی مجوزها و ساب‌دامین ورکرز</p>\n        </div>\n        <button onclick=\"openAddAccountModal()\" class=\"px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-xl font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5\">\n          ➕ افزودن اکانت جدید\n        </button>\n      </div>\n\n      <div id=\"accounts-cards\" class=\"grid grid-cols-1 md:grid-cols-2 gap-5\">\n        <!-- Injected via JS -->\n      </div>\n    </section>\n\n    <!-- TAB 4: LOGS -->\n    <section id=\"content-logs\" class=\"tab-content hidden\">\n      <div class=\"flex flex-wrap items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-bold text-white\">📋 لاگ‌ها و رخدادهای سیستم</h2>\n          <p class=\"text-sm text-slate-400\">گزارش ۵۰ رخداد اخیر دیپلوی، تغییرات بایندینگ و ارتباطات با سرورها</p>\n        </div>\n        <div class=\"flex items-center gap-2\">\n          <button onclick=\"loadLogs()\" class=\"px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 transition\">🔄 بروزرسانی لاگ‌ها</button>\n        </div>\n      </div>\n\n      <div class=\"glass-card rounded-2xl p-4 overflow-x-auto\">\n        <table class=\"w-full text-xs text-right font-mono\">\n          <thead class=\"text-slate-400 border-b border-slate-800\">\n            <tr>\n              <th class=\"p-3 w-40\">زمان (تهران)</th>\n              <th class=\"p-3 w-28\">نوع</th>\n              <th class=\"p-3\">پیام رخداد</th>\n            </tr>\n          </thead>\n          <tbody id=\"logs-table-body\">\n            <tr><td colspan=\"3\" class=\"p-6 text-center text-slate-500\">در حال دریافت لاگ‌ها...</td></tr>\n          </tbody>\n        </table>\n      </div>\n    </section>\n  </main>\n\n  <!-- MODAL: DEPLOY WORKER -->\n  <div id=\"deploy-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative max-h-[90vh] flex flex-col\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 id=\"modal-preset-title\" class=\"font-bold text-lg text-white\">استقرار ورکر</h3>\n        <button onclick=\"closeDeployModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div id=\"modal-form-body\" class=\"overflow-y-auto flex-1 space-y-4 pr-1\">\n        <!-- Injected via JS -->\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-4 flex items-center justify-end gap-3\">\n        <button onclick=\"closeDeployModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">لغو</button>\n        <button id=\"btn-submit-deploy\" onclick=\"executeDeployFromWeb()\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-2\">\n          <span>🚀 آغاز استقرار</span>\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- MODAL: BINDINGS MANAGER -->\n  <div id=\"bindings-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-2xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative max-h-[85vh] flex flex-col\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 id=\"modal-bindings-title\" class=\"font-bold text-lg text-white\">مدیریت بایندینگ‌های ورکر</h3>\n        <button onclick=\"closeBindingsModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div id=\"modal-bindings-body\" class=\"overflow-y-auto flex-1 space-y-3\">\n        <!-- Injected via JS -->\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-4 flex items-center justify-between\">\n        <button onclick=\"deleteAllBindingsWeb()\" class=\"px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-600/30 rounded-xl text-xs transition\">💥 حذف همه بایندینگ‌ها</button>\n        <button onclick=\"closeBindingsModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">بستن</button>\n      </div>\n    </div>\n  </div>\n\n  <!-- MODAL: ADD ACCOUNT -->\n  <div id=\"add-account-modal\" class=\"fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4\">\n    <div class=\"glass max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative\">\n      <div class=\"flex items-center justify-between border-b border-slate-800 pb-3 mb-4\">\n        <h3 class=\"font-bold text-lg text-white\">➕ افزودن حساب کلادفلر</h3>\n        <button onclick=\"closeAddAccountModal()\" class=\"text-slate-400 hover:text-white text-xl\">&times;</button>\n      </div>\n\n      <div class=\"space-y-4 text-sm\">\n        <div>\n          <label class=\"block text-slate-400 mb-1 text-xs\">توکن اختصاصی کلادفلر (Cloudflare API Token):</label>\n          <input type=\"password\" id=\"input-cf-token\" placeholder=\"توکن API با دسترسی‌های کامل...\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-indigo-500 transition\">\n        </div>\n        <div class=\"bg-indigo-950/40 border border-indigo-800/40 rounded-xl p-3 text-xs text-indigo-300\">\n          💡 راهنما: توکن شما باید حداقل دارای مجوزهای <b>Account.Workers Scripts:Edit</b> و <b>Account.Workers KV Storage:Edit</b> و <b>Account.D1:Edit</b> باشد.\n        </div>\n      </div>\n\n      <div class=\"border-t border-slate-800 pt-4 mt-6 flex items-center justify-end gap-3\">\n        <button onclick=\"closeAddAccountModal()\" class=\"px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition\">لغو</button>\n        <button id=\"btn-save-account\" onclick=\"saveNewAccountWeb()\" class=\"px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-indigo-600/30 transition flex items-center gap-2\">\n          <span>تایید و اتصال</span>\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- Client JavaScript -->\n  <script>\n    let globalPresets = [];\n    let globalAccounts = [];\n    let activePreset = null;\n    let currentBindingsContext = null;\n\n    async function init() {\n      await loadPresets();\n      await loadAccounts();\n    }\n\n    function switchTab(tabId) {\n      document.querySelectorAll('.tab-btn').forEach(btn => {\n        btn.classList.remove('bg-indigo-600', 'text-white');\n        btn.classList.add('text-slate-400');\n      });\n      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));\n\n      document.getElementById('tab-' + tabId).classList.add('bg-indigo-600', 'text-white');\n      document.getElementById('tab-' + tabId).classList.remove('text-slate-400');\n      document.getElementById('content-' + tabId).classList.remove('hidden');\n\n      if (tabId === 'workers') loadWorkersList();\n      if (tabId === 'logs') loadLogs();\n      if (tabId === 'accounts') renderAccounts();\n    }\n\n    function showAlert(message, type) {\n      const banner = document.getElementById('alert-banner');\n      banner.classList.remove('hidden', 'bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300', 'bg-rose-950/60', 'border-rose-800', 'text-rose-300', 'bg-indigo-950/60', 'border-indigo-800', 'text-indigo-300');\n      if (type === 'success') {\n        banner.classList.add('bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300');\n      } else if (type === 'error') {\n        banner.classList.add('bg-rose-950/60', 'border-rose-800', 'text-rose-300');\n      } else {\n        banner.classList.add('bg-indigo-950/60', 'border-indigo-800', 'text-indigo-300');\n      }\n      banner.innerHTML = '<span>' + message + '</span><button onclick=\"this.parentElement.classList.add(\\'hidden\\')\" class=\"text-xs opacity-70 hover:opacity-100\">&times;</button>';\n      setTimeout(() => banner.classList.add('hidden'), 8000);\n    }\n\n    async function loadPresets() {\n      try {\n        const res = await fetch('/api/presets');\n        globalPresets = await res.json();\n        updateCategoryCounts();\n        renderPresets(globalPresets);\n      } catch (err) {\n        console.error(\"Presets loading error:\", err);\n      }\n    }\n\n    function updateCategoryCounts() {\n      if (!globalPresets) return;\n      const totalCount = globalPresets.length;\n      const clashfaCount = globalPresets.filter(p => p.category === 'clashfa').length;\n      const configCount = globalPresets.filter(p => p.category === 'config').length;\n      const dnsCount = globalPresets.filter(p => p.category === 'dns').length;\n\n      const totalEl = document.getElementById('presets-total-count');\n      if (totalEl) totalEl.textContent = totalCount;\n      const btnAll = document.getElementById('cat-all-btn');\n      if (btnAll) btnAll.textContent = 'همه (' + totalCount + ')';\n      const btnClashfa = document.getElementById('cat-clashfa-btn');\n      if (btnClashfa) btnClashfa.textContent = 'کلش‌فا (' + clashfaCount + ')';\n      const btnConfig = document.getElementById('cat-config-btn');\n      if (btnConfig) btnConfig.textContent = 'کانفیگ و پروکسی (' + configCount + ')';\n      const btnDns = document.getElementById('cat-dns-btn');\n      if (btnDns) btnDns.textContent = 'دی‌ان‌اس (' + dnsCount + ')';\n    }\n\n    const SENSITIVE_KEYWORDS = [\n      \"vpn\", \"vless\", \"vmess\", \"trojan\", \"shadowsocks\", \"shadowtls\",\n      \"proxy\", \"proxies\", \"sub\", \"subs\", \"subscription\",\n      \"filter\", \"antifilter\", \"bypass\", \"censor\", \"censorship\",\n      \"warp\", \"tuic\", \"hysteria\", \"hy2\", \"wireguard\", \"v2ray\", \"xray\", \"singbox\"\n    ];\n\n    const PRESET_SAFE_IDENTIFIERS = {\n      iptv_player: \"iptv\",\n      irnova: \"irnova\",\n      nahan: \"nahan\",\n      edgetunnel: \"edgetunnel\",\n      netra_panel: \"netra-panel\",\n      hamed_panel: \"hamed-panel\",\n      apex_panel: \"apex-panel\",\n      cf_proxy_eooce: \"eooce-node\",\n      foxcloud: \"foxcloud\",\n      emotional_damage: \"emotional-damage\",\n      cf_vless_trojan_yongge: \"cf-yongge\",\n      clashfa_mirror: \"clashfa-mirror\",\n      mihomo_converter: \"mihomo-convert\",\n      tg_proxy_assistant: \"tg-assistant\",\n      iran_proxy: \"iran-relay\",\n      \"faceless-bot\": \"faceless-bot\",\n      clashfa_cf_deployer_bot: \"clashfa-deployer\",\n      doh_4n0nymou3: \"doh-4n0nymou3\",\n      doh_thegreatazizi: \"doh-azizi\",\n      doh_code3_dev: \"doh-code3\",\n      doh_seramo: \"doh-seramo\"\n    };\n\n    function getInitialSafeName(preset) {\n      let base = \"\";\n      if (preset && preset.id && PRESET_SAFE_IDENTIFIERS[preset.id]) {\n        base = PRESET_SAFE_IDENTIFIERS[preset.id];\n      } else if (preset && (preset.id || preset.name)) {\n        let raw = (preset.id || preset.name).toLowerCase()\n          .replace(/[^a-z0-9]+/g, \"-\")\n          .replace(/^-+|-+$/g, \"\");\n        let parts = raw.split(\"-\").filter(p => p && !SENSITIVE_KEYWORDS.some(sw => p.includes(sw)));\n        base = parts.join(\"-\");\n      }\n      if (!base || base.length < 3) {\n        base = (preset && preset.platform === \"pages\") ? \"web-page\" : \"edge-worker\";\n      }\n      if (preset && preset.platform === \"pages\" && !base.includes(\"page\")) {\n        base = base + \"-page\";\n      }\n      const randNum = Math.floor(100 + Math.random() * 900);\n      return (base + \"-\" + randNum).replace(/-+/g, \"-\").replace(/^-+|-+$/g, \"\");\n    }\n\n    function autoGenerateDeployName() {\n      const name = getInitialSafeName(activePreset);\n      const input = document.getElementById('deploy-worker-name');\n      if (input) input.value = name;\n    }\n\n    function renderPresets(presets) {\n      const container = document.getElementById('presets-grid');\n      container.innerHTML = presets.map((p) => {\n        let kvBadge = (p.kvBindings && p.kvBindings.length > 0) ? '<span class=\"bg-indigo-950/80 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800/50\">KV</span>' : '';\n        let d1Badge = (p.vars && p.vars.some(v => v.startsWith('D1_'))) ? '<span class=\"bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/50\">D1</span>' : '';\n        let varsBadge = (p.vars && p.vars.length > 0) ? '<span class=\"bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded\">' + p.vars.length + ' متغیر</span>' : '';\n\n        return '<div class=\"glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-indigo-500/50 transition group\">' +\n          '<div>' +\n            '<div class=\"flex items-center justify-between gap-2 mb-3\">' +\n              '<span class=\"px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700\">' + getCatTitle(p.category) + '</span>' +\n              '<span class=\"text-xs text-slate-500 font-mono\">#' + p.id + '</span>' +\n            '</div>' +\n            '<h3 class=\"font-bold text-base text-white group-hover:text-indigo-400 transition mb-2\">' + p.name + '</h3>' +\n            '<p class=\"text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4\">' + (p.description || 'بدون توضیح') + '</p>' +\n          '</div>' +\n          '<div class=\"border-t border-slate-800/80 pt-4 flex items-center justify-between gap-2\">' +\n            '<div class=\"flex items-center gap-1.5 text-[11px] text-slate-400\">' + kvBadge + d1Badge + varsBadge + '</div>' +\n            '<button onclick=\"openDeployModal(\\'' + p.id + '\\')\" class=\"px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-xl font-medium shadow-md shadow-indigo-600/20 transition\">استقرار 🚀</button>' +\n          '</div>' +\n        '</div>';\n      }).join('');\n    }\n\n    function getCatTitle(c) {\n      if (c === 'clashfa') return '🚀 کلش‌فا';\n      if (c === 'dns') return '🌐 دی‌ان‌اس';\n      if (c === 'config') return '🛰️ کانفیگ';\n      return 'سایر';\n    }\n\n    function filterCategory(cat) {\n      document.querySelectorAll('.cat-filter').forEach(b => {\n        b.classList.remove('bg-indigo-600', 'text-white');\n        b.classList.add('bg-slate-800', 'text-slate-400');\n      });\n      event.target.classList.add('bg-indigo-600', 'text-white');\n      event.target.classList.remove('bg-slate-800', 'text-slate-400');\n\n      if (cat === 'all') {\n        renderPresets(globalPresets);\n      } else {\n        renderPresets(globalPresets.filter(p => p.category === cat));\n      }\n    }\n\n    async function loadAccounts() {\n      try {\n        const res = await fetch('/api/accounts');\n        globalAccounts = await res.json();\n        renderAccounts();\n        updateAccountSelects();\n      } catch (err) {\n        console.error(\"Accounts error:\", err);\n      }\n    }\n\n    function updateAccountSelects() {\n      const select = document.getElementById('workers-account-select');\n      if (!select) return;\n      if (globalAccounts.length === 0) {\n        select.innerHTML = '<option value=\"\">هیچ حسابی متصل نیست</option>';\n        return;\n      }\n      select.innerHTML = globalAccounts.map((a, i) => '<option value=\"' + i + '\">' + a.name + ' (' + a.id.substring(0, 8) + '...)</option>').join('');\n    }\n\n    function renderAccounts() {\n      const container = document.getElementById('accounts-cards');\n      if (globalAccounts.length === 0) {\n        container.innerHTML = '<div class=\"col-span-2 p-8 text-center glass-card rounded-2xl text-slate-400\">هنوز هیچ حساب کلادفلری متصل نشده است. روی دکمه «افزودن اکانت جدید» کلیک کنید.</div>';\n        return;\n      }\n\n      container.innerHTML = globalAccounts.map((a, idx) => {\n        return '<div class=\"glass-card rounded-2xl p-5 border border-slate-800 relative\">' +\n          '<div class=\"flex items-center justify-between mb-4\">' +\n            '<div class=\"flex items-center gap-3\">' +\n              '<div class=\"w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg\">👤</div>' +\n              '<div>' +\n                '<h3 class=\"font-bold text-white text-base\">' + a.name + '</h3>' +\n                '<p class=\"text-xs text-slate-400 font-mono\">شناسه: ' + a.id + '</p>' +\n              '</div>' +\n            '</div>' +\n            '<button onclick=\"deleteAccountWeb(' + idx + ')\" class=\"text-rose-400 hover:text-rose-300 text-xs px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-800/40 transition\">حذف اکانت</button>' +\n          '</div>' +\n          '<div class=\"bg-slate-900/90 rounded-xl p-3 text-xs space-y-2 mb-4\">' +\n            '<div class=\"flex items-center justify-between\">' +\n              '<span class=\"text-slate-400\">ساب‌دامین ورکرز:</span>' +\n              '<span class=\"font-mono text-indigo-300\">' + (a.subdomain || 'دریافت نشده') + '</span>' +\n            '</div>' +\n            '<div class=\"flex items-center justify-between\">' +\n              '<span class=\"text-slate-400\">توکن:</span>' +\n              '<span class=\"font-mono text-slate-500\">' + (a.tokenMasked || '••••••••••••') + '</span>' +\n            '</div>' +\n          '</div>' +\n          '<div class=\"flex items-center justify-between gap-2\">' +\n            '<button onclick=\"refreshSubdomainWeb(' + idx + ')\" class=\"px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl border border-slate-700 transition\">🔄 استعلام زنده ساب‌دامین</button>' +\n          '</div>' +\n        '</div>';\n      }).join('');\n    }\n\n    function openDeployModal(presetId) {\n      activePreset = globalPresets.find(p => p.id === presetId);\n      if (!activePreset) return;\n\n      document.getElementById('modal-preset-title').textContent = 'استقرار ' + activePreset.name;\n      const form = document.getElementById('modal-form-body');\n\n      let html = '<div>' +\n        '<label class=\"block text-xs text-slate-400 mb-1\">حساب مقصد کلادفلر:</label>' +\n        '<select id=\"deploy-acc-idx\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n          globalAccounts.map((a, i) => '<option value=\"' + i + '\">' + a.name + '</option>').join('') +\n        '</select>' +\n      '</div>' +\n      '<div>' +\n        '<div class=\"flex items-center justify-between mb-1\">' +\n          '<label class=\"block text-xs text-slate-400 font-medium\">نام پروژه (' + ((activePreset && activePreset.platform === \"pages\") ? \"پیجز\" : \"ورکر\") + '):</label>' +\n          '<button type=\"button\" onclick=\"autoGenerateDeployName()\" class=\"text-[11px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 transition-colors\">' + ((activePreset && activePreset.platform === \"pages\") ? \"🎲 ساخت خودکار نام پیجز\" : \"🎲 ساخت خودکار نام ورکر\") + '</button>' +\n        '</div>' +\n        '<input type=\"text\" id=\"deploy-worker-name\" value=\"' + getInitialSafeName(activePreset) + '\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition\">' +\n      '</div>';\n\n      if (activePreset.vars && activePreset.vars.length > 0) {\n        html += '<div class=\"border-t border-slate-800 pt-3\"><p class=\"text-xs font-bold text-slate-300 mb-2\">متغیرهای محیطی قالب:</p>';\n        activePreset.vars.forEach(v => {\n          let placeholder = 'مقدار ' + v;\n          let isD1 = v.startsWith('D1_ID_');\n          html += '<div class=\"mb-3\">' +\n            '<div class=\"flex items-center justify-between mb-1\">' +\n              '<label class=\"text-xs text-slate-400 font-mono\">' + v + '</label>' +\n              '<button type=\"button\" onclick=\"autoFillVar(\\'' + v + '\\')\" class=\"text-[11px] text-indigo-400 hover:text-indigo-300\">🎲 مقدار خودکار</button>' +\n            '</div>' +\n            '<input type=\"text\" id=\"var-' + v + '\" placeholder=\"' + (isD1 ? 'شناسه دیتابیس D1 یا خالی برای ساخت خودکار' : placeholder) + '\" class=\"w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 outline-none\">' +\n          '</div>';\n        });\n        html += '</div>';\n      }\n\n      form.innerHTML = html;\n      document.getElementById('deploy-modal').classList.remove('hidden');\n    }\n\n    function closeDeployModal() {\n      document.getElementById('deploy-modal').classList.add('hidden');\n    }\n\n    function autoFillVar(varName) {\n      const input = document.getElementById('var-' + varName);\n      if (!input) return;\n      if (varName === 'UUID' || varName === 'uuid') {\n        input.value = crypto.randomUUID();\n      } else if (varName.startsWith('D1_ID_')) {\n        input.value = 'auto';\n      } else if (varName === 'AES_KEY') {\n        input.value = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');\n      } else if (varName === 'WEBHOOK_SECRET' || varName === 'SECRET_SALT') {\n        input.value = Math.random().toString(36).substring(2, 14);\n      } else if (varName === 'PROXY_IP' || varName === 'PROXYIP' || varName === 'proxyip') {\n        input.value = 'speed.cloudflare.com';\n      } else if (varName === 'SUB_PATH') {\n        input.value = '/sub/' + Math.random().toString(36).substring(2, 8);\n      } else {\n        input.value = Math.random().toString(36).substring(2, 10);\n      }\n    }\n\n    async function executeDeployFromWeb() {\n      if (!activePreset) return;\n      const accIdx = parseInt(document.getElementById('deploy-acc-idx').value, 10);\n      const workerName = document.getElementById('deploy-worker-name').value.trim();\n\n      if (!workerName) {\n        alert('لطفاً نام پروژه را وارد کنید.');\n        return;\n      }\n\n      const vars = {};\n      if (activePreset.vars) {\n        activePreset.vars.forEach(v => {\n          const el = document.getElementById('var-' + v);\n          if (el) vars[v] = el.value.trim();\n        });\n      }\n\n      const btn = document.getElementById('btn-submit-deploy');\n      btn.disabled = true;\n      btn.innerHTML = '<span>⏳ در حال استقرار...</span>';\n\n      try {\n        const res = await fetch('/api/deploy', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({\n            accIdx,\n            presetId: activePreset.id,\n            workerName,\n            vars\n          })\n        });\n        const data = await res.json();\n        if (data.success) {\n          closeDeployModal();\n          showDeploySuccessModal(workerName, data.url, data.finalVars, activePreset);\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در استقرار: ' + (data.error || 'خطای نامشخص'), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط با سرور: ' + err.message, 'error');\n      } finally {\n        btn.disabled = false;\n        btn.innerHTML = '<span>🚀 آغاز استقرار</span>';\n      }\n    }\n\n    async function loadWorkersList() {\n      const select = document.getElementById('workers-account-select');\n      const tbody = document.getElementById('workers-table-body');\n      if (!select || !select.value) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">حسابی انتخاب نشده است.</td></tr>';\n        return;\n      }\n\n      const accIdx = parseInt(select.value, 10);\n      tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-400\">⏳ در حال دریافت لیست ورکرها از کلادفلر...</td></tr>';\n\n      try {\n        const res = await fetch('/api/workers?accIdx=' + accIdx);\n        const workers = await res.json();\n        if (!Array.isArray(workers) || workers.length === 0) {\n          tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-slate-500\">هیچ ورکری در این اکانت یافت نشد.</td></tr>';\n          return;\n        }\n\n        tbody.innerHTML = workers.map((w, idx) => {\n          let rawSub = (globalAccounts[accIdx] && globalAccounts[accIdx].subdomain) ? globalAccounts[accIdx].subdomain.trim().replace(/^\\.+|\\.+$/g, \"\") : \"\";\n          let baseDomain = rawSub ? (rawSub.endsWith(\"workers.dev\") ? rawSub : rawSub + \".workers.dev\") : \"workers.dev\";\n          let workerUrl = \"https://\" + w.id + \".\" + baseDomain;\n          return '<tr class=\"border-b border-slate-800/60 hover:bg-slate-900/40 transition\">' +\n            '<td class=\"p-3 text-slate-500\">' + (idx + 1) + '</td>' +\n            '<td class=\"p-3 font-medium text-white font-mono\">' + w.id + '</td>' +\n            '<td class=\"p-3 text-xs text-slate-400\">' + new Date(w.modified_on).toLocaleDateString('fa-IR') + '</td>' +\n            '<td class=\"p-3 text-xs text-indigo-400 font-mono\"><a href=\"' + workerUrl + '\" target=\"_blank\" class=\"hover:underline\">مشاهده ↗</a></td>' +\n            '<td class=\"p-3 text-center\">' +\n              '<div class=\"flex items-center justify-center gap-2\">' +\n                '<button onclick=\"openBindingsModal(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg transition\">⚙️ بایندینگ‌ها</button>' +\n                '<button onclick=\"downloadWorkerCodeWeb(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/40 text-xs rounded-lg transition\">📥 دانلود کد</button>' +\n                '<button onclick=\"deleteWorkerWeb(' + accIdx + ', \\'' + w.id + '\\')\" class=\"px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-800/40 text-xs rounded-lg transition\">🗑️ حذف</button>' +\n              '</div>' +\n            '</td>' +\n          '</tr>';\n        }).join('');\n      } catch (err) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"p-6 text-center text-rose-400\">خطا در دریافت اطلاعات: ' + err.message + '</td></tr>';\n      }\n    }\n\n    async function downloadWorkerCodeWeb(accIdx, workerName) {\n      try {\n        const res = await fetch('/api/worker-source?accIdx=' + accIdx + '&name=' + workerName);\n        const code = await res.text();\n        const blob = new Blob([code], { type: 'application/javascript' });\n        const url = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = url;\n        a.download = workerName + '.js';\n        document.body.appendChild(a);\n        a.click();\n        document.body.removeChild(a);\n        URL.revokeObjectURL(url);\n        showAlert('✅ سورس‌کد ورکر با موفقیت دانلود شد.', 'success');\n      } catch (err) {\n        showAlert('❌ خطا در دریافت سورس‌کد: ' + err.message, 'error');\n      }\n    }\n\n    async function deleteWorkerWeb(accIdx, workerName) {\n      if (!confirm('آیا مطمئن هستید که می‌خواهید ورکر ' + workerName + ' را حذف کنید؟')) return;\n      const cleanBindings = confirm('آیا می‌خواهید منابع متصل به این ورکر (فضاهای KV و دیتابیس‌های اختصاصی D1) نیز حذف شوند؟\\n\\n[OK]: حذف ورکر + منابع متصل\\n[Cancel]: فقط حذف خود ورکر و نگه‌داری منابع');\n      try {\n        const res = await fetch('/api/workers?accIdx=' + accIdx + '&name=' + encodeURIComponent(workerName) + '&cleanBindings=' + cleanBindings, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ ورکر ' + workerName + ' با موفقیت حذف شد.', 'success');\n          loadWorkersList();\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در حذف ورکر: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در حذف: ' + err.message, 'error');\n      }\n    }\n\n    async function openBindingsModal(accIdx, workerName) {\n      currentBindingsContext = { accIdx, workerName };\n      document.getElementById('modal-bindings-title').textContent = 'مدیریت بایندینگ‌های ' + workerName;\n      const body = document.getElementById('modal-bindings-body');\n      body.innerHTML = '<p class=\"text-xs text-slate-400 text-center p-4\">⏳ در حال دریافت بایندینگ‌ها...</p>';\n      document.getElementById('bindings-modal').classList.remove('hidden');\n\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + accIdx + '&name=' + workerName);\n        const data = await res.json();\n        const bindings = data.bindings || [];\n\n        if (bindings.length === 0) {\n          body.innerHTML = '<p class=\"text-xs text-slate-500 text-center p-4\">هیچ بایندینگی برای این ورکر ثبت نشده است.</p>';\n          return;\n        }\n\n        body.innerHTML = bindings.map((b, idx) => {\n          return '<div class=\"glass-card rounded-xl p-3 flex items-center justify-between text-xs border border-slate-800\">' +\n            '<div>' +\n              '<span class=\"font-bold text-white font-mono\">' + b.name + '</span>' +\n              '<span class=\"text-slate-400 mr-2\">(' + b.type + ')</span>' +\n              '<p class=\"text-slate-500 font-mono text-[11px] mt-1\">' + (b.namespace_id || b.database_id || b.text || '(مقدار رمز)') + '</p>' +\n            '</div>' +\n            '<button onclick=\"deleteSingleBindingWeb(' + idx + ')\" class=\"text-rose-400 hover:text-rose-300 px-2 py-1 bg-rose-950/40 rounded border border-rose-800/40 transition\">حذف بایندینگ</button>' +\n          '</div>';\n        }).join('');\n      } catch (err) {\n        body.innerHTML = '<p class=\"text-xs text-rose-400 text-center p-4\">خطا: ' + err.message + '</p>';\n      }\n    }\n\n    function closeBindingsModal() {\n      document.getElementById('bindings-modal').classList.add('hidden');\n    }\n\n    async function deleteSingleBindingWeb(bindingIdx) {\n      if (!currentBindingsContext) return;\n      if (!confirm('آیا از حذف این بایندینگ مطمئن هستید؟')) return;\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + currentBindingsContext.accIdx + '&name=' + currentBindingsContext.workerName + '&idx=' + bindingIdx, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ بایندینگ با موفقیت حذف شد.', 'success');\n          openBindingsModal(currentBindingsContext.accIdx, currentBindingsContext.workerName);\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در حذف: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function deleteAllBindingsWeb() {\n      if (!currentBindingsContext) return;\n      if (!confirm('آیا مطمئن هستید که می‌خواهید تمامی بایندینگ‌های این ورکر را یکجا پاک کنید؟')) return;\n      try {\n        const res = await fetch('/api/worker-bindings?accIdx=' + currentBindingsContext.accIdx + '&name=' + currentBindingsContext.workerName + '&all=true', { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ تمامی بایندینگ‌ها حذف شدند.', 'success');\n          closeBindingsModal();\n          loadLogs();\n        } else {\n          showAlert('❌ خطا: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    function openAddAccountModal() {\n      document.getElementById('input-cf-token').value = '';\n      document.getElementById('add-account-modal').classList.remove('hidden');\n    }\n\n    function closeAddAccountModal() {\n      document.getElementById('add-account-modal').classList.add('hidden');\n    }\n\n    async function saveNewAccountWeb() {\n      const token = document.getElementById('input-cf-token').value.trim();\n      if (!token) {\n        alert('لطفاً توکن را وارد کنید.');\n        return;\n      }\n\n      const btn = document.getElementById('btn-save-account');\n      btn.disabled = true;\n      btn.innerHTML = '<span>⏳ در حال بررسی مجوزها...</span>';\n\n      try {\n        const res = await fetch('/api/accounts', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({ token })\n        });\n        const data = await res.json();\n        if (data.success) {\n          closeAddAccountModal();\n          showAlert('✅ حساب کلادفلر با موفقیت اضافه شد!', 'success');\n          await loadAccounts();\n          loadLogs();\n        } else {\n          showAlert('❌ ' + (data.error || 'خطا در احراز هویت توکن'), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط: ' + err.message, 'error');\n      } finally {\n        btn.disabled = false;\n        btn.innerHTML = '<span>تایید و اتصال</span>';\n      }\n    }\n\n    async function deleteAccountWeb(idx) {\n      if (!confirm('آیا از حذف این حساب اطمینان دارید؟')) return;\n      try {\n        const res = await fetch('/api/accounts?idx=' + idx, { method: 'DELETE' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ حساب کلادفلر حذف شد.', 'success');\n          await loadAccounts();\n          loadLogs();\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function refreshSubdomainWeb(idx) {\n      try {\n        const res = await fetch('/api/refresh-subdomain?idx=' + idx, { method: 'POST' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ ساب‌دامین استعلام شد: ' + data.subdomain, 'success');\n          await loadAccounts();\n        } else {\n          showAlert('❌ خطا در استعلام: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا: ' + err.message, 'error');\n      }\n    }\n\n    async function refreshPresetsCache() {\n      const icon = document.getElementById('cache-icon');\n      icon.classList.add('animate-spin');\n      try {\n        const res = await fetch('/api/refresh-cache', { method: 'POST' });\n        const data = await res.json();\n        if (data.success) {\n          showAlert('✅ تمام ۱۹ قالب با موفقیت از گیت‌هاب دانلود و کش شدند.', 'success');\n          loadLogs();\n        } else {\n          showAlert('❌ خطا در کش کردن قالب‌ها: ' + (data.error || ''), 'error');\n        }\n      } catch (err) {\n        showAlert('❌ خطا در ارتباط: ' + err.message, 'error');\n      } finally {\n        icon.classList.remove('animate-spin');\n      }\n    }\n\n    async function loadLogs() {\n      const tbody = document.getElementById('logs-table-body');\n      try {\n        const res = await fetch('/api/logs');\n        const logs = await res.json();\n        if (!Array.isArray(logs) || logs.length === 0) {\n          tbody.innerHTML = '<tr><td colspan=\"3\" class=\"p-6 text-center text-slate-500\">هیچ لاگی ثبت نشده است.</td></tr>';\n          return;\n        }\n\n        tbody.innerHTML = logs.map(l => {\n          let badgeClass = 'bg-slate-800 text-slate-300';\n          if (l.type === 'error') badgeClass = 'bg-rose-950 text-rose-300 border border-rose-800/40';\n          if (l.type === 'warning') badgeClass = 'bg-amber-950 text-amber-300 border border-amber-800/40';\n          if (l.type === 'info') badgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-800/40';\n\n          return '<tr class=\"border-b border-slate-800/40 hover:bg-slate-900/30 transition\">' +\n            '<td class=\"p-3 text-slate-400\">' + l.timestamp + '</td>' +\n            '<td class=\"p-3\"><span class=\"px-2 py-0.5 rounded text-[10px] uppercase font-bold ' + badgeClass + '\">' + l.type + '</span></td>' +\n            '<td class=\"p-3 text-slate-200 break-all\">' + l.message + '</td>' +\n          '</tr>';\n        }).join('');\n      } catch (err) {\n        tbody.innerHTML = '<tr><td colspan=\"3\" class=\"p-6 text-center text-rose-400\">خطا در بارگذاری لاگ‌ها: ' + err.message + '</td></tr>';\n      }\n    }\n\n    window.addEventListener('DOMContentLoaded', init);\n  </script>\n</body>\n</html>\n";
 }
 
 
+
+// --- CONSTANTS & CONFIGURATION ---
+const DEFAULT_COMPATIBILITY_DATE = "2024-09-23";
+
+// --- SANITIZE STRINGS FOR LOGGING (ZERO SECRET LEAKAGE) ---
+function sanitizeForLog(str) {
+  if (typeof str !== "string") return String(str ?? "");
+  return str
+    .replace(/(Bearer\s+)[a-zA-Z0-9_.-]{16,}/gi, "$1••••••••")
+    .replace(/(token=)[a-zA-Z0-9_.-]{16,}/gi, "$1••••••••")
+    .replace(/(bot[0-9]+:)[a-zA-Z0-9_-]{20,}/gi, "bot••••••••")
+    .replace(/(password=|pswd=|secret=)([^&\s]{4,})/gi, "$1••••••••")
+    .replace(/(AES_KEY|WEBHOOK_SECRET|SECRET_SALT|ADMIN_PASSWORD):\s*['"]?[a-zA-Z0-9_.-]{8,}['"]?/gi, "$1: [CONFIGURED]");
+}
 
 // --- TIMEOUT FETCH UTILITY ---
 async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
@@ -293,6 +331,80 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
       throw new Error(`درخواست به سرور به دلیل طولانی شدن زمان (تایم‌اوت ${Math.round(timeoutMs / 1000)} ثانیه) لغو شد.`);
     }
     throw err;
+  }
+}
+
+// --- SMART, RECOGNIZABLE & ANTI-FILTERING SAFE WORKER & PAGES NAME GENERATOR ---
+const SENSITIVE_KEYWORDS = [
+  "vpn", "vless", "vmess", "trojan", "shadowsocks", "shadowtls",
+  "proxy", "proxies", "sub", "subs", "subscription",
+  "filter", "antifilter", "bypass", "censor", "censorship",
+  "warp", "tuic", "hysteria", "hy2", "wireguard", "v2ray", "xray", "singbox"
+];
+
+const PRESET_SAFE_IDENTIFIERS = {
+  iptv_player: "iptv",
+  irnova: "irnova",
+  nahan: "nahan",
+  edgetunnel: "edgetunnel",
+  netra_panel: "netra-panel",
+  cf_proxy_eooce: "eooce-node",
+  foxcloud: "foxcloud",
+  emotional_damage: "emotional-damage",
+  cf_vless_trojan_yongge: "cf-yongge",
+  clashfa_mirror: "clashfa-mirror",
+  mihomo_converter: "mihomo-convert",
+  tg_proxy_assistant: "tg-assistant",
+  iran_proxy: "iran-relay",
+  "faceless-bot": "faceless-bot",
+  clashfa_cf_deployer_bot: "clashfa-deployer",
+  doh_4n0nymou3: "doh-4n0nymou3",
+  doh_thegreatazizi: "doh-azizi",
+  doh_code3_dev: "doh-code3",
+  doh_seramo: "doh-seramo",
+  hamed_panel: "hamed-panel",
+  apex_panel: "apex-panel"
+};
+
+function generateSafeWorkerName(preset, platform = "worker") {
+  let base = "";
+  if (preset && preset.id && PRESET_SAFE_IDENTIFIERS[preset.id]) {
+    base = PRESET_SAFE_IDENTIFIERS[preset.id];
+  } else if (preset && (preset.id || preset.name)) {
+    let raw = (preset.id || preset.name).toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    let parts = raw.split("-").filter(p => p && !SENSITIVE_KEYWORDS.some(sw => p.includes(sw)));
+    base = parts.join("-");
+  }
+
+  if (!base || base.length < 3) {
+    base = (platform === "pages") ? "web-page" : "edge-worker";
+  }
+
+  if (platform === "pages" && !base.includes("page")) {
+    base = base + "-page";
+  }
+
+  const randNum = Math.floor(100 + Math.random() * 900);
+  return `${base}-${randNum}`.replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// --- ROLLBACK NEWLY CREATED RESOURCES ON FAILURE ---
+async function rollbackCreatedResources(token, accountId, createdResources = [], env = null) {
+  if (!createdResources || createdResources.length === 0) return;
+  for (const res of createdResources) {
+    try {
+      if (res.type === "kv") {
+        await deleteKVNamespace(token, accountId, res.id);
+        if (env) await logEvent(env, `Rollback: پاک‌سازی خودکار دیتابیس KV ناتمام ${res.name}`, "warning");
+      } else if (res.type === "d1") {
+        await deleteD1Database(token, accountId, res.id);
+        if (env) await logEvent(env, `Rollback: پاک‌سازی خودکار دیتابیس D1 ناتمام ${res.name}`, "warning");
+      }
+    } catch (e) {
+      console.warn("Rollback resource error:", e);
+    }
   }
 }
 
@@ -381,7 +493,6 @@ async function createKVNamespace(token, accountId, title) {
 
     // Handle "a namespace with this account ID and title already exists"
     if (errMsg.includes("already exists") || errCode === 10014) {
-      // Find existing namespace with this title
       const listRes = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces?per_page=100`, {
         headers: { "Authorization": `Bearer ${token}` }
       }, 20000);
@@ -483,6 +594,7 @@ async function executeD1Statements(token, accountId, databaseId, sql) {
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
+  const report = { success: true, executed: 0, failed: 0, errors: [] };
   for (const stmt of statements) {
     try {
       const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`, {
@@ -495,24 +607,53 @@ async function executeD1Statements(token, accountId, databaseId, sql) {
       }, 15000);
       const data = await res.json();
       if (!data.success) {
+        report.failed++;
+        report.errors.push(data.errors?.[0]?.message || "Query statement failed");
         console.warn(`D1 execution warning on statement: ${stmt.substring(0, 30)} - ${data.errors?.[0]?.message}`);
+      } else {
+        report.executed++;
       }
     } catch (e) {
+      report.failed++;
+      report.errors.push(e.message);
       console.warn("D1 execute error: ", e.message);
     }
   }
-  return true;
+
+  if (report.failed > 0 && report.executed === 0) {
+    report.success = false;
+    throw new Error(`خطا در اجرای ساختار جداول دیتابیس D1: ${report.errors.join(", ")}`);
+  }
+  return report;
 }
 
-// Code Cache & Preset Fetcher
-async function getPresetCode(preset, env = null, customUrl = null) {
+// Code Cache & Preset Fetcher with Smart 12-Hour Freshness Window (Zero Cron Required)
+const PRESET_CACHE_TTL_MS = 12 * 3600 * 1000; // 12 hours (refreshes 1-2 times daily automatically)
+
+async function getPresetCode(preset, env = null, customUrl = null, forceRefresh = false) {
   const url = preset ? preset.url : customUrl;
   if (!url) throw new Error("آدرس سورس‌کد تعریف نشده است.");
 
   const cacheKey = `cache:code:${preset ? preset.id : "custom_" + Math.abs(hashCode(url))}`;
-  if (env && env.BOT_KV && preset) {
-    const cached = await env.BOT_KV.get(cacheKey);
-    if (cached) return cached;
+  const cacheTsKey = `cache:ts:${preset ? preset.id : "custom_" + Math.abs(hashCode(url))}`;
+
+  let cachedCode = null;
+  if (!forceRefresh && env && env.BOT_KV && preset) {
+    try {
+      const [cached, tsStr] = await Promise.all([
+        env.BOT_KV.get(cacheKey),
+        env.BOT_KV.get(cacheTsKey)
+      ]);
+      const cachedTs = parseInt(tsStr || "0", 10);
+      const isFresh = (Date.now() - cachedTs) < PRESET_CACHE_TTL_MS;
+
+      if (cached && isFresh) {
+        return cached; // Still fresh (within 12 hours), return instantly!
+      }
+      if (cached) {
+        cachedCode = cached; // Stale fallback preserved in case network fetch fails
+      }
+    } catch (_) {}
   }
 
   let res;
@@ -534,12 +675,19 @@ async function getPresetCode(preset, env = null, customUrl = null) {
     }
   }
 
+  // If fetch failed but we have stale cached code, return the stale code gracefully!
+  if ((!res || !res.ok) && cachedCode) {
+    console.warn(`Using stale cache for ${preset?.id || url} due to network error: ${res?.statusText || "fetch failed"}`);
+    return cachedCode;
+  }
+
   if (!res || !res.ok) {
     throw new Error(`خطا در دانلود سورس‌کد (${res?.status || 0} ${res?.statusText || "Connection Error"})`);
   }
 
   let code = await res.text();
   if (!code || code.trim().length === 0) {
+    if (cachedCode) return cachedCode;
     throw new Error("سورس‌کد دریافتی خالی است.");
   }
 
@@ -549,20 +697,26 @@ async function getPresetCode(preset, env = null, customUrl = null) {
   }
 
   if (env && env.BOT_KV && preset) {
-    // Cache for 6 hours
-    await env.BOT_KV.put(cacheKey, code, { expirationTtl: 21600 });
+    // Save persistently without expirationTtl (no cron required, refreshed on traffic every 12h)
+    try {
+      await env.BOT_KV.put(cacheKey, code);
+      await env.BOT_KV.put(cacheTsKey, Date.now().toString());
+    } catch (_) {}
   }
 
   return code;
 }
 
-async function cacheAllPresets(env) {
+async function cacheAllPresets(env, forceRefresh = true) {
   if (!env || !env.BOT_KV) return;
   for (const p of PRESETS) {
     try {
-      await getPresetCode(p, env);
+      await getPresetCode(p, env, null, forceRefresh);
     } catch (_) {}
   }
+  try {
+    await env.BOT_KV.put("cache:last_auto_refresh", Date.now().toString());
+  } catch (_) {}
 }
 
 function isESModule(code) {
@@ -574,15 +728,18 @@ function isESModule(code) {
          /export\s+(const|let|var|function|async|class)\b/i.test(code) ||
          /import\s*\{/i.test(code) ||
          /import\s+[\w$*]+/i.test(code) ||
-         /import\s*['"]/i.test(code);
+         /import\s*['"]/i.test(code) ||
+         /\bimport\b/.test(code) ||
+         /\bexport\b/.test(code);
 }
 
-async function deployWorkerScript(token, accountId, scriptName, code, bindings = []) {
+// Deploy Worker Script with Auto-Retry on Name Conflict (up to 3 attempts)
+async function deployWorkerScript(token, accountId, scriptName, code, bindings = [], retryCount = 0, preset = null) {
   const isModule = isESModule(code);
   const formData = new FormData();
   
   const metadata = {
-    compatibility_date: new Date().toISOString().split("T")[0],
+    compatibility_date: (typeof COMPATIBILITY_DATE !== "undefined" ? COMPATIBILITY_DATE : DEFAULT_COMPATIBILITY_DATE),
     compatibility_flags: ["nodejs_compat"],
     bindings: bindings
   };
@@ -607,9 +764,19 @@ async function deployWorkerScript(token, accountId, scriptName, code, bindings =
 
   const data = await res.json();
   if (!data.success) {
+    const errMsg = (data.errors?.[0]?.message || "").toLowerCase();
+    const errCode = data.errors?.[0]?.code;
+
+    // If duplicate name or conflict, automatically generate a new safe name and retry
+    if ((errMsg.includes("already exists") || errCode === 10009 || errCode === 10014) && retryCount < 3) {
+      const newName = generateSafeWorkerName(preset, "worker");
+      console.log(`Conflict for ${scriptName}. Retrying deploy with ${newName} (attempt ${retryCount + 1})...`);
+      return await deployWorkerScript(token, accountId, newName, code, bindings, retryCount + 1, preset);
+    }
+
     throw new Error(data.errors?.[0]?.message || "Failed to deploy Worker.");
   }
-  return data.result;
+  return { ...data.result, deployedName: scriptName };
 }
 
 async function deleteWorkerScript(token, accountId, scriptName) {
@@ -701,12 +868,12 @@ async function getWorkerSubdomain(token, accountId, env, accountName = "") {
   // 1. Check KV Cache
   if (env && env.BOT_KV) {
     const cached = await env.BOT_KV.get(`subdomain:${accountId}`);
-    if (cached && cached.trim()) return cached.trim();
+    if (cached && cached.trim()) return cached.trim().replace(/^\.+|\.+$/g, "");
   }
 
-  // 2. Fetch Live from Cloudflare API (generous 25s timeout)
+  // 2. Fetch Live from Cloudflare API
   const liveSub = await refreshWorkerSubdomainLive(token, accountId, env);
-  if (liveSub && liveSub.trim()) return liveSub.trim();
+  if (liveSub && liveSub.trim()) return liveSub.trim().replace(/^\.+|\.+$/g, "");
 
   // 3. Derive Intelligent Fallback (e.g. pcwwrk@hi2.in -> pcwwrk)
   if (accountName) {
@@ -714,7 +881,7 @@ async function getWorkerSubdomain(token, accountId, env, accountName = "") {
     if (env && env.BOT_KV && fallbackSub) {
       await env.BOT_KV.put(`subdomain:${accountId}`, fallbackSub);
     }
-    return fallbackSub;
+    return fallbackSub.replace(/^\.+|\.+$/g, "");
   }
   return "";
 }
@@ -728,14 +895,14 @@ async function refreshWorkerSubdomainLive(token, accountId, env = null) {
     }, 25000);
     const data = await res.json();
     if (data.success && data.result && data.result.subdomain) {
-      const sub = data.result.subdomain.trim();
+      const sub = data.result.subdomain.trim().replace(/^\.+|\.+$/g, "");
       if (env && env.BOT_KV) {
         await env.BOT_KV.put(`subdomain:${accountId}`, sub);
       }
       return sub;
     }
   } catch (err) {
-    if (env) await logEvent(env, `هشدار در استعلام ساب‌دومین: ${err.message}`, "warning");
+    if (env) await logEvent(env, `هشدار در استعلام ساب‌دومین: ${sanitizeForLog(err.message)}`, "warning");
   }
   return "";
 }
@@ -775,7 +942,8 @@ async function getPagesProject(token, accountId, name) {
   return data.success ? data.result : null;
 }
 
-async function createPagesProject(token, accountId, name, bindings) {
+// Create Pages Project with Auto-Retry on Name Conflict (up to 3 attempts)
+async function createPagesProject(token, accountId, name, bindings, retryCount = 0) {
   const kvBindingsObj = {};
   const envVarsObj = {};
 
@@ -792,7 +960,7 @@ async function createPagesProject(token, accountId, name, bindings) {
     production_branch: "main",
     deployment_configs: {
       production: {
-        compatibility_date: new Date().toISOString().split("T")[0],
+        compatibility_date: (typeof COMPATIBILITY_DATE !== "undefined" ? COMPATIBILITY_DATE : DEFAULT_COMPATIBILITY_DATE),
         compatibility_flags: ["nodejs_compat"],
         kv_namespaces: kvBindingsObj,
         env_vars: envVarsObj
@@ -814,9 +982,14 @@ async function createPagesProject(token, accountId, name, bindings) {
     if (data.errors?.[0]?.code === 8000000) {
       return await getPagesProject(token, accountId, name);
     }
+    const errMsg = (data.errors?.[0]?.message || "").toLowerCase();
+    if (errMsg.includes("already exists") && retryCount < 3) {
+      const newName = generateSafeWorkerName(null, "pages");
+      return await createPagesProject(token, accountId, newName, bindings, retryCount + 1);
+    }
     throw new Error(data.errors?.[0]?.message || "Failed to create Pages.");
   }
-  return data.result;
+  return { ...data.result, deployedName: name };
 }
 
 async function deployPagesAsset(token, accountId, projectName, code) {
@@ -1066,51 +1239,7 @@ function normalizeGitHubUrl(urlStr) {
 
 
 
-// --- AUTOMATIC PRESET CACHING ENGINE ---
-async function cacheAllPresets(env) {
-  for (let i = 0; i < PRESETS.length; i++) {
-    const preset = PRESETS[i];
-    try {
-      const response = await fetchWithTimeout(preset.url, {
-        headers: { "User-Agent": "ClashFa-Deployer-Bot" }
-      }, 15000);
-      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-      const code = await response.text();
-      
-      await env.BOT_KV.put(`cache:code:${preset.id}`, code);
-      await env.BOT_KV.put(`cache:updated:${preset.id}`, new Date().toISOString());
-      await logEvent(env, `کد ورکر [${preset.name}] با موفقیت دانلود و کش شد.`, "info");
-    } catch (err) {
-      await logEvent(env, `خطا در کش کردن ورکر [${preset.name}]: ${err.message}`, "error");
-    }
-  }
-}
-
-// --- FETCH CODE FROM CACHE OR NETWORK ---
-async function getPresetCode(preset, env, customUrl = null) {
-  if (customUrl) {
-    let targetUrl = normalizeGitHubUrl(customUrl);
-    await logEvent(env, `دریافت مستقیم سورس ورکر سفارشی از لینک: ${targetUrl}`, "info");
-    const response = await fetchWithTimeout(targetUrl, {
-      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
-    }, 15000);
-    if (!response.ok) throw new Error("سورس فایل سفارشی از اینترنت قابل دانلود نیست.");
-    return await response.text();
-  }
-
-  let code = await env.BOT_KV.get(`cache:code:${preset.id}`);
-  if (!code) {
-    await logEvent(env, `ورکر [${preset.name}] در کش وجود نداشت. دانلود مستقیم انجام می‌شود...`, "warning");
-    const response = await fetchWithTimeout(preset.url, {
-      headers: { "User-Agent": "ClashFa-Deployer-Bot" }
-    }, 15000);
-    if (!response.ok) throw new Error("سورس فایل از اینترنت قابل دانلود نیست.");
-    code = await response.text();
-    await env.BOT_KV.put(`cache:code:${preset.id}`, code);
-    await env.BOT_KV.put(`cache:updated:${preset.id}`, new Date().toISOString());
-  }
-  return code;
-}
+// (Preset cache functions loaded centrally from cloudflare_api.js)
 
 // --- HELPER UTILITIES ---
 function generateRandomString(charset, length) {
@@ -1141,8 +1270,13 @@ function deriveFallbackSubdomain(accountName, accountId = "") {
 function autoGenerateVars(varList, context = {}) {
   const generated = {};
   varList.forEach(v => {
+    // Preserve explicit non-empty user input
+    if (context[v] !== undefined && context[v] !== null && context[v] !== "") {
+      generated[v] = context[v];
+      return;
+    }
     if (v === "UUID" || v === "uuid") {
-      const u = generated.UUID || generated.uuid || crypto.randomUUID();
+      const u = generated.UUID || generated.uuid || (context.UUID || context.uuid) || crypto.randomUUID();
       generated.UUID = u;
       generated.uuid = u;
     } else if (v === "TR_PASS" || v === "ADMIN_PASSWORD" || v === "ADMIN") {
@@ -1445,7 +1579,7 @@ async function handleTelegramMessage(msg, env) {
       pushHistory(userSession, "AWAITING_CUSTOM_RESOURCES_COUNT");
       userSession.state = "AWAITING_PROJECT_NAME";
       await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
-      return sendProjectNamePrompt(chatId, env);
+      return sendProjectNamePrompt(chatId, env, userSession?.deployPayload?.type || "worker");
     }
 
     userSession.deployPayload.resourceQueue = [];
@@ -1661,7 +1795,7 @@ async function handleTelegramCallback(cb, env) {
     }
     if (prevState === "CHOOSE_CUSTOM_VAR_OPTION") return sendCustomVarOptionSelection(chatId, env);
     if (prevState === "AWAITING_CUSTOM_RESOURCES_COUNT") return sendCustomResourcesPrompt(chatId, env);
-    if (prevState === "AWAITING_PROJECT_NAME") return sendProjectNamePrompt(chatId, env);
+    if (prevState === "AWAITING_PROJECT_NAME") return sendProjectNamePrompt(chatId, env, userSession?.deployPayload?.type || "worker");
     if (prevState === "CHOOSE_VAR_MODE") {
       userSession.deployPayload.vars = {};
       await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
@@ -1816,7 +1950,7 @@ async function handleTelegramCallback(cb, env) {
 
       userSession.state = "AWAITING_PROJECT_NAME";
       await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
-      return sendProjectNamePrompt(chatId, env);
+      return sendProjectNamePrompt(chatId, env, userSession?.deployPayload?.type || "worker");
     }
   }
 
@@ -1825,7 +1959,7 @@ async function handleTelegramCallback(cb, env) {
     pushHistory(userSession, "CHOOSE_CUSTOM_VAR_OPTION");
     userSession.state = "AWAITING_PROJECT_NAME";
     await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
-    return sendProjectNamePrompt(chatId, env);
+    return sendProjectNamePrompt(chatId, env, userSession?.deployPayload?.type || "worker");
   }
 
   if (data === "custom_vars_yes") {
@@ -1862,6 +1996,32 @@ async function handleTelegramCallback(cb, env) {
   }
 
   // --- SINGLE VARIABLE INLINE AUTO-GENERATOR ---
+    if (data.startsWith("auto_gen_name_")) {
+    const platform = data.replace("auto_gen_name_", "");
+    const presetIdx = userSession.deployPayload ? userSession.deployPayload.templateIdx : null;
+    const preset = (presetIdx !== null && presetIdx !== "custom") ? PRESETS[presetIdx] : null;
+    const autoName = generateSafeWorkerName(preset, platform);
+    
+    userSession.deployPayload = userSession.deployPayload || {};
+    userSession.deployPayload.name = autoName;
+    pushHistory(userSession, "AWAITING_PROJECT_NAME");
+
+    await sendMessage(chatId, `✨ نام تولیدشده برای پروژه شما:\n<code>${escapeHTML(autoName)}</code>`, env);
+
+    if (presetIdx === "custom") {
+      return proceedToAccountStep(chatId, userSession, env);
+    } else {
+      const hasVars = (preset && preset.vars && preset.vars.length > 0);
+      if (hasVars) {
+        userSession.state = "CHOOSE_VAR_MODE";
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+        return sendVarModeSelection(chatId, env);
+      } else {
+        return proceedToAccountStep(chatId, userSession, env);
+      }
+    }
+  }
+
   if (data.startsWith("auto_gen_var_")) {
     const varName = data.replace("auto_gen_var_", "");
     let generatedVal = "";
@@ -2227,6 +2387,7 @@ async function executeTelegramDeployment(chatId, session, env) {
   await sendMessage(chatId, "🛠️ در حال ساخت دیتابیس‌ها و تنظیم منابع اختصاصی شما...", env);
   try {
     const activeBindings = [];
+    const createdResources = [];
 
     // Process presets' default KVs
     if (kvBindings && kvBindings.length > 0) {
@@ -2283,7 +2444,7 @@ async function executeTelegramDeployment(chatId, session, env) {
           // Execute D1 Database Schema if preset requires it
           if (templateIdx !== "custom") {
             const currentPreset = PRESETS[templateIdx];
-            if (currentPreset && currentPreset.id === "faceless_chat_bot") {
+            if (currentPreset && (currentPreset.id === "faceless-bot" || currentPreset.id === "faceless_chat_bot")) {
               await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس (users, chats, logs) برای بات چت ناشناس...", env);
               const schemaSql = `
 CREATE TABLE IF NOT EXISTS users (
@@ -2337,6 +2498,7 @@ CREATE TABLE IF NOT EXISTS logs (
             await sendMessage(chatId, `🗄 در حال ساخت فیزیکی دیتابیس D1 برای بایندینگ ${escapeHTML(item.name)}...`, env);
             const sanitizedDbName = `${name}-${item.name}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
             d1Id = await createD1Database(account.token, account.id, sanitizedDbName);
+            createdResources.push({ type: "d1", id: d1Id, name: sanitizedDbName });
           }
           activeBindings.push({ name: item.name, database_id: d1Id, type: "d1" });
         } else if (item.type === "var") {
@@ -2636,8 +2798,21 @@ async function sendCustomResourcesPrompt(chatId, env) {
   );
 }
 
-async function sendProjectNamePrompt(chatId, env) {
-  return sendMessage(chatId, "🏷️ لطفاً <b>نام پروژه</b> خود را به انگلیسی بنویسید (فقط حروف کوچک، اعداد و خط تیره - مجاز است):\n\nمثال: <code>my-clash-worker</code>", env, false, [getNavKeyboardRow()]);
+async function sendProjectNamePrompt(chatId, env, platform = "worker") {
+  const btnText = (platform === "pages") ? "🎲 ساخت خودکار نام پیجز" : "🎲 ساخت خودکار نام ورکر";
+  const keyboard = [
+    [{ text: btnText, callback_data: `auto_gen_name_${platform}` }],
+    getNavKeyboardRow()
+  ];
+  return sendMessage(
+    chatId,
+    "🏷️ لطفاً <b>نام پروژه</b> خود را به انگلیسی بنویسید (فقط حروف کوچک، اعداد و خط تیره - مجاز است):\n\n" +
+    "💡 یا برای انتخاب هوشمند نام متناسب با پروژه، دکمه زیر را لمس فرمایید:\n" +
+    "مثال: <code>edge-node-482</code>",
+    env,
+    false,
+    keyboard
+  );
 }
 
 async function sendVarModeSelection(chatId, env) {
@@ -2889,14 +3064,7 @@ async function handleWebhookSetup(origin, env) {
 
 
 
-// --- SERVICE WORKER LISTENERS ---
-addEventListener("fetch", event => {
-  event.respondWith(handleFetch(event.request, event));
-});
-
-addEventListener("scheduled", event => {
-  event.waitUntil(handleScheduled(event));
-});
+// (Event listeners defined at bottom of entrypoint)
 
 // --- ENVIRONMENT LOADER HELPER ---
 function getEnv() {
@@ -2909,15 +3077,16 @@ function getEnv() {
 
 // --- SYSTEM LOGGER HELPER ---
 async function logEvent(env, message, type = "info") {
+  const sanitized = sanitizeForLog(message);
   if (!env || !env.BOT_KV) {
-    console.log(`[${type}] ${message}`);
+    console.log(`[${type}] ${sanitized}`);
     return;
   }
   try {
     const logs = await env.BOT_KV.get("system:logs", { type: "json" }) || [];
     const newLog = {
       timestamp: new Date().toLocaleString("fa-IR", { timeZone: "Asia/Tehran" }),
-      message,
+      message: sanitizeForLog(message),
       type
     };
     logs.unshift(newLog);
@@ -2939,6 +3108,20 @@ async function handleScheduled(event) {
 async function handleFetch(request, event) {
   const url = new URL(request.url);
   const env = getEnv();
+
+  // Passive auto-refresh check (refreshes presets 1-2 times daily without any cron triggers)
+  if (env && env.BOT_KV && event && typeof event.waitUntil === "function") {
+    event.waitUntil((async () => {
+      try {
+        const lastRefreshStr = await env.BOT_KV.get("cache:last_auto_refresh");
+        const lastRefresh = parseInt(lastRefreshStr || "0", 10);
+        if (Date.now() - lastRefresh > (12 * 3600 * 1000)) {
+          await env.BOT_KV.put("cache:last_auto_refresh", Date.now().toString());
+          await cacheAllPresets(env, true);
+        }
+      } catch (_) {}
+    })());
+  }
 
   // Telegram Webhook Setup endpoint
   if (url.pathname === "/setup") {
@@ -3174,7 +3357,8 @@ async function handleApiRoutes(request, url, env) {
     // 11. POST /api/deploy (Web 1-Click Deploy)
     if (request.method === "POST" && url.pathname === "/api/deploy") {
       const body = await request.json();
-      const { accIdx, presetId, workerName, vars, customUrl } = body;
+      const { accIdx, presetId, vars, customUrl } = body;
+      let rawWorkerName = (body.workerName || "").trim();
 
       const accounts = await getGlobalAccounts(env);
       const account = accounts[accIdx];
@@ -3183,72 +3367,98 @@ async function handleApiRoutes(request, url, env) {
       const preset = PRESETS.find(p => p.id === presetId);
       if (!preset && !customUrl) return jsonResponse({ success: false, error: "قالب نامعتبر است." }, 400);
 
+      // Safe worker name generation if empty
+      if (!rawWorkerName) {
+        rawWorkerName = generateSafeWorkerName(preset, "worker");
+      }
+      const workerName = rawWorkerName.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "");
+      if (workerName.length < 3) {
+        return jsonResponse({ success: false, error: "نام پروژه باید حداقل ۳ کاراکتر و شامل حروف کوچک، اعداد و خط تیره باشد." }, 400);
+      }
+
       // Download code
       const code = preset ? await getPresetCode(preset, env) : await getPresetCode(null, env, customUrl);
       const signedCode = code + `\n\n/* Signed Web: ${generateRandomString(CharsetAlphaNumeric, 24)} */`;
 
       const activeBindings = [];
+      const createdResources = [];
 
-      // Create preset KVs if applicable
-      if (preset && preset.kvBindings && preset.kvBindings.length > 0) {
-        for (const kvName of preset.kvBindings) {
-          const kvId = await createKVNamespace(account.token, account.id, `${workerName}-${kvName}`);
-          activeBindings.push({ name: kvName, namespace_id: kvId, type: "kv_namespace" });
-        }
-      }
-
-      // Process variables & D1
-      const finalVars = autoGenerateVars(preset ? preset.vars : Object.keys(vars || {}), vars || {});
-      for (const [k, v] of Object.entries(finalVars)) {
-        if (k.startsWith("D1_ID_")) {
-          const bindingName = k.replace("D1_ID_", "");
-          let dbId = v;
-          if (dbId === "auto" || !dbId) {
-            const dbName = `${workerName}-${bindingName}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-            dbId = await createD1Database(account.token, account.id, dbName);
+      try {
+        // Create preset KVs if applicable
+        if (preset && preset.kvBindings && preset.kvBindings.length > 0) {
+          for (const kvName of preset.kvBindings) {
+            const kvId = await createKVNamespace(account.token, account.id, `${workerName}-${kvName}`);
+            createdResources.push({ type: "kv", id: kvId, name: `${workerName}-${kvName}` });
+            activeBindings.push({ name: kvName, namespace_id: kvId, type: "kv_namespace" });
           }
-          activeBindings.push({ name: bindingName, database_id: dbId, type: "d1" });
-
-          if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
-            const schemaSql = `
-CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, gender TEXT, target_gender TEXT, status TEXT DEFAULT 'idle', chat_id TEXT DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS chats (chat_id TEXT PRIMARY KEY, user1 INTEGER, user2 INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, details TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-`;
-            await executeD1Statements(account.token, account.id, dbId, schemaSql);
-          }
-        } else {
-          activeBindings.push({ name: k, text: v ? v.toString() : "", type: "plain_text" });
         }
+
+        // Process variables & D1
+        const finalVars = autoGenerateVars(preset ? preset.vars : Object.keys(vars || {}), vars || {});
+        for (const [k, v] of Object.entries(finalVars)) {
+          if (k.startsWith("D1_ID_")) {
+            const bindingName = k.replace("D1_ID_", "");
+            let dbId = v;
+            if (dbId === "auto" || !dbId) {
+              const dbName = `${workerName}-${bindingName}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+              dbId = await createD1Database(account.token, account.id, dbName);
+              createdResources.push({ type: "d1", id: dbId, name: dbName });
+            }
+            activeBindings.push({ name: bindingName, database_id: dbId, type: "d1" });
+
+            if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
+              const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, gender TEXT, target_gender TEXT, status TEXT DEFAULT 'idle', chat_id TEXT DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);\nCREATE TABLE IF NOT EXISTS chats (chat_id TEXT PRIMARY KEY, user1 INTEGER, user2 INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);\nCREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, details TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);\n`;
+              await executeD1Statements(account.token, account.id, dbId, schemaSql);
+            } else if (preset && (preset.id === "apex_panel" || preset.id === "apex")) {
+              const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, uuid TEXT NOT NULL UNIQUE, sub_token TEXT NOT NULL UNIQUE, trojan_pass TEXT NOT NULL DEFAULT '', trojan_hash TEXT NOT NULL DEFAULT '', quota_bytes INTEGER NOT NULL DEFAULT 0, used_bytes INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'active', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER);\nCREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);\nCREATE INDEX IF NOT EXISTS idx_users_token ON users(sub_token);\nCREATE INDEX IF NOT EXISTS idx_users_trojan ON users(trojan_hash);\nCREATE INDEX IF NOT EXISTS idx_users_expires ON users(expires_at);\nCREATE INDEX IF NOT EXISTS idx_users_status ON users(status);\nCREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, user_id INTEGER NOT NULL, up_bytes INTEGER NOT NULL DEFAULT 0, down_bytes INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, user_id));\nCREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);\n`;
+              await executeD1Statements(account.token, account.id, dbId, schemaSql);
+            }
+          } else {
+            activeBindings.push({ name: k, text: v ? v.toString() : "", type: "plain_text" });
+          }
+        }
+
+        const deployResult = await deployWorkerScript(account.token, account.id, workerName, signedCode, activeBindings, 0, preset);
+        const actualDeployedName = (deployResult && deployResult.deployedName) ? deployResult.deployedName : workerName;
+        await enableWorkerSubdomain(account.token, account.id, actualDeployedName);
+
+        let sub = account.subdomain;
+        if (!sub || !sub.trim()) {
+          sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
+        }
+        const cleanSub = sub ? sub.trim().replace(/^.+|.+$/g, "") : deriveFallbackSubdomain(account.name);
+        const pathSuffix = resolvePathSuffix(preset, finalVars);
+        const rawBaseUrl = cleanSub ? `https://${actualDeployedName}.${cleanSub}.workers.dev` : `https://${actualDeployedName}.workers.dev`;
+        const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+
+        // Automated post-deploy actions for bot presets
+        if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
+          try {
+            await new Promise(r => setTimeout(r, 2500));
+            await fetchWithTimeout(`${rawBaseUrl}/setup`, {}, 8000).catch(() => {});
+          } catch (_) {}
+        } else if (preset && preset.id === "tg_proxy_assistant" && finalVars.BOT_TOKEN) {
+          try {
+            const webhookTarget = `${rawBaseUrl}/webhook`;
+            await fetchWithTimeout(`https://api.telegram.org/bot${finalVars.BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookTarget)}`, {}, 8000).catch(() => {});
+          } catch (_) {}
+        }
+
+        await logEvent(env, `استقرار موفق ورکر ${actualDeployedName} از طریق پنل وب.`, "info");
+        return jsonResponse({ 
+          success: true, 
+          url: finalUrl, 
+          workerName: actualDeployedName, 
+          pathSuffix, 
+          finalVars, 
+          presetId: preset?.id 
+        });
+
+      } catch (deployErr) {
+        await rollbackCreatedResources(account.token, account.id, createdResources, env);
+        await logEvent(env, `خطا در استقرار ورکر ${workerName}: ${sanitizeForLog(deployErr.message)}`, "error");
+        return jsonResponse({ success: false, error: deployErr.message }, 500);
       }
-
-      await deployWorkerScript(account.token, account.id, workerName, signedCode, activeBindings);
-      await enableWorkerSubdomain(account.token, account.id, workerName);
-
-      let sub = account.subdomain;
-      if (!sub || !sub.trim()) {
-        sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
-      }
-      const cleanSub = sub ? sub.trim().replace(/^.+|.+$/g, "") : deriveFallbackSubdomain(account.name);
-      const pathSuffix = resolvePathSuffix(preset, finalVars);
-      const rawBaseUrl = cleanSub ? `https://${workerName}.${cleanSub}.workers.dev` : `https://${workerName}.workers.dev`;
-      const finalUrl = `${rawBaseUrl}${pathSuffix}`;
-
-      // Automated post-deploy actions for bot presets
-      if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
-        try {
-          await new Promise(r => setTimeout(r, 2500));
-          await fetchWithTimeout(`${rawBaseUrl}/setup`, {}, 8000).catch(() => {});
-        } catch (_) {}
-      } else if (preset && preset.id === "tg_proxy_assistant" && finalVars.BOT_TOKEN) {
-        try {
-          const webhookTarget = `${rawBaseUrl}/webhook`;
-          await fetchWithTimeout(`https://api.telegram.org/bot${finalVars.BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookTarget)}`, {}, 8000).catch(() => {});
-        } catch (_) {}
-      }
-
-      await logEvent(env, `استقرار موفق ورکر ${workerName} از طریق پنل وب.`, "info");
-      return jsonResponse({ success: true, url: finalUrl, pathSuffix });
     }
 
     // 12. GET /api/logs

@@ -455,6 +455,12 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       --glow-emerald: 0 0 25px rgba(16, 185, 129, 0.25);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+      position: relative;
+    }
     body {
       background: radial-gradient(circle at 50% 0%, #172554 0%, #070913 60%, #030712 100%);
       color: var(--text-main);
@@ -463,7 +469,12 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       padding: 24px 16px;
       line-height: 1.5;
     }
-    .wrapper { max-width: 1100px; margin: 0 auto; }
+    .wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      overflow-x: hidden;
+    }
 
     /* Top Telemetry Bar */
     .telemetry-bar {
@@ -473,16 +484,20 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       padding: 12px 20px;
       background: var(--surface);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--surface-border);
       border-radius: 16px;
       margin-bottom: 24px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      gap: 12px;
     }
     .telemetry-status { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+    .telemetry-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .pulse-dot {
       width: 10px; height: 10px; border-radius: 50%; background: var(--accent-emerald);
       box-shadow: 0 0 12px var(--accent-emerald);
       animation: pulse 2s infinite;
+      flex-shrink: 0;
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
@@ -496,12 +511,14 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       padding: 4px 10px;
       border-radius: 8px;
       border: 1px solid rgba(6, 182, 212, 0.3);
+      white-space: nowrap;
     }
 
     /* Hero Header */
     .hero {
       text-align: center;
       margin: 30px 0;
+      padding: 0 8px;
     }
     .hero-title {
       font-size: 2.4rem;
@@ -511,19 +528,21 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 8px;
+      word-break: break-word;
     }
-    .hero-desc { color: var(--text-muted); font-size: 0.95rem; }
+    .hero-desc { color: var(--text-muted); font-size: 0.95rem; word-break: break-word; }
 
     /* Stats Grid */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
     .stat-card {
       background: var(--surface);
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--surface-border);
       border-radius: 18px;
       padding: 20px;
@@ -540,11 +559,15 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
     .glass-panel {
       background: var(--surface);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--surface-border);
       border-radius: 20px;
       padding: 24px;
       margin-bottom: 24px;
       box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      overflow: hidden;
+      width: 100%;
+      box-sizing: border-box;
     }
     .panel-header {
       display: flex;
@@ -553,18 +576,22 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       margin-bottom: 18px;
       border-bottom: 1px solid var(--surface-border);
       padding-bottom: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .panel-title { font-size: 1.15rem; font-weight: 700; color: #e2e8f0; }
 
-    .link-group { display: flex; flex-direction: column; gap: 14px; }
+    .link-group { display: flex; flex-direction: column; gap: 14px; width: 100%; }
     .link-row {
       display: flex;
       align-items: center;
       background: rgba(3, 7, 18, 0.6);
       border: 1px solid var(--surface-border);
       border-radius: 12px;
-      padding: 6px 10px;
+      padding: 8px 12px;
       gap: 10px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .link-tag {
       font-size: 0.75rem;
@@ -574,9 +601,13 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       white-space: nowrap;
       min-width: 90px;
       text-align: center;
+      flex-shrink: 0;
     }
     .link-input {
       flex: 1;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
       background: transparent;
       border: none;
       color: #93c5fd;
@@ -584,6 +615,13 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       font-size: 0.85rem;
       direction: ltr;
       outline: none;
+      text-overflow: ellipsis;
+    }
+    .link-btns-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
     }
     .btn {
       padding: 8px 16px;
@@ -596,7 +634,9 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
+      box-sizing: border-box;
     }
     .btn-primary { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
     .btn-primary:hover { background: linear-gradient(135deg, #0369a1, #1d4ed8); }
@@ -613,17 +653,23 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       align-items: center;
       gap: 12px;
       margin-bottom: 16px;
+      width: 100%;
     }
-    .tabs-group { display: flex; gap: 8px; }
+    .tabs-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
     .tab-btn {
       padding: 6px 14px;
       border-radius: 8px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--surface-border);
       color: var(--text-muted);
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
     }
     .tab-btn.active {
       background: rgba(6, 182, 212, 0.15);
@@ -641,8 +687,15 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       direction: ltr;
       outline: none;
       width: 200px;
+      min-width: 0;
+      box-sizing: border-box;
     }
     .search-input:focus { border-color: var(--accent-cyan); }
+    .action-btns-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
     .terminal-box {
       width: 100%;
@@ -658,17 +711,30 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       resize: vertical;
       outline: none;
       box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
+      box-sizing: border-box;
     }
 
     /* Table Styles */
-    .table-responsive { overflow-x: auto; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; text-align: right; }
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      min-width: 550px;
+      border-collapse: collapse;
+      text-align: right;
+    }
     th {
       padding: 12px;
       background: rgba(3, 7, 18, 0.5);
       color: var(--text-muted);
       font-size: 0.8rem;
       border-bottom: 1px solid var(--surface-border);
+      white-space: nowrap;
     }
     td {
       padding: 12px;
@@ -685,6 +751,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       border-radius: 20px;
       font-size: 0.75rem;
       font-weight: 600;
+      white-space: nowrap;
     }
     .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
     .badge-danger { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
@@ -728,12 +795,136 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
     #toast.show { transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 768px) {
-      .telemetry-bar { flex-direction: column; gap: 8px; text-align: center; }
-      .link-row { flex-direction: column; align-items: stretch; }
-      .link-input { text-align: center; }
-      .controls-bar { flex-direction: column; align-items: stretch; }
-      .tabs-group { justify-content: center; }
-      .search-input { width: 100%; }
+      body { padding: 14px 10px; }
+      .telemetry-bar {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 12px 14px;
+        gap: 10px;
+      }
+      .telemetry-badges {
+        justify-content: center;
+        width: 100%;
+      }
+      .edge-badge { font-size: 11px; padding: 4px 8px; }
+
+      .hero { margin: 18px 0; }
+      .hero-title { font-size: 1.5rem; }
+      .hero-desc { font-size: 0.82rem; }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-card {
+        padding: 14px 12px;
+        border-radius: 14px;
+      }
+      .stat-card:first-child {
+        grid-column: span 2;
+        text-align: center;
+      }
+      .stat-label { font-size: 0.78rem; margin-bottom: 4px; }
+      .stat-value { font-size: 1.6rem; }
+
+      .glass-panel {
+        padding: 16px 12px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+      }
+      .panel-title { font-size: 1rem; }
+
+      .link-row {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 10px;
+        gap: 8px;
+      }
+      .link-tag {
+        align-self: flex-start;
+        font-size: 0.72rem;
+        padding: 4px 10px;
+      }
+      .link-input {
+        text-align: left;
+        font-size: 0.78rem;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 8px 10px;
+        border-radius: 8px;
+        width: 100%;
+        min-width: 0;
+      }
+      .link-btns-wrap {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+      }
+      .link-btns-wrap .btn {
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        justify-content: center;
+      }
+
+      .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .tabs-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+      }
+      .tab-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+        flex: 1 1 auto;
+        text-align: center;
+      }
+      .search-input {
+        width: 100%;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+      }
+      .action-btns-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+      .action-btns-group .btn-copy-filtered {
+        grid-column: span 2;
+      }
+      .action-btns-group .btn {
+        padding: 8px 10px;
+        font-size: 0.78rem;
+        justify-content: center;
+      }
+
+      .terminal-box {
+        height: 200px;
+        font-size: 0.78rem;
+        padding: 10px;
+      }
+
+      footer {
+        margin-top: 24px;
+        font-size: 0.78rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .hero-title { font-size: 1.35rem; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .stat-card:first-child { grid-column: span 1; }
+      .tab-btn { font-size: 0.72rem; padding: 5px 8px; }
+      .action-btns-group { grid-template-columns: 1fr; }
+      .action-btns-group .btn-copy-filtered { grid-column: span 1; }
     }
   </style>
 </head>
@@ -745,7 +936,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
         <span class="pulse-dot"></span>
         <span>سامانه تجمیع زنده پروکسی ایران</span>
       </div>
-      <div style="display:flex; gap:8px;">
+      <div class="telemetry-badges">
         <span class="edge-badge">کلودفلر: ${colo}</span>
         <span class="edge-badge">موقعیت: ${country}</span>
         <span class="edge-badge">کش: فعال (۵ دقیقه)</span>
@@ -797,22 +988,28 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
         <div class="link-row">
           <span class="link-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Xray / V2Ray</span>
           <input type="text" class="link-input" id="xrayUrl" value="${xrayLink}" readonly>
-          <button class="btn btn-primary" onclick="copyText('${xrayLink}')">کپی لینک</button>
+          <div class="link-btns-wrap">
+            <button class="btn btn-primary" onclick="copyText('${xrayLink}')">کپی لینک</button>
+          </div>
         </div>
 
         <!-- Clash Link -->
         <div class="link-row">
           <span class="link-tag" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">Clash Provider</span>
           <input type="text" class="link-input" id="clashUrl" value="${clashLink}" readonly>
-          <button class="btn btn-primary" onclick="copyText('${clashLink}')">کپی لینک</button>
-          <a href="${clashDeepLink}" class="btn btn-emerald">افزودن به کلش</a>
+          <div class="link-btns-wrap">
+            <button class="btn btn-primary" onclick="copyText('${clashLink}')">کپی لینک</button>
+            <a href="${clashDeepLink}" class="btn btn-emerald">افزودن به کلش</a>
+          </div>
         </div>
 
         <!-- JSON Link -->
         <div class="link-row">
           <span class="link-tag" style="background: rgba(168, 85, 247, 0.15); color: #34d399;">REST API (JSON)</span>
           <input type="text" class="link-input" id="jsonUrl" value="${jsonLink}" readonly>
-          <button class="btn btn-primary" onclick="copyText('${jsonLink}')">کپی API</button>
+          <div class="link-btns-wrap">
+            <button class="btn btn-primary" onclick="copyText('${jsonLink}')">کپی API</button>
+          </div>
         </div>
       </div>
     </div>
@@ -835,8 +1032,8 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
 
         <input type="text" id="searchInput" class="search-input" placeholder="جستجوی پورت یا آی‌پی..." oninput="handleSearch()">
 
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-secondary" onclick="copyVisibleProxies()">کپی موارد فیلترشده</button>
+        <div class="action-btns-group">
+          <button class="btn btn-secondary btn-copy-filtered" onclick="copyVisibleProxies()">کپی موارد فیلترشده</button>
           <button class="btn btn-secondary" onclick="downloadTXT()">دانلود TXT</button>
           <button class="btn btn-secondary" onclick="downloadJSON()">دانلود JSON</button>
         </div>

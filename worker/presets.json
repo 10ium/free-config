@@ -218,8 +218,18 @@
     "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
-    "description": "ابزاری همه‌کاره برای میرور کردن لینک‌ها با بالاترین سرعت.",
-    "category": "clashfa"
+    "description": "ابزاری همه‌کاره و فوق‌سریع برای پروکسی و میرور انواع لینک‌های گیت‌هاب (ریلیزها، فایل‌ها، صفحات، کلون ریپازیتوری)، گیت‌لب، هاگینگ‌فیس، ساب‌اسکریپشن‌های کلش و لینک‌های دانلود مستقیم همراه با کش ابری لبه (Edge Cache) و رابط کاربری واکنش‌گرا برای موبایل.",
+    "category": "clashfa",
+    "author": "ClashFa Team",
+    "version": "2.1.0",
+    "icon": "⚡",
+    "repo": "https://github.com/10ium/free-config",
+    "branch": "main",
+    "entrypoint": "worker/ClashFa_Mirror_Pro.txt",
+    "compatibility_date": "2024-09-23",
+    "compatibility_flags": [
+      "nodejs_compat"
+    ]
   },
   {
     "id": "mihomo_converter",

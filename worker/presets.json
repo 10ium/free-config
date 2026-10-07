@@ -266,13 +266,23 @@
   },
   {
     "id": "iran_proxy",
-    "name": "Iran Proxy 🛡️",
+    "name": "مرکز پروکسی‌های ایران (Iran Proxy Hub) 🛡️",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
     "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
-    "description": "ابزاری برای جمع‌آوری پروکسی‌های ساکس با آی‌پی تمیز ایران.",
-    "category": "clashfa"
+    "description": "سامانه تجمیع خودکار، اعتبارسنجی زنده و توزیع ابری پروکسی‌های تمیز ایران (SOCKS5, HTTP, HTTPS, SOCKS4) با کش لبه کلادفلر، خروجی‌های اختصاصی کلش (Clash Provider)، ایکس‌ری (Xray) و API (JSON) همراه با رابط کاربری سایبر-گلس‌مورفیسم واکنش‌گرا و مدرن ۲۰۵۵.",
+    "category": "clashfa",
+    "author": "ClashFa Team",
+    "version": "2.1.0",
+    "icon": "🛡️",
+    "repo": "https://github.com/10ium/free-config",
+    "branch": "main",
+    "entrypoint": "worker/iran_proxy.txt",
+    "compatibility_date": "2024-09-23",
+    "compatibility_flags": [
+      "nodejs_compat"
+    ]
   },
   {
     "id": "iptv_player",

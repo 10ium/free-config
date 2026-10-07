@@ -376,6 +376,61 @@
     "category": "clashfa"
   },
   {
+    "id": "cf_decryptor_bot",
+    "name": "CF Decryptor Bot 🔓 (دیکریپتور و مبدل کانفیگ)",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/cf_decryptor_bot",
+    "pathSuffix": "/setup",
+    "author": "ClashFa Team",
+    "version": "1.0.0",
+    "icon": "🔓",
+    "repo": "https://github.com/10ium/free-config",
+    "branch": "main",
+    "entrypoint": "worker/cf_decryptor_bot",
+    "compatibility_date": "2024-09-01",
+    "compatibility_flags": [
+      "nodejs_compat"
+    ],
+    "kvBindings": [
+      "BOT_KV"
+    ],
+    "vars": [
+      {
+        "name": "BOT_TOKEN",
+        "required": true,
+        "autoGenType": "manual",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "DEFAULT_OUTPUT_FORMAT",
+        "required": false,
+        "defaultValue": "xray",
+        "autoGenType": "static",
+        "description": "فرمت پیش‌فرض خروجی (xray / singbox / mihomo)"
+      },
+      {
+        "name": "DEFAULT_MERGE_OUTPUT",
+        "required": false,
+        "defaultValue": "true",
+        "autoGenType": "static",
+        "description": "ادغام فایل‌ها در یک خروجی واحد (true / false)"
+      },
+      {
+        "name": "DEFAULT_IGNORE_EXPIRED",
+        "required": false,
+        "defaultValue": "true",
+        "autoGenType": "static",
+        "description": "فیلتر خودکار کانفیگ‌های منقضی‌شده (true / false)"
+      }
+    ],
+    "post_deploy": {
+      "action": "open_url",
+      "pathSuffix": "/setup",
+      "description": "راه‌اندازی آسان و ثبت خودکار وب‌هوک ربات تلگرام در مسیر /setup"
+    },
+    "description": "ربات جامع تلگرام و وب‌سرویس رمزگشایی انواع کانفیگ‌های قفل‌شده (نپسترنت، HTTP Custom، دارک‌تانل و...) و تبدیل پیشرفته به میهومو/کلش، سینگ‌باکس و ایکس‌ری با ساخت ساب‌اسکریپشن اختصاصی.",
+    "category": "clashfa"
+  },
+  {
     "id": "doh_4n0nymou3",
     "name": "Cloudflare DoH Proxy (4n0nymou3) 🌐",
     "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",

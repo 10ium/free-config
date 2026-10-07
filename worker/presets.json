@@ -276,13 +276,20 @@
   },
   {
     "id": "iptv_player",
-    "name": "IPTV Player 📺",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
+    "name": "IPTV Pro Player 📺",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iptv_player.txt",
     "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
-    "description": "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند و پرسرعت بر روی ورکرز کلادفلر.",
-    "category": "clashfa"
+    "description": "پخش‌کننده تلویزیون اینترنتی IPTV فوق‌پیشرفته و هوشمند بر روی ورکرز کلادفلر همراه با موتور هیبریدی HLS، پروکسی ضدتحریم، رمزگشایی پلوتو تی‌وی و رابط کاربری واکنش‌گرا و مدرن اندروید و دسکتاپ.",
+    "category": "clashfa",
+    "author": "ClashFa Team",
+    "version": "3.5.0",
+    "icon": "📺",
+    "repo": "https://github.com/10ium/free-config",
+    "branch": "main",
+    "entrypoint": "worker/iptv_player.txt",
+    "compatibility_date": "2024-09-01"
   },
   {
     "id": "faceless-bot",
@@ -290,7 +297,7 @@
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
     "pathSuffix": "/setup",
     "author": "ClashFa Team",
-    "version": "2.2.0",
+    "version": "2.5.0",
     "icon": "🎭",
     "repo": "https://github.com/10ium/free-config",
     "branch": "main",
@@ -356,7 +363,7 @@
       "pathSuffix": "/setup",
       "description": "راه‌اندازی خودکار ۳ در ۱: ساخت جداول D1، فعال‌سازی وب‌هوک و ثبت منوی دستورات"
     },
-    "description": "ربات پیام ناشناس مدرن با لینک اختصاصی، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، فیلتر مدیا، پاسخ مستقیم و حفظ حریم خصوصی. (راه‌اندازی خودکار ۳ در ۱ در مسیر /setup).",
+    "description": "ربات پیشرفته و فوق‌امن چت و پیام ناشناس (Zero-Knowledge) مجهز به چت تصادفی هوشمند، انتخاب لینک اختصاصی دلخواه، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، بافر ضد به‌هم‌ریختگی فوروارد، فیلتر مدیا و راه‌اندازی خودکار ۳ در ۱ در مسیر /setup.",
     "category": "clashfa"
   },
   {

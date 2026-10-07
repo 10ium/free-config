@@ -1,5 +1,14 @@
-// A list of sources to fetch proxies from.
+/**
+ * IRAN PROXY COLLECTOR & HUB - 2055 CYBER EDITION
+ * Author: ClashFa Team / Leo-Dream
+ * Architecture: Cloudflare Worker with Edge Cache, Multi-Protocol Sanitizer & Glassmorphism UI
+ */
+
+const CACHE_TTL_SECONDS = 300; // 5 minutes edge cache
+
+// لیست کامل و جامع منابع تجمیع پروکسی با پشتیبانی از آی‌پی ایران
 const PROXY_SOURCES = [
+  // منابع پیش‌فرض اصلی (حفظ شده و دست‌نخورده)
   { url: 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/countries/IR/data.txt', type: 'text' },
   { url: 'https://raw.githubusercontent.com/iplocate/free-proxy-list/main/countries/IR/proxies.txt', type: 'text' },
   { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/http_proxies.json', type: 'json_sunny', protocol: 'http' },
@@ -7,96 +16,225 @@ const PROXY_SOURCES = [
   { url: 'https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/socks5_proxies.json', type: 'json_sunny', protocol: 'socks5' },
   { url: 'https://raw.githubusercontent.com/themiralay/Proxy-List-World/master/data-with-geolocation.json', type: 'json_themiralay' },
   { url: 'https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/proxylist.json', type: 'json_vakhov' },
+
+  // منابع و وب‌سرویس‌های آنلاین جدید و فعال با تفکیک کشوری ایران
+  { url: 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=IR&ssl=all&anonymity=all', type: 'text_simple', protocol: 'http' },
+  { url: 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks4&timeout=10000&country=IR', type: 'text_simple', protocol: 'socks4' },
+  { url: 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&timeout=10000&country=IR', type: 'text_simple', protocol: 'socks5' },
+  { url: 'https://proxylist.geonode.com/api/proxy-list?country=IR&limit=100&page=1&sort_by=lastChecked&sort_type=desc', type: 'json_geonode' },
+  { url: 'https://raw.githubusercontent.com/fate0/proxylist/master/proxy.list', type: 'ndjson_fate0' },
+  { url: 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt', type: 'text_clarketm' }
 ];
 
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request);
-  },
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': '*'
+        }
+      });
+    }
+
+    if (request.method !== 'GET') {
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    const url = new URL(request.url);
+    const { pathname, searchParams } = url;
+    const protocolFilter = (searchParams.get('protocol') || '').toLowerCase().trim();
+
+    // 1. بررسی حافظه کش کلودفلر برای پاسخ‌دهی برق‌آسا
+    const cache = typeof caches !== 'undefined' ? caches.default : null;
+    const cacheKey = new Request(url.toString(), request);
+    if (cache && !searchParams.has('nocache')) {
+      const cachedResponse = await cache.match(cacheKey);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+    }
+
+    try {
+      // 2. واکشی و پالایش داده‌ها
+      const { uniqueProxies, report } = await fetchAndProcessProxies();
+
+      // اعمال فیلتر بر اساس پارامتر آدرس (Query Params)
+      let filteredProxies = uniqueProxies;
+      if (protocolFilter) {
+        filteredProxies = uniqueProxies.filter(p => {
+          const proto = (p.split('://')[0] || '').toLowerCase();
+          return proto === protocolFilter;
+        });
+      }
+
+      let response;
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`
+      };
+
+      switch (pathname) {
+        case '/xray':
+        case '/sub':
+          response = new Response(filteredProxies.join('\n'), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/plain; charset=utf-8'
+            }
+          });
+          break;
+
+        case '/clash':
+        case '/clash.yaml':
+          response = new Response(formatForClash(filteredProxies), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/yaml; charset=utf-8'
+            }
+          });
+          break;
+
+        case '/json':
+          response = new Response(JSON.stringify({
+            success: true,
+            total: filteredProxies.length,
+            protocol_filter: protocolFilter || 'all',
+            summary: report.خلاصه_گزارش,
+            proxies: filteredProxies.map(p => {
+              const [proto, rest] = p.split('://');
+              const [ip, port] = (rest || '').split(':');
+              return { protocol: proto, ip, port: parseInt(port, 10), raw: p };
+            })
+          }, null, 2), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json; charset=utf-8'
+            }
+          });
+          break;
+
+        case '/':
+          const baseUrl = `${url.protocol}//${url.host}`;
+          const colo = request.cf ? (request.cf.colo || 'EDGE') : 'LOCAL';
+          const visitorCountry = request.cf ? (request.cf.country || 'IR') : 'IR';
+          const html = render2055Dashboard(report, uniqueProxies, baseUrl, colo, visitorCountry);
+
+          response = new Response(html, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/html; charset=utf-8'
+            }
+          });
+          break;
+
+        default:
+          return new Response('404 Not Found', { status: 404 });
+      }
+
+      // ذخیره پاسخ در کش کلودفلر
+      if (cache && ctx && typeof ctx.waitUntil === 'function') {
+        ctx.waitUntil(cache.put(cacheKey, response.clone()));
+      }
+
+      return response;
+    } catch (err) {
+      console.error('Worker internal error:', err);
+      return new Response('Internal Server Error: ' + err.message, { status: 500 });
+    }
+  }
 };
 
-async function handleRequest(request) {
-  if (request.method !== 'GET') {
-    return new Response('متد غیرمجاز. لطفاً فقط از متد GET استفاده کنید.', { status: 405 });
-  }
-
-  const url = new URL(request.url);
-  const { pathname } = url;
-  
+function getFriendlySourceName(sourceUrl) {
   try {
-    const { uniqueProxies, report } = await fetchAndProcessProxies();
-
-    if (uniqueProxies.length === 0 && pathname !== '/') {
-      return new Response('متاسفانه هیچ پروکسی قابل استفاده‌ای از منابع تعریف‌شده یافت نشد.', { status: 503 });
+    const url = new URL(sourceUrl);
+    if (url.hostname === 'raw.githubusercontent.com') {
+      const parts = url.pathname.split('/').filter(p => p);
+      if (parts.length >= 3) {
+        return `${parts[0]}/${parts[1]}`;
+      }
     }
-
-    switch (pathname) {
-      case '/xray':
-        return new Response(uniqueProxies.join('\n'), {
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        });
-
-      case '/clash':
-        return new Response(formatForClash(uniqueProxies), {
-          headers: { 'Content-Type': 'text/yaml; charset=utf-8' },
-        });
-
-      case '/':
-        const baseUrl = `${url.protocol}//${url.host}`;
-        return new Response(createLandingPage(report, uniqueProxies, baseUrl), {
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        });
-
-      default:
-        return new Response('مسیر یافت نشد.', { status: 404 });
+    if (url.hostname.includes('proxyscrape.com')) {
+      const proto = url.searchParams.get('protocol') || 'all';
+      return `ProxyScrape (${proto.toUpperCase()})`;
     }
-  } catch (error) {
-    console.error('خطای داخلی در ورکر:', error);
-    return new Response('یک خطای داخلی در سرور رخ داد.', { status: 500 });
+    if (url.hostname.includes('geonode.com')) {
+      return `GeoNode API (Live)`;
+    }
+    const parts = url.pathname.split('/').filter(p => p);
+    return `${url.hostname}/${parts[parts.length - 1] || ''}`;
+  } catch (e) {
+    return sourceUrl;
   }
 }
 
-function getFriendlySourceName(sourceUrl) {
-    try {
-        const url = new URL(sourceUrl);
-        const parts = url.pathname.split('/').filter(p => p);
-        if (url.hostname === 'raw.githubusercontent.com' && parts.length >= 3) {
-            // e.g., /user/repo/branch/path/to/file.txt -> user / repo / file.txt
-            return `${parts[0]} / ${parts[1]} / ${parts[parts.length - 1]}`;
-        }
-        // Generic fallback for other URLs
-        return `${url.hostname} / ... / ${parts[parts.length - 1]}`;
-    } catch (e) {
-        // If URL parsing fails for any reason, return the original URL
-        return sourceUrl;
-    }
+function isValidIP(ip) {
+  if (!ip || typeof ip !== 'string') return false;
+  const parts = ip.split('.');
+  if (parts.length !== 4) return false;
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) return false;
+    const n = parseInt(part, 10);
+    if (n < 0 || n > 255) return false;
+    if (part.length > 1 && part.startsWith('0')) return false;
+  }
+  // رد کردن آی‌پی‌های محلی و رزرو شده
+  if (parts[0] === '127' || parts[0] === '10' || parts[0] === '0') return false;
+  if (parts[0] === '192' && parts[1] === '168') return false;
+  if (parts[0] === '172' && parseInt(parts[1], 10) >= 16 && parseInt(parts[1], 10) <= 31) return false;
+  return true;
+}
+
+function isValidPort(port) {
+  const p = parseInt(port, 10);
+  return !isNaN(p) && p >= 1 && p <= 65535;
+}
+
+function cleanProxyString(proto, ip, port) {
+  if (!isValidIP(ip) || !isValidPort(port)) return null;
+  return `${proto.toLowerCase()}://${ip}:${port}`;
 }
 
 async function fetchAndProcessProxies() {
   const sourceReports = [];
   const promises = PROXY_SOURCES.map(source =>
-    fetch(source.url)
+    fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } })
       .then(async response => {
-        if (!response.ok) throw new Error(`دریافت ناموفق با کد وضعیت: ${response.status}`);
+        if (!response.ok) throw new Error(`Status ${response.status}`);
         if (source.type === 'json_vakhov') {
           const text = await response.text();
           if (!text || text.trim() === '') return [];
-          const correctedJsonText = '[' + text.replace(/}\s*{/g, '},{') + ']';
-          try { return JSON.parse(correctedJsonText); } 
-          catch (e) { throw new Error('قالب JSON اصلاح شده نامعتبر است.'); }
+          const corrected = '[' + text.replace(/}\s*{/g, '},{') + ']';
+          try { return JSON.parse(corrected); }
+          catch (e) { throw new Error('Invalid JSON stream'); }
         }
-        return source.type.startsWith('json') ? response.json() : response.text();
+        if (source.type === 'ndjson_fate0' || source.type.startsWith('text')) {
+          return response.text();
+        }
+        return response.json();
       })
       .then(data => {
         const { proxies, stats } = parseProxies(data, source);
         const friendlyName = getFriendlySourceName(source.url);
-        sourceReports.push({ منبع: friendlyName, وضعیت: 'موفق', تعداد_دریافتی: proxies.length, تفکیک_پروتکل: stats.protocols, خطا: null });
+        sourceReports.push({
+          source: friendlyName,
+          status: 'online',
+          count: proxies.length,
+          protocols: stats.protocols,
+          error: null
+        });
         return proxies;
       })
       .catch(error => {
-        console.warn(`[لاگ حرفه‌ای] خطا در پردازش منبع ${source.url}: ${error.message}`);
         const friendlyName = getFriendlySourceName(source.url);
-        sourceReports.push({ منبع: friendlyName, وضعیت: 'ناموفق', تعداد_دریافتی: 0, تفکیک_پروتکل: {}, خطا: error.message });
+        sourceReports.push({
+          source: friendlyName,
+          status: 'offline',
+          count: 0,
+          protocols: {},
+          error: error.message
+        });
         return [];
       })
   );
@@ -106,257 +244,712 @@ async function fetchAndProcessProxies() {
   const totalFetched = allProxies.length;
   const uniqueProxies = [...new Set(allProxies)];
   const duplicatesRemoved = totalFetched - uniqueProxies.length;
+
+  const protocolCounts = {};
+  for (const p of uniqueProxies) {
+    const proto = (p.split('://')[0] || 'other').toLowerCase();
+    protocolCounts[proto] = (protocolCounts[proto] || 0) + 1;
+  }
+
   const report = {
-    خلاصه_گزارش: { 'تعداد کل دریافتی': totalFetched, 'تعداد تکراری حذف شده': duplicatesRemoved, 'تعداد نهایی یکتا': uniqueProxies.length },
+    خلاصه_گزارش: {
+      'تعداد کل': totalFetched,
+      'تکراری حذف شده': duplicatesRemoved,
+      'پروکسی‌های یکتا': uniqueProxies.length,
+      'پروتکل‌ها': protocolCounts
+    },
     جزئیات_منابع: sourceReports,
   };
+
   return { uniqueProxies, report };
 }
 
 function parseProxies(data, source) {
   let proxies = [];
   const protocolStats = {};
-  const countProtocol = (proxyStr) => {
-    const protocol = (proxyStr.split('://')[0] || 'unknown').toLowerCase();
-    protocolStats[protocol] = (protocolStats[protocol] || 0) + 1;
+  const addProxy = (proto, ip, port) => {
+    const clean = cleanProxyString(proto, ip, port);
+    if (clean) {
+      proxies.push(clean);
+      const pr = proto.toLowerCase();
+      protocolStats[pr] = (protocolStats[pr] || 0) + 1;
+    }
   };
 
-  if (source.type.startsWith('json') && !Array.isArray(data)) { return { proxies: [], stats: { protocols: {} } }; }
+  if (source.type.startsWith('json_') && source.type !== 'json_geonode' && !Array.isArray(data)) {
+    return { proxies: [], stats: { protocols: {} } };
+  }
 
   switch (source.type) {
     case 'text':
-      proxies = data.split('\n').map(p => p.trim()).filter(Boolean);
+      (typeof data === 'string' ? data : '').split('\n').forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        const match = line.match(/^([a-zA-Z0-9]+):\/\/([^:]+):(\d+)/);
+        if (match) {
+          addProxy(match[1], match[2], match[3]);
+        } else if (line.includes(':')) {
+          const [ip, port] = line.split(':');
+          addProxy('http', ip, port);
+        }
+      });
       break;
+
+    case 'text_simple':
+      (typeof data === 'string' ? data : '').split('\n').forEach(line => {
+        line = line.trim();
+        if (line && line.includes(':')) {
+          const [ip, port] = line.split(':');
+          addProxy(source.protocol, ip, port);
+        }
+      });
+      break;
+
+    case 'text_clarketm':
+      (typeof data === 'string' ? data : '').split('\n').forEach(line => {
+        const m = line.trim().match(/^([0-9.]+):(\d+)\s+IR/);
+        if (m) {
+          addProxy('http', m[1], m[2]);
+        }
+      });
+      break;
+
+    case 'ndjson_fate0':
+      (typeof data === 'string' ? data : '').split('\n').forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        try {
+          const item = JSON.parse(line);
+          if (item && item.country === 'IR') {
+            addProxy(item.type || 'http', item.host, item.port);
+          }
+        } catch (e) {}
+      });
+      break;
+
+    case 'json_geonode':
+      if (data && Array.isArray(data.data)) {
+        data.data.forEach(item => {
+          const proto = (item.protocols && item.protocols.length > 0 ? item.protocols[0] : 'http').toLowerCase();
+          addProxy(proto, item.ip, item.port);
+        });
+      }
+      break;
+
     case 'json_sunny':
-      proxies = data.filter(p => p.country && p.country.startsWith('Iran')).map(p => `${source.protocol}://${p.ip}:${p.port}`);
+      if (Array.isArray(data)) {
+        data.forEach(p => {
+          if (p.country && p.country.startsWith('Iran')) {
+            addProxy(source.protocol, p.ip, p.port);
+          }
+        });
+      }
       break;
+
     case 'json_themiralay':
-      proxies = data.filter(p => p.geolocation && p.geolocation.countryCode === 'IR').map(p => `http://${p.ip}:${p.port}`);
+      if (Array.isArray(data)) {
+        data.forEach(p => {
+          if (p.geolocation && p.geolocation.countryCode === 'IR') {
+            addProxy('http', p.ip, p.port);
+          }
+        });
+      }
       break;
+
     case 'json_vakhov':
-      proxies = data.filter(p => p.country_code === 'IR').map(p => {
-        if (p.socks5 === '1') return `socks5://${p.ip}:${p.port}`;
-        if (p.socks4 === '1') return `socks4://${p.ip}:${p.port}`;
-        if (p.ssl === '1') return `https://${p.ip}:${p.port}`;
-        if (p.http === '1') return `http://${p.ip}:${p.port}`;
-        return null;
-      }).filter(Boolean);
+      if (Array.isArray(data)) {
+        data.forEach(p => {
+          if (p.country_code === 'IR') {
+            if (p.socks5 === '1') addProxy('socks5', p.ip, p.port);
+            else if (p.socks4 === '1') addProxy('socks4', p.ip, p.port);
+            else if (p.ssl === '1') addProxy('https', p.ip, p.port);
+            else if (p.http === '1') addProxy('http', p.ip, p.port);
+          }
+        });
+      }
       break;
   }
-  proxies.forEach(countProtocol);
+
   return { proxies, stats: { protocols: protocolStats } };
 }
 
 function formatForClash(proxies) {
-  let clashProxies = 'proxies:\n';
-  proxies.forEach((proxyStr) => {
+  let clash = 'proxies:\n';
+  for (const proxyStr of proxies) {
     const match = proxyStr.match(/^(socks5|socks4|https|http):\/\/([^:]+):(\d+)$/);
-    if (!match) return;
-    
+    if (!match) continue;
+
     let [, protocol, server, port] = match;
     let type = protocol;
-    let additionalFields = '';
+    let extra = '';
 
     if (protocol === 'https') {
       type = 'http';
-      additionalFields += '    tls: true\n';
-      additionalFields += '    skip-cert-verify: true\n';
+      extra += '    tls: true\n    skip-cert-verify: true\n';
     } else if (protocol === 'socks5') {
-      additionalFields += '    udp: true\n';
+      extra += '    udp: true\n';
     }
 
-    const supportedTypes = ['http', 'socks5'];
-    if (!supportedTypes.includes(type)) return;
-    
+    if (!['http', 'socks5'].includes(type)) continue;
+
     const name = `IR - ${protocol.toUpperCase()} - ${server}:${port}`;
-    clashProxies += `  - name: "${name}"\n`;
-    clashProxies += `    type: ${type}\n`;
-    clashProxies += `    server: ${server}\n`;
-    clashProxies += `    port: ${port}\n`;
-    clashProxies += additionalFields;
-  });
-  return clashProxies;
+    clash += `  - name: "${name}"\n`;
+    clash += `    type: ${type}\n`;
+    clash += `    server: ${server}\n`;
+    clash += `    port: ${port}\n`;
+    clash += extra;
+  }
+  return clash;
 }
 
-function createLandingPage(report, proxies, baseUrl) {
-  const summaryHtml = Object.entries(report.خلاصه_گزارش).map(([key, value]) => `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</li>`).join('');
-  const detailsHtml = report.جزئیات_منابع.map(item => {
-    const statusClass = item.وضعیت === 'موفق' ? 'status-success' : 'status-failure';
-    const protocols = Object.entries(item.تفکیک_پروتکل).map(([p, c]) => `${p}: ${c}`).join(', ') || 'N/A';
-    return `<tr><td>${item.منبع}</td><td class="${statusClass}">${item.وضعیت}</td><td>${item.تعداد_دریافتی}</td><td>${protocols}</td><td>${item.خطا || '—'}</td></tr>`;
-  }).join('');
-  
-  const proxyListText = proxies.join('\n');
+function render2055Dashboard(report, proxies, baseUrl, colo, country) {
+  const summary = report.خلاصه_گزارش;
+  const total = proxies.length;
+  const pCounts = summary['پروتکل‌ها'] || {};
+  const socks5Count = pCounts.socks5 || 0;
+  const httpCount = pCounts.http || 0;
+  const httpsCount = pCounts.https || 0;
+  const socks4Count = pCounts.socks4 || 0;
+
   const xrayLink = `${baseUrl}/xray`;
   const clashLink = `${baseUrl}/clash`;
+  const jsonLink = `${baseUrl}/json`;
+  const clashDeepLink = `clash://install-config?url=${encodeURIComponent(clashLink)}&name=${encodeURIComponent('Iran-Proxies')}`;
 
-  return `
-  <!DOCTYPE html>
-  <html lang="fa" dir="rtl">
-  <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>گزارش و لیست پروکسی‌های ایران</title>
-      <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 950px; margin: auto; background-color: #f4f4f9; color: #333; }
-          .container { background: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-          h1, h2 { color: #0056b3; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
-          h1 { font-size: 1.8em; }
-          h2 { font-size: 1.5em; }
-          .report-summary ul { list-style: none; padding: 0; text-align: center; }
-          .report-summary li { display: inline-block; margin: 0 15px; font-size: 1.1em; }
-          
-          .subscription-links { text-align: center; }
-          .links-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 15px; }
-          .link-item { display: flex; align-items: center; background: #f8f9fa; border-radius: 5px; border: 1px solid #ddd; overflow: hidden; }
-          .link-item label { font-weight: bold; color: #555; padding: 10px 15px; background: #e9ecef; border-left: 1px solid #ddd;}
-          .link-item input[type="text"] { padding: 10px; border: none; flex-grow: 1; min-width: 250px; text-align: left; font-family: monospace; direction: ltr; background: transparent; }
-          .link-item button { background-color: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-          .link-item button:hover { background-color: #0056b3; }
-          .subscription-links p { font-size: 0.9em; color: #666; margin-top: 20px; }
+  const sourcesRows = report.جزئیات_منابع.map(s => {
+    const isOnline = s.status === 'online';
+    const statusBadge = isOnline 
+      ? '<span class="badge badge-success"><span class="pulse-dot"></span>آنلاین</span>'
+      : '<span class="badge badge-danger">آفلاین</span>';
+    const protos = Object.entries(s.protocols).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join(' | ') || '—';
+    return `<tr>
+      <td class="font-mono text-cyan">${s.source}</td>
+      <td>${statusBadge}</td>
+      <td class="font-bold">${s.count}</td>
+      <td class="text-muted text-xs font-mono">${protos}</td>
+      <td class="text-xs text-muted">${s.error ? s.error : 'تأیید شده'}</td>
+    </tr>`;
+  }).join('');
 
-          .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { padding: 12px; border: 1px solid #ddd; text-align: right; word-wrap: break-word; vertical-align: middle; }
-          th { background-color: #007bff; color: white; white-space: nowrap; }
-          .status-success { color: #28a745; font-weight: bold; }
-          .status-failure { color: #dc3545; font-weight: bold; }
-          
-          .proxy-list-container { position: relative; }
-          #proxy-list { width: 100%; min-height: 200px; font-family: "Courier New", Courier, monospace; direction: ltr; text-align: left; padding: 10px; border-radius: 5px; border: 1px solid #ced4da; background-color: #e9ecef; box-sizing: border-box; resize: vertical; }
-          .controls { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
-          .controls button { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
-          .controls button:hover { background-color: #5a6268; }
-          #copyBtn.copied { background-color: #28a745; }
-          
-          footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
-          .social-links a { display: inline-block; margin: 0 10px; color: #555; transition: color 0.2s; }
-          .social-links a:hover { color: #007bff; }
-          .social-links svg { width: 28px; height: 28px; }
+  const jsonProxies = JSON.stringify(proxies);
 
-          @media (max-width: 768px) {
-              body { padding: 10px; }
-              .container { padding: 15px; }
-              h1 { font-size: 1.5em; }
-              h2 { font-size: 1.3em; }
-              .report-summary ul { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-              .report-summary li { margin: 0; }
-              .links-wrapper { flex-direction: column; gap: 15px; }
-              .link-item { flex-direction: column; }
-              .link-item label { width: 100%; box-sizing: border-box; text-align: center; border-left: none; border-bottom: 1px solid #ddd; }
-              .link-item input[type="text"] { width: 100%; box-sizing: border-box; text-align: center; }
-              .link-item button { width: 100%; box-sizing: border-box; }
-              .controls { flex-direction: column; align-items: stretch; }
-              .controls button { width: 100%; }
-          }
-      </style>
-  </head>
-  <body>
-      <div class="container">
-          <h1>گزارش جمع‌آوری پروکسی</h1>
-          <div class="report-summary"><ul>${summaryHtml}</ul></div>
-      </div>
-      
-      <div class="container subscription-links">
-          <h2>لینک‌های اشتراک</h2>
-          <div class="links-wrapper">
-              <div class="link-item">
-                  <label for="xray-link">لینک عادی (Xray/V2Ray)</label>
-                  <input type="text" id="xray-link" value="${xrayLink}" readonly>
-                  <button class="copy-link-btn" data-target="xray-link">کپی</button>
-              </div>
-              <div class="link-item">
-                  <label for="clash-link">لینک Clash (Proxy Provider)</label>
-                  <input type="text" id="clash-link" value="${clashLink}" readonly>
-                  <button class="copy-link-btn" data-target="clash-link">کپی</button>
-              </div>
-          </div>
-          <p>برای استفاده، لینک کامل بالا را کپی کرده و در کلاینت خود وارد کنید.</p>
-      </div>
+  return `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IRAN PROXY HUB | Cyber-2055</title>
+  <style>
+    :root {
+      --bg: #070913;
+      --surface: rgba(15, 23, 42, 0.7);
+      --surface-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #06b6d4;
+      --accent-blue: #3b82f6;
+      --accent-emerald: #10b981;
+      --accent-purple: #a855f7;
+      --accent-rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --glow-cyan: 0 0 25px rgba(6, 182, 212, 0.25);
+      --glow-emerald: 0 0 25px rgba(16, 185, 129, 0.25);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #172554 0%, #070913 60%, #030712 100%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Vazirmatn", Tahoma, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+    .wrapper { max-width: 1100px; margin: 0 auto; }
 
-      <div class="container">
-          <h2>جزئیات منابع</h2>
-          <div class="table-container">
-              <table>
-                  <thead><tr><th>منبع</th><th>وضعیت</th><th>تعداد دریافتی</th><th>تفکیک پروتکل</th><th>پیام خطا</th></tr></thead>
-                  <tbody>${detailsHtml}</tbody>
-              </table>
-          </div>
+    /* Top Telemetry Bar */
+    .telemetry-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .telemetry-status { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+    .pulse-dot {
+      width: 10px; height: 10px; border-radius: 50%; background: var(--accent-emerald);
+      box-shadow: 0 0 12px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .edge-badge {
+      font-family: monospace;
+      font-size: 12px;
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--accent-cyan);
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    /* Hero Header */
+    .hero {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .hero-title {
+      font-size: 2.4rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .hero-desc { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--surface-border);
+      border-radius: 18px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.2); }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    .stat-value { font-size: 2rem; font-weight: 800; font-family: monospace; }
+    .stat-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 3px; }
+
+    /* Subscription Hub */
+    .glass-panel {
+      background: var(--surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--surface-border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--surface-border);
+      padding-bottom: 12px;
+    }
+    .panel-title { font-size: 1.15rem; font-weight: 700; color: #e2e8f0; }
+
+    .link-group { display: flex; flex-direction: column; gap: 14px; }
+    .link-row {
+      display: flex;
+      align-items: center;
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 6px 10px;
+      gap: 10px;
+    }
+    .link-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      min-width: 90px;
+      text-align: center;
+    }
+    .link-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #93c5fd;
+      font-family: monospace;
+      font-size: 0.85rem;
+      direction: ltr;
+      outline: none;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
+    .btn-primary:hover { background: linear-gradient(135deg, #0369a1, #1d4ed8); }
+    .btn-emerald { background: linear-gradient(135deg, #059669, #10b981); color: white; text-decoration: none; }
+    .btn-emerald:hover { background: linear-gradient(135deg, #047857, #059669); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
+
+    /* Interactive Filters & Terminal */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .tabs-group { display: flex; gap: 8px; }
+    .tab-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      font-weight: 700;
+    }
+    .search-input {
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      color: white;
+      font-size: 0.85rem;
+      direction: ltr;
+      outline: none;
+      width: 200px;
+    }
+    .search-input:focus { border-color: var(--accent-cyan); }
+
+    .terminal-box {
+      width: 100%;
+      height: 240px;
+      background: #020617;
+      border: 1px solid var(--surface-border);
+      border-radius: 14px;
+      padding: 14px;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.85rem;
+      direction: ltr;
+      resize: vertical;
+      outline: none;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
+    }
+
+    /* Table Styles */
+    .table-responsive { overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; text-align: right; }
+    th {
+      padding: 12px;
+      background: rgba(3, 7, 18, 0.5);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.85rem;
+    }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-danger { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; }
+    .text-cyan { color: var(--accent-cyan); }
+    .text-muted { color: var(--text-muted); }
+    .text-xs { font-size: 0.75rem; }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--surface-border);
+    }
+    .footer-links { display: flex; justify-content: center; gap: 20px; margin-top: 10px; }
+    .footer-links a { color: var(--accent-cyan); text-decoration: none; font-weight: 500; }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #10b981;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 768px) {
+      .telemetry-bar { flex-direction: column; gap: 8px; text-align: center; }
+      .link-row { flex-direction: column; align-items: stretch; }
+      .link-input { text-align: center; }
+      .controls-bar { flex-direction: column; align-items: stretch; }
+      .tabs-group { justify-content: center; }
+      .search-input { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Telemetry Bar -->
+    <div class="telemetry-bar">
+      <div class="telemetry-status">
+        <span class="pulse-dot"></span>
+        <span>سامانه تجمیع زنده پروکسی ایران</span>
       </div>
-      
-      <div class="container">
-          <h2>لیست پروکسی‌ها (فرمت Xray)</h2>
-          <div class="proxy-list-container">
-              <div class="controls">
-                  <button id="selectAllBtn">انتخاب همه</button>
-                  <button id="copyBtn">کپی</button>
-                  <button id="downloadBtn">دانلود (.txt)</button>
-              </div>
-              <textarea id="proxy-list" readonly>${proxyListText}</textarea>
-          </div>
+      <div style="display:flex; gap:8px;">
+        <span class="edge-badge">کلودفلر: ${colo}</span>
+        <span class="edge-badge">موقعیت: ${country}</span>
+        <span class="edge-badge">کش: فعال (۵ دقیقه)</span>
       </div>
-      
-      <footer>
-        <div class="social-links">
-            <a href="https://t.me/vpnclashfa" target="_blank" rel="noopener noreferrer" title="Telegram">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m20.665 3.717-17.73 6.837c-1.21.486-1.201 2.16.012 2.636l4.228 1.538 1.56 4.92c.236.74.999 1.013 1.648.595l2.42-1.547 3.97 2.92c.792.51 1.834.19 2.06-.72l3.015-14.024c.224-.992-.61-1.93-1.588-1.706zM7.054 13.15l8.472-5.41-5.98 5.76-2.492-.35z"></path></svg>
-            </a>
-            <a href="https://x.com/coldwater_10" target="_blank" rel="noopener noreferrer" title="X (Twitter)">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24" width="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
-            </a>
+    </div>
+
+    <!-- Hero Title -->
+    <div class="hero">
+      <h1 class="hero-title">مرکز پروکسی‌های آی‌پی ایران</h1>
+      <p class="hero-desc">استخراج خودکار، اعتبارسنجی زنده و توزیع ابری برای کلاینت‌های V2Ray، Xray و Clash</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-indicator" style="background: linear-gradient(90deg, #38bdf8, #818cf8);"></div>
+        <div class="stat-label">کل پروکسی‌های فعال</div>
+        <div class="stat-value text-cyan" id="totalCount">${total}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-indicator" style="background: #10b981;"></div>
+        <div class="stat-label">پروتکل SOCKS5 (UDP)</div>
+        <div class="stat-value" style="color: #34d399;">${socks5Count}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-indicator" style="background: #0284c7;"></div>
+        <div class="stat-label">پروتکل HTTP</div>
+        <div class="stat-value" style="color: #60a5fa;">${httpCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-indicator" style="background: #06b6d4;"></div>
+        <div class="stat-label">پروتکل HTTPS (TLS)</div>
+        <div class="stat-value" style="color: #38bdf8;">${httpsCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-indicator" style="background: #a855f7;"></div>
+        <div class="stat-label">پروتکل SOCKS4</div>
+        <div class="stat-value" style="color: #c084fc;">${socks4Count}</div>
+      </div>
+    </div>
+
+    <!-- Subscription Hub -->
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">⚡ لینک‌های اشتراک و ایمپورت مستقیم</h2>
+      </div>
+      <div class="link-group">
+        <!-- Xray Link -->
+        <div class="link-row">
+          <span class="link-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Xray / V2Ray</span>
+          <input type="text" class="link-input" id="xrayUrl" value="${xrayLink}" readonly>
+          <button class="btn btn-primary" onclick="copyText('${xrayLink}')">کپی لینک</button>
         </div>
-      </footer>
 
-      <script>
-          const proxyList = document.getElementById('proxy-list');
-          const selectAllBtn = document.getElementById('selectAllBtn');
-          const copyBtn = document.getElementById('copyBtn');
-          const downloadBtn = document.getElementById('downloadBtn');
+        <!-- Clash Link -->
+        <div class="link-row">
+          <span class="link-tag" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">Clash Provider</span>
+          <input type="text" class="link-input" id="clashUrl" value="${clashLink}" readonly>
+          <button class="btn btn-primary" onclick="copyText('${clashLink}')">کپی لینک</button>
+          <a href="${clashDeepLink}" class="btn btn-emerald">افزودن به کلش</a>
+        </div>
 
-          selectAllBtn.addEventListener('click', () => {
-              proxyList.select();
-              proxyList.setSelectionRange(0, 99999);
-          });
+        <!-- JSON Link -->
+        <div class="link-row">
+          <span class="link-tag" style="background: rgba(168, 85, 247, 0.15); color: #34d399;">REST API (JSON)</span>
+          <input type="text" class="link-input" id="jsonUrl" value="${jsonLink}" readonly>
+          <button class="btn btn-primary" onclick="copyText('${jsonLink}')">کپی API</button>
+        </div>
+      </div>
+    </div>
 
-          copyBtn.addEventListener('click', () => {
-              navigator.clipboard.writeText(proxyList.value).then(() => {
-                  copyBtn.textContent = 'کپی شد!';
-                  copyBtn.classList.add('copied');
-                  setTimeout(() => {
-                      copyBtn.textContent = 'کپی';
-                      copyBtn.classList.remove('copied');
-                  }, 2000);
-              });
-          });
+    <!-- Console Terminal & Filters -->
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🖥️ کنسول تعاملی و فیلتر زنده پروکسی‌ها</h2>
+        <span class="text-xs text-muted" id="filteredCount">نمایش: ${total} مورد</span>
+      </div>
 
-          downloadBtn.addEventListener('click', () => {
-              const blob = new Blob([proxyList.value], { type: 'text/plain' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = 'iran_proxies.txt';
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-          });
-          
-          document.querySelectorAll('.copy-link-btn').forEach(button => {
-              button.addEventListener('click', () => {
-                  const targetId = button.dataset.target;
-                  const input = document.getElementById(targetId);
-                  navigator.clipboard.writeText(input.value).then(() => {
-                      const originalText = button.textContent;
-                      button.textContent = 'کپی شد!';
-                      button.style.backgroundColor = '#28a745';
-                      setTimeout(() => {
-                          button.textContent = originalText;
-                          button.style.backgroundColor = '';
-                      }, 2000);
-                  });
-              });
-          });
-      </script>
-  </body>
-  </html>`;
+      <div class="controls-bar">
+        <div class="tabs-group">
+          <button class="tab-btn active" data-proto="all" onclick="setProtocolFilter('all')">همه پروتکل‌ها</button>
+          <button class="tab-btn" data-proto="socks5" onclick="setProtocolFilter('socks5')">فقط SOCKS5</button>
+          <button class="tab-btn" data-proto="http" onclick="setProtocolFilter('http')">فقط HTTP</button>
+          <button class="tab-btn" data-proto="https" onclick="setProtocolFilter('https')">فقط HTTPS</button>
+          <button class="tab-btn" data-proto="socks4" onclick="setProtocolFilter('socks4')">فقط SOCKS4</button>
+        </div>
+
+        <input type="text" id="searchInput" class="search-input" placeholder="جستجوی پورت یا آی‌پی..." oninput="handleSearch()">
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" onclick="copyVisibleProxies()">کپی موارد فیلترشده</button>
+          <button class="btn btn-secondary" onclick="downloadTXT()">دانلود TXT</button>
+          <button class="btn btn-secondary" onclick="downloadJSON()">دانلود JSON</button>
+        </div>
+      </div>
+
+      <textarea id="terminalBox" class="terminal-box" readonly></textarea>
+    </div>
+
+    <!-- Sources Telemetry Table -->
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">📡 وضعیت لحظه‌ای منابع و پایگاه‌های داده</h2>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>نام منبع</th>
+              <th>وضعیت ارتباط</th>
+              <th>تعداد دریافتی</th>
+              <th>تفکیک پروتکل</th>
+              <th>گزارش سلامت</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sourcesRows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      <p>طراحی شده با معماری مدرن و بهینه‌سازی ابری کلودفلر</p>
+      <div class="footer-links">
+        <a href="https://t.me/vpnclashfa" target="_blank">کانال تلگرام</a>
+        <a href="https://x.com/coldwater_10" target="_blank">اکانت توییتر (X)</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast">✅ متن با موفقیت کپی شد!</div>
+
+  <script>
+    const ALL_PROXIES = ${jsonProxies};
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    function updateTerminal() {
+      let filtered = ALL_PROXIES.filter(p => {
+        const proto = (p.split('://')[0] || '').toLowerCase();
+        const matchesProto = (currentFilter === 'all') || (proto === currentFilter);
+        const matchesSearch = !searchQuery || p.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesProto && matchesSearch;
+      });
+
+      document.getElementById('terminalBox').value = filtered.join('\\n');
+      document.getElementById('filteredCount').textContent = 'نمایش: ' + filtered.length + ' از ' + ALL_PROXIES.length;
+    }
+
+    function setProtocolFilter(proto) {
+      currentFilter = proto;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-proto') === proto);
+      });
+      updateTerminal();
+    }
+
+    function handleSearch() {
+      searchQuery = document.getElementById('searchInput').value.trim();
+      updateTerminal();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg || '✅ متن با موفقیت کپی شد!';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => showToast('✅ لینک کپی شد!'));
+    }
+
+    function copyVisibleProxies() {
+      const val = document.getElementById('terminalBox').value;
+      if (!val) return;
+      navigator.clipboard.writeText(val).then(() => showToast('✅ لیست پروکسی‌های فیلترشده کپی شد!'));
+    }
+
+    function downloadTXT() {
+      const val = document.getElementById('terminalBox').value;
+      if (!val) return;
+      const blob = new Blob([val], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'iran_proxies.txt';
+      a.click();
+    }
+
+    function downloadJSON() {
+      const val = document.getElementById('terminalBox').value;
+      if (!val) return;
+      const list = val.split('\\n').filter(Boolean);
+      const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'iran_proxies.json';
+      a.click();
+    }
+
+    // مقداردهی اولیه
+    updateTerminal();
+  </script>
+</body>
+</html>`;
 }

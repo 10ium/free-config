@@ -2016,8 +2016,10 @@ async function handleTelegramMessage(msg, env) {
 
   // --- STATE: AWAITING CF API TOKEN ---
   if (userSession.state === "AWAITING_CF_TOKEN") {
-    if (!text) {
-      return sendMessage(chatId, "⚠️ لطفاً یک توکن API معتبر ارسال کنید.", env);
+    text = text.trim();
+
+    if (/^d{8,11}:[A-Za-z0-9_-]{30,}$/.test(text)) {
+      return sendMessage(chatId, "⚠️ <b>توجه:</b> متنی که ارسال کردید <b>توکن ربات تلگرام (دریافت شده از @BotFather)</b> است!\n\nدر این مرحله، ربات برای اتصال به حساب ابری شما جهت ساخت و استقرار ورکرها، نیاز به <b>API Token کلادفلر (Cloudflare)</b> دارد، نه توکن تلگرام.\n\n💡 <i>توکن ربات تلگرام را هنگام انتخاب قالب ربات‌ها (مانند فیسلس) در مرحله بعد وارد خواهید کرد.</i>\n\n👉 توکن کلادفلر خود را از بخش زیر در سایت کلادفلر دریافت کنید:\n<code>https://dash.cloudflare.com/profile/api-tokens</code>", env, false, [getNavKeyboardRow()]);
     }
 
     await sendMessage(chatId, "⏳ در حال بررسی اطلاعات و تست مجوزهای توکن کلادفلر...", env);

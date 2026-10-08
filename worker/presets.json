@@ -1,41 +1,272 @@
 [
   {
-    "id": "irnova",
-    "name": "IRNova (Nova-Proxy) 🛡️",
-    "url": "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",
-    "pathSuffix": "/admin",
+    "id": "cf_decryptor_bot",
+    "name": "CF Decryptor Bot 🔓",
+    "summary": "ربات تلگرام و پنل وب برای رمزگشایی انواع کانفیگ‌های قفل‌شده و تبدیل به سابسکریپشن کلش، سینگ‌باکس و ایکس‌ری.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/cf_decryptor_bot",
+    "pathSuffix": "/setup",
     "kvBindings": [
-      "KV"
+      "BOT_KV"
     ],
     "vars": [
       {
-        "name": "D1_ID_DB",
+        "name": "BOT_TOKEN",
         "required": true,
-        "autoGenType": "d1_auto"
+        "autoGenType": "alphanumeric",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "DEFAULT_OUTPUT_FORMAT",
+        "required": false,
+        "defaultValue": "xray",
+        "autoGenType": "static",
+        "description": "فرمت پیشفرض خروجی (xray / singbox / mihomo)"
+      },
+      {
+        "name": "DEFAULT_MERGE_OUTPUT",
+        "required": false,
+        "defaultValue": "true",
+        "autoGenType": "static",
+        "description": "ادغام فایلها در یک خروجی واحد (true / false)"
+      },
+      {
+        "name": "DEFAULT_IGNORE_EXPIRED",
+        "required": false,
+        "defaultValue": "true",
+        "autoGenType": "static",
+        "description": "فیلتر خودکار کانفیگهای منقضیشده (true / false)"
       }
     ],
-    "description": "پروکسی قدرتمند نوا مبتنی بر دیتابیس D1 (با نام DB) و دیتابیس KV (با نام KV).\nپس از دیپلوی، پنل با مسیر /admin و رمز پیش‌فرض admin123 در دسترس است.",
-    "category": "config"
+    "features": [
+      "رمزگشایی انواع کانفیگ‌های قفل‌شده و رمزگذاری‌شده (مانند NapsternetV, HTTP Custom, Dark Tunnel)",
+      "قابل استفاده همزمان از طریق ربات تلگرام و پنل وب در مسیر /setup",
+      "تبدیل کانفیگ‌ها به فرمت‌های استاندارد کلش (Mihomo)، سینگ‌باکس و Xray با امکان ادغام فایل‌ها",
+      "فیلتر خودکار کانفیگ‌های منقضی‌شده و حذف موارد تکراری"
+    ],
+    "useCase": "باز کردن و استخراج مشخصات کانفیگ‌های قفل‌شده و دریافت یک لینک اشتراک یکپارچه.",
+    "panelInfo": {
+      "path": "/setup",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر دارای هر دو رابط کاربری تلگرام و وب است. انواع کانفیگ‌های قفل‌شده (نپسترنت، HTTP Custom، دارک‌تانل و...) را رمزگشایی می‌کند و خروجی تمیز و تجمیع‌شده برای نرم‌افزارهای مختلف تولید می‌نماید.",
+    "category": "clashfa",
+    "platform": "worker"
   },
   {
-    "id": "nahan",
-    "name": "Nahan Project (itsyebekhe) 🛡️",
-    "url": "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
-    "pathSuffix": "/sync/dash",
+    "id": "iptv_player",
+    "name": "IPTV Player 📺",
+    "summary": "پخش‌کننده آنلاین شبکه‌های تلویزیونی در مرورگر با پشتیبانی از چند کیفیت، صوت، زیرنویس و ترجمه هوش مصنوعی.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_IPTV_Player.js",
+    "pathSuffix": "/",
+    "kvBindings": [],
+    "vars": [],
+    "features": [
+      "پخش زنده شبکه‌های تلویزیونی استریم آنلاین مستقیم در مرورگر بدون نیاز به نصب نرم‌افزار",
+      "پشتیبانی از کیفیت‌های مختلف تصویر (Quality)، ترک‌های صوتی دوبله و زیرنویس کانال‌ها",
+      "مجهز به قابلیت ترجمه هوشمند زیرنویس به زبان فارسی با هوش مصنوعی",
+      "دسته‌بندی موضوعی شبکه‌ها، لیست علاقه‌مندی‌ها و سازگاری با موبایل، کامپیوتر و تلویزیون"
+    ],
+    "useCase": "تماشای شبکه‌های تلویزیونی آنلاین با امکان تغییر کیفیت و زیرنویس فارسی در مرورگر.",
+    "panelInfo": {
+      "path": "/",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "یک رابط کاربری وب در مرورگر برای مشاهده شبکه‌های تلویزیونی استریم آنلاین با پشتیبانی از صداها و زیرنویس‌های مختلف و قابلیت ترجمه زیرنویس با هوش مصنوعی.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
+    "id": "faceless-bot",
+    "name": "Faceless Chat Bot 🎭",
+    "summary": "ربات پیام ناشناس تلگرام با امنیت بالا، بدون جوین اجباری و بدون تبلیغات مزاحم.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/Faceless_Chat_Bot.js",
+    "pathSuffix": "/setup",
     "kvBindings": [],
     "vars": [
       {
-        "name": "D1_ID_IOT_DB",
+        "name": "BOT_TOKEN",
         "required": true,
-        "autoGenType": "d1_auto"
+        "autoGenType": "alphanumeric",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "GROUP_ID",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "شناسه عددی گروه یا کانال دریافت پیام‌ها"
       }
     ],
-    "description": "پروژه نهان (Nahan) - توزیع ترافیک و پروکسی معکوس بدون سرور مبتنی بر دیتابیس D1 (با نام متغیر IOT_DB).\nپس از دپلو، با وارد کردن مسیر /sync/dash و رمز عبور پیشفرض admin وارد پنل شوید.",
-    "category": "config"
+    "features": [
+      "امنیت بالا و رمزنگاری داده‌ها همراه با عدم ذخیره‌سازی دائمی پیام‌ها",
+      "بدون نیاز به عضویت (جوین) اجباری در کانال برای فرستنده پیام",
+      "بدون ارسال پیام‌های تبلیغاتی یا پیام‌های فیک از سمت ربات",
+      "امکان محدودسازی و فیلتر انواع محتوای ارسالی (متن، عکس، ویدیو، استیکر و لینک)",
+      "امکان پاسخ‌دهی مستقیم به پیام‌های ناشناس دریافت شده"
+    ],
+    "useCase": "دریافت پیام‌ها و نظرات ناشناس از مخاطبان در محیطی کاملاً امن، خصوصی و بدون مزاحمت.",
+    "panelInfo": {
+      "path": "/setup",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر یک ربات پیام ناشناس مستقل برای شما می‌سازد. بر خلاف بیشتر ربات‌های عمومی، پیام‌ها را به صورت دائمی ذخیره نمی‌کند، هیچ‌گونه پیام فیک یا تبلیغاتی ارسال نمی‌کند، کاربر نیازی به عضویت اجباری در کانال ندارد و امکان محدودسازی انواع محتوا نیز در آن وجود دارد.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
+    "id": "clashfa_cf_deployer_bot",
+    "name": "ClashFa Deployer Bot ⚡",
+    "summary": "ربات تلگرام و پنل وب برای استقرار خودکار و مدیریت قالب‌ها و اسکریپت‌های کلادفلر.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot.js",
+    "pathSuffix": "/",
+    "kvBindings": [
+      "BOT_KV"
+    ],
+    "vars": [
+      {
+        "name": "BOT_TOKEN",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "توکن ربات تلگرام"
+      },
+      {
+        "name": "ADMIN_ID",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "شناسه عددی ادمین تلگرام"
+      }
+    ],
+    "features": [
+      "استقرار قالب‌های آماده کلادفلر تنها با چند کلیک در تلگرام یا وب",
+      "مدیریت پروژه‌ها شامل مشاهده وضعیت، دریافت آدرس‌ها و ویرایش متغیرها",
+      "رابط کاربری دوگانه از طریق ربات تلگرام و داشبورد وب",
+      "ساخت خودکار پیش‌نیازهای ورکرها مانند دیتابیس D1 و حافظه KV"
+    ],
+    "useCase": "راه‌اندازی و مدیریت آسان انواع ورکرها روی اکانت شخصی کلادفلر.",
+    "panelInfo": {
+      "path": "/",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این سیستم به شما امکان می‌دهد قالب‌ها و اسکریپت‌های مختلف کلادفلر را بدون نیاز به کدنویسی، مستقیماً از طریق تلگرام یا پنل تحت وب روی حساب کلادفلر خود راه‌اندازی و مدیریت کنید.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
+    "id": "clashfa_mirror",
+    "name": "ClashFa Mirror Pro 🪞",
+    "summary": "شتاب‌دهنده دانلود از گیت‌هاب با تفکیک سیستم‌عامل، میرور کامل سایت‌ها و بازنویسی پرووایدرهای کلش.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.js",
+    "pathSuffix": "/",
+    "kvBindings": [],
+    "vars": [],
+    "features": [
+      "دانلود آسان برنامه‌ها از Releases گیت‌هاب با تفکیک خودکار بر اساس سیستم‌عامل و نوع پردازنده",
+      "میرور مستقیم انواع فایل‌ها و سایت‌ها (پشتیبانی از گیت‌هاب، گیت‌لب، HuggingFace و دستور git clone)",
+      "میرور و عبور سابسکریپشن‌های کانفیگ همراه با بازنویسی و میرور خودکار پرووایدرهای اشتراک کلش",
+      "سامانه جایگزین هوشمند (Fallback به jsDelivr) در صورت بروز اختلال در دریافت فایل خام گیت‌هاب"
+    ],
+    "useCase": "دانلود راحت نرم‌افزارها بر اساس نوع سیستم‌عامل و میرور سابسکریپشن‌ها و فایل‌های گیت‌هاب.",
+    "panelInfo": {
+      "path": "/",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر به عنوان یک میرور پیشرفته برای فایل‌ها، سورس‌ها و سایت‌ها عمل می‌کند. ریلیزهای برنامه‌ها را بر اساس سیستم‌عامل و پردازنده تفکیک می‌کند و در صورت سابسکریپشن کلش، تمام پرووایدرهای داخلی آن را نیز بازنویسی و میرور می‌نماید.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
+    "id": "tg_proxy_assistant",
+    "name": "TG Proxy Assistant 🤖",
+    "summary": "ربات تلگرام برای واکشی پروکسی‌ها با امکان ارسال به کانال یا دریافت مستقیم فایل کانفیگ در چت.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_TG_Proxy_Assistant.js",
+    "pathSuffix": "/",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "BOT_TOKEN",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "توکن ربات تلگرام از BotFather"
+      },
+      {
+        "name": "ADMIN_ID",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "شناسه عددی تلگرام ادمین ربات"
+      }
+    ],
+    "features": [
+      "واکشی خودکار لینک‌های پروکسی و کانفیگ از منابع متنی آنلاین",
+      "امکان تنظیم ارسال زمان‌بندی‌شده به کانال تلگرام یا تحویل مستقیم فایل کانفیگ‌ها داخل چت ربات",
+      "پشتیبانی از پروتکل‌های مختلف پروکسی و کانفیگ",
+      "ثبت گزارش عملکرد و مدیریت وضعیت در حافظه KV"
+    ],
+    "useCase": "اشتراک‌گذاری خودکار پروکسی در کانال تلگرام یا دریافت فایل‌های کانفیگ به صورت مستقیم از ربات.",
+    "panelInfo": {
+      "path": "/",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر یک ربات تلگرامی است که به منابع متنی آنلاین متصل می‌شود و می‌تواند پروکسی‌ها را به کانال ارسال کند یا فایل‌های کانفیگ آماده را به صورت مستقیم در چت به شما تحویل دهد.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
+    "id": "mihomo_converter",
+    "name": "Mihomo Converter 🔄",
+    "summary": "مبدل کانفیگ‌های متفرقه به فایل سابسکریپشن استاندارد نرم‌افزار کلش (Mihomo).",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mihomo_Converter.js",
+    "pathSuffix": "/sub",
+    "kvBindings": [],
+    "vars": [],
+    "features": [
+      "تبدیل کانفیگ‌های متفرقه به یک فایل اشتراک استاندارد برای کلاینت کلش",
+      "دسته‌بندی خودکار پروکسی‌ها در گروه‌های سوئیچ دستی و انتخاب خودکار",
+      "جداسازی مسیر ترافیک سایت‌های داخلی و خارجی بر اساس قوانین مسیریابی",
+      "ارائه لینک سابسکریپشن آنلاین در مسیر /sub"
+    ],
+    "useCase": "یکپارچه‌سازی و تبدیل کانفیگ‌های متفرقه به پروفایل استاندارد برای برنامه کلش.",
+    "panelInfo": {
+      "path": "/sub",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر لینک‌های کانفیگ را دریافت کرده و آن‌ها را همراه با قوانین تفکیک ترافیک (سایت‌های ایرانی و خارجی) به یک لینک سابسکریپشن منظم برای کلاینت‌های کلش یا میهومو تبدیل می‌کند.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
+    "id": "iran_proxy",
+    "name": "Iran Proxy 🇮🇷",
+    "summary": "تجمیع‌کننده پروکسی‌های دارای موقعیت مکانی ایران از منابع متنی عمومی آنلاین.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Iran_Proxy.js",
+    "pathSuffix": "/sub",
+    "kvBindings": [],
+    "vars": [],
+    "features": [
+      "واکشی و تجمیع پروکسی‌های دارای آی‌پی ایران از منابع متنی عمومی",
+      "ارائه خروجی در فرمت‌های متنوع متنی (/sub)، یمل کلش (/clash) و جیسون (/json)",
+      "ذخیره موقت داده‌ها در کش کلادفلر برای پاسخ‌دهی سریع به درخواست‌ها",
+      "دارای صفحه وب برای مشاهده آمار پروکسی‌ها و کپی مستقیم لینک‌ها"
+    ],
+    "useCase": "دسترسی به لیست پروکسی‌های داخلی ایران برای استفاده در نرم‌افزارهای مختلف.",
+    "panelInfo": {
+      "path": "/sub",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر پروکسی‌های عمومی فعال با آی‌پی ایران را از منابع آنلاین جمع‌آوری کرده و در قالب فرمت‌های استاندارد مختلف در اختیارتان می‌گذارد.",
+    "category": "clashfa",
+    "platform": "worker"
   },
   {
     "id": "edgetunnel",
-    "name": "EdgeTunnel (cmliu) 🚀",
+    "name": "EdgeTunnel (cmliu) 🚇",
+    "summary": "اسکریپت تونل ترافیک روی شبکه کلادفلر همراه با صفحه وب نمایش کانفیگ‌ها و کدهای QR.",
     "url": "https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js",
     "pathSuffix": "/admin",
     "kvBindings": [
@@ -45,43 +276,157 @@
       {
         "name": "ADMIN",
         "required": true,
-        "autoGenType": "alphanumeric"
+        "autoGenType": "alphanumeric",
+        "description": "نام کاربری ادمین پنل"
       },
       {
         "name": "KEY",
         "required": true,
-        "autoGenType": "alphanumeric"
+        "autoGenType": "alphanumeric",
+        "description": "کلید عبور امنیتی پنل"
       },
       {
         "name": "UUID",
         "required": true,
-        "autoGenType": "uuid"
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری اتصال VLESS"
       },
       {
         "name": "PROXYIP",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": "bpb.yousef.isegaro.com"
+        "defaultValue": "bpb.yousef.isegaro.com",
+        "description": "آدرس یا دامنه پروکسی آی‌پی تمیز"
       }
     ],
-    "description": "تونل عبور ترافیک پیشرفته edgetunnel مبتنی بر پروتکل‌های VLESS/Trojan/Shadowsocks.",
-    "category": "config"
+    "features": [
+      "ایجاد اتصال پروکسی مبتنی بر وب‌سوکت روی زیرساخت کلادفلر",
+      "صفحه ادمین در مسیر /admin برای دریافت مستقیم لینک‌ها و کدهای QR",
+      "پشتیبانی از اتصال به پروکسی‌های کمکی (Proxy IP) برای تغییر مسیر خروجی",
+      "امکان تنظیم نام کاربری و پسورد ورود به صفحه از طریق متغیرها"
+    ],
+    "useCase": "ساخت سریع ورکر پروکسی همراه با صفحه وب برای دریافت راحت کانفیگ‌ها.",
+    "panelInfo": {
+      "path": "/admin",
+      "defaultUser": "متغیر ADMIN",
+      "defaultPass": "متغیر KEY"
+    },
+    "description": "این ورکر ترافیک اینترنت را از طریق کلادفلر عبور می‌دهد و در مسیر /admin یک رابط وب ساده برای مشاهده و کپی کردن کدهای QR و کانفیگ‌ها در اختیارتان می‌گذارد.",
+    "category": "config",
+    "platform": "worker"
   },
   {
-    "id": "netra_panel",
-    "name": "Netra Panel 💜",
-    "url": "https://raw.githubusercontent.com/netrair/netra-panel/main/worker.js",
-    "pathSuffix": "/panel",
-    "kvBindings": [
-      "kv"
+    "id": "cf_vless_trojan_yongge",
+    "name": "CF VLESS & Trojan (yonggekkk) 👑",
+    "summary": "ورکر چندپروتکله با قابلیت تولید لینک‌های اشتراک کلاینت‌های Clash، Sing-box و ویتوری.",
+    "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare_vless_trojan/main/_worker.js",
+    "pathSuffix": "/{UUID}",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "UUID",
+        "required": true,
+        "autoGenType": "uuid",
+        "description": "شناسه یکتای کاربری VLESS"
+      },
+      {
+        "name": "PASSWORD",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "رمز عبور تروجان"
+      },
+      {
+        "name": "PROXYIP",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "",
+        "description": "آی‌پی تمیز اختیاری"
+      }
     ],
-    "vars": [],
-    "description": "پنل پروکسی قدرتمند VLESS و Trojan با پشتیبانی از وارپ، فرگمنت و مدیریت آسان.",
-    "category": "config"
+    "features": [
+      "پشتیبانی از روش‌های اتصال مختلف در قالب یک ورکر",
+      "تولید مستقیم لینک‌های اشتراک مناسب برای نرم‌افزارهای کلش، سینگ‌باکس و v2ray",
+      "صفحه وب برای دسترسی و کپی آسان بارکدها و لینک‌ها",
+      "امکان وارد کردن آی‌پی تمیز دلخواه"
+    ],
+    "useCase": "کاربرانی که می‌خواهند با یک ورکر به نرم‌افزارهای مختلف کلاینت متصل شوند.",
+    "panelInfo": {
+      "path": "/{UUID}",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر با باز کردن آدرس آن در مرورگر، انواع لینک‌های اتصال و سابسکریپشن متناسب با نرم‌افزارهای مختلف (کلش، سینگ‌باکس و v2ray) را نمایش می‌دهد.",
+    "category": "config",
+    "platform": "worker"
+  },
+  {
+    "id": "irnova",
+    "name": "IRNova Proxy (Nova) 🛡️",
+    "summary": "پنل مدیریت پروکسی با امکان ساخت حساب کاربری با سقف حجم و زمان مشخص.",
+    "url": "https://raw.githubusercontent.com/IRNova/Nova-Proxy/main/worker.js",
+    "pathSuffix": "/admin",
+    "kvBindings": [
+      "KV"
+    ],
+    "vars": [
+      {
+        "name": "D1_ID_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس ابری D1 برای ذخیره کاربران و تنظیمات (DB)"
+      }
+    ],
+    "features": [
+      "امکان ساخت حساب‌های کاربری با تعیین حجم مجاز و تاریخ انقضا",
+      "دارای پنل مدیریت تحت وب در مسیر /admin برای ویرایش کاربران",
+      "تولید لینک اتصال و کد QR برای استفاده در نرم‌افزارهای کلاینت",
+      "پشتیبانی از پروتکل‌های متداول پروکسی و سابسکریپشن آنلاین"
+    ],
+    "useCase": "راه‌اندازی پنل پروکسی شخصی تحت وب برای کنترل مصرف چند کاربر.",
+    "panelInfo": {
+      "path": "/admin",
+      "defaultUser": "admin",
+      "defaultPass": "admin123"
+    },
+    "description": "این ورکر یک پنل تحت وب برای ساخت و مدیریت اکانت‌های پروکسی فراهم می‌کند. از طریق مسیر /admin می‌توانید کاربر تعریف کرده و لینک اتصال یا بارکد QR دریافت کنید.",
+    "category": "config",
+    "platform": "worker"
+  },
+  {
+    "id": "nahan",
+    "name": "Nahan Project (itsyebekhe) 🌊",
+    "summary": "سامانه توزیع ترافیک و ارائه لینک سابسکریپشن تجمیعی برای پنهان‌سازی سرورها پشت کلادفلر.",
+    "url": "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
+    "pathSuffix": "/sync/dash",
+    "kvBindings": [],
+    "vars": [
+      {
+        "name": "D1_ID_IOT_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس ابری D1 برای جدول توزیع ترافیک (IOT_DB)"
+      }
+    ],
+    "features": [
+      "مخفی نگه‌داشتن آدرس سرورهای اصلی پشت شبکه کلادفلر",
+      "ارائه یک لینک اشتراک ثابت برای دریافت کانفیگ‌ها در کلاینت‌ها",
+      "داشبورد مدیریتی تحت وب برای مشاهده وضعیت اتصالات",
+      "قابلیت هدایت و رله ترافیک به سمت سرورهای تعریف‌شده"
+    ],
+    "useCase": "محافظت از مشخصات سرورها و تحویل لینک سابسکریپشن ثابت به کاربران.",
+    "panelInfo": {
+      "path": "/sync/dash",
+      "defaultUser": "admin",
+      "defaultPass": "admin"
+    },
+    "description": "پروژه نهان ترافیک کلاینت را دریافت کرده و به سرورهای پشتیبان منتقل می‌کند تا آدرس اصلی سرور پنهان بماند و کاربران یک لینک اشتراک یکپارچه دریافت کنند.",
+    "category": "config",
+    "platform": "worker"
   },
   {
     "id": "cf_proxy_eooce",
     "name": "Cloudflare Proxy (eooce) 🚀",
+    "summary": "اسکریپت مستقیم پروکسی روی کلادفلر با ساختار سبک و بدون وابستگی به دیتابیس.",
     "url": "https://raw.githubusercontent.com/eooce/Cloudflare-proxy/main/_worker.js",
     "pathSuffix": "/?ed=2560",
     "kvBindings": [],
@@ -89,39 +434,84 @@
       {
         "name": "PASSWORD",
         "required": true,
-        "autoGenType": "alphanumeric"
+        "autoGenType": "alphanumeric",
+        "description": "رمز عبور دسترسی به نود"
       },
       {
         "name": "UUID",
         "required": false,
         "autoGenType": "uuid",
-        "defaultValue": "5dc15e15-f285-4a9d-959b-0e4fbdd77b63"
+        "defaultValue": "5dc15e15-f285-4a9d-959b-0e4fbdd77b63",
+        "description": "شناسه اتصال VLESS"
       },
       {
         "name": "PROXYIP",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": "13.230.34.30"
+        "defaultValue": "13.230.34.30",
+        "description": "آی‌پی تمیز کمکی"
       },
       {
         "name": "SUB_PATH",
         "required": false,
         "autoGenType": "uri_path",
-        "defaultValue": "link"
+        "defaultValue": "link",
+        "description": "مسیر لینک اشتراک"
       },
       {
         "name": "DISABLE_TROJAN",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": "false"
+        "defaultValue": "false",
+        "description": "غیرفعال‌سازی تروجان (true/false)"
       }
     ],
-    "description": "پروکسی چندپروتکله با کنترل دسترسی رمزگذاری‌شده، پنل تحت وب و مسیر ساب‌اسکریپشن.",
-    "category": "config"
+    "features": [
+      "راه‌اندازی سریع با حداقل متغیرها بدون نیاز به ساخت دیتابیس",
+      "ساختار سبک برای پردازش مستقیم ترافیک",
+      "قابلیت کنترل دسترسی با رمز عبور و مسیر مشخص سابسکریپشن",
+      "امکان وارد کردن آی‌پی تمیز کمکی (Proxy IP)"
+    ],
+    "useCase": "داشتن یک ورکر پروکسی ساده و بدون تنظیمات پیچیده برای استفاده روزمره.",
+    "panelInfo": {
+      "path": "/?ed=2560",
+      "defaultUser": "-",
+      "defaultPass": "متغیر PASSWORD"
+    },
+    "description": "یک ورکر سبک برای برقراری اتصال پروکسی که نیازی به منابع جانبی کلادفلر (D1 یا KV) ندارد و کانفیگ اتصال را از طریق پارامترهای آدرس تحویل می‌دهد.",
+    "category": "config",
+    "platform": "worker"
+  },
+  {
+    "id": "netra_panel",
+    "name": "Netra Panel (NetraIR) 💜",
+    "summary": "پنل وب برای ساخت و دریافت کانفیگ‌های پروکسی با پشتیبانی از سیستم‌های فرگمنت و وارپ.",
+    "url": "https://raw.githubusercontent.com/netrair/netra-panel/main/worker.js",
+    "pathSuffix": "/panel",
+    "kvBindings": [
+      "kv"
+    ],
+    "vars": [],
+    "features": [
+      "رابط کاربری گرافیکی در مسیر /panel برای تولید و دریافت کانفیگ",
+      "پشتیبانی از تنظیمات فرگمنت (Fragment) و وارپ (WARP) برای پایداری اتصال",
+      "سازگار با انواع شبکه‌های اینترنت موبایل و خانگی",
+      "امکان تعیین رمز ورود دلخواه به پنل در اولین بازگشایی"
+    ],
+    "useCase": "تولید و دریافت کانفیگ‌های مجهز به فرگمنت و وارپ از طریق مرورگر.",
+    "panelInfo": {
+      "path": "/panel",
+      "defaultUser": "تعیین در اولین ورود",
+      "defaultPass": "تعیین در اولین ورود"
+    },
+    "description": "نترا پنل یک محیط گرافیکی در مرورگر ایجاد می‌کند که از مسیر /panel باز می‌شود. با استفاده از این پنل می‌توانید کانفیگ‌های دارای فرگمنت و وارپ را تولید و دریافت کنید.",
+    "category": "config",
+    "platform": "worker"
   },
   {
     "id": "foxcloud",
     "name": "FoxCloud (code3-dev) 🦊",
+    "summary": "اسکریپت پروکسی مبتنی بر ماژول کلادفلر با صفحه وب نمایش QR Code و مسیر سابسکریپشن.",
     "url": "https://github.com/code3-dev/foxcloud/releases/latest/download/worker.js",
     "pathSuffix": "/sub",
     "kvBindings": [],
@@ -129,21 +519,37 @@
       {
         "name": "UUID",
         "required": true,
-        "autoGenType": "uuid"
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری اتصال VLESS"
       },
       {
         "name": "PROXY_IP",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": ""
+        "defaultValue": "",
+        "description": "آی‌پی یا دامنه تمیز اختیاری"
       }
     ],
-    "description": "پروکسی پیشرفته و پایدار VLESS با رابط کاربری وب، کد QR و خروجی‌های کلاینت.",
-    "category": "config"
+    "features": [
+      "پیاده‌سازی بر بستر معماری ماژولار کلادفلر",
+      "صفحه وب برای نمایش کدهای QR جهت اتصال در موبایل",
+      "ارائه لینک سابسکریپشن آنلاین در مسیر /sub",
+      "پشتیبانی از تعیین آی‌پی تمیز برای بهینه‌سازی مسیر اتصال"
+    ],
+    "useCase": "اسکن مستقیم کد QR و استفاده از لینک سابسکریپشن در نرم‌افزارهای کلاینت.",
+    "panelInfo": {
+      "path": "/sub",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "فاکس‌کلود یک ورکر ماژولار است که در مسیر /sub لینک سابسکریپشن و در صفحه اصلی کدهای QR آماده برای اسکن در اپلیکیشن‌های موبایل را نمایش می‌دهد.",
+    "category": "config",
+    "platform": "worker"
   },
   {
     "id": "emotional_damage",
-    "name": "Emotional Damage (NiREvil) 🛡️",
+    "name": "Emotional Damage (NiREvil) 💥",
+    "summary": "ورکر پروکسی با قابلیت رله روی سرورهای SOCKS5 و پشتیبانی از مسیر اختصاصی با شناسه کاربر.",
     "url": "https://raw.githubusercontent.com/NiREvil/Emotional-Damage/main/_worker.js",
     "pathSuffix": "/{UUID}",
     "kvBindings": [],
@@ -151,302 +557,186 @@
       {
         "name": "UUID",
         "required": true,
-        "autoGenType": "uuid"
+        "autoGenType": "uuid",
+        "description": "شناسه کاربری اتصال VLESS"
       },
       {
         "name": "PROXYIP",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": ""
+        "defaultValue": "",
+        "description": "آدرس پروکسی آی‌پی تمیز"
       },
       {
         "name": "SOCKS5",
         "required": false,
         "autoGenType": "static",
-        "defaultValue": ""
-      },
-      {
-        "name": "SOCKS5_RELAY",
-        "required": false,
-        "autoGenType": "static",
-        "defaultValue": "false"
+        "defaultValue": "",
+        "description": "سرور رله SOCKS5 اختیاری"
       }
     ],
-    "description": "انشعاب بهینه‌سازی‌شده EDtunnel با قابلیت زنجیره‌سازی و رله پروکسی‌های SOCKS5.",
-    "category": "config"
-  },
-  {
-    "id": "cf_vless_trojan_yongge",
-    "name": "CF VLESS & Trojan (yonggekkk) 👑",
-    "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
-    "pathSuffix": "/{UUID}",
-    "kvBindings": [],
-    "vars": [
-      {
-        "name": "uuid",
-        "required": true,
-        "autoGenType": "uuid",
-        "description": "شناسه کاربری اتصال (UUID)"
-      },
-      {
-        "name": "UUID",
-        "required": true,
-        "autoGenType": "uuid",
-        "description": "شناسه کاربری پشتیبان"
-      },
-      {
-        "name": "pswd",
-        "required": false,
-        "autoGenType": "alphanumeric",
-        "description": "رمز عبور تروجان"
-      },
-      {
-        "name": "proxyip",
-        "required": false,
-        "autoGenType": "static",
-        "defaultValue": "speed.cloudflare.com",
-        "description": "آدرس IP تمیز کلادفلر"
-      }
+    "features": [
+      "قابلیت ارسال ترافیک خروجی به سرورهای میانی SOCKS5",
+      "استفاده از شناسه کاربری (UUID) به عنوان مسیر دسترسی به تنظیمات",
+      "پشتیبانی از اتصال به آی‌پی‌های کمکی (Proxy IP)",
+      "ارائه خروجی‌های متناسب با کلاینت‌های متداول"
     ],
-    "description": "سیستم اشتراک و ساب‌اسکریپشن VLESS و Trojan پایدار برای برنامه‌های کلاینت.",
-    "category": "config"
-  },
-  {
-    "id": "clashfa_mirror",
-    "name": "ClashFa Mirror Pro ⚡",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.txt",
-    "pathSuffix": "",
-    "kvBindings": [],
-    "vars": [],
-    "description": "ابزاری همه‌کاره برای میرور کردن لینک‌ها با بالاترین سرعت.",
-    "category": "clashfa"
-  },
-  {
-    "id": "mihomo_converter",
-    "name": "Great Mihomo Converter 🛠️",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
-    "pathSuffix": "",
-    "kvBindings": [],
-    "vars": [],
-    "description": "مبدل فوق‌العاده لینک‌های اشتراک همراه با رابط کاربری وب اختصاصی (Mihomo/Clash).",
-    "category": "clashfa"
-  },
-  {
-    "id": "tg_proxy_assistant",
-    "name": "TG Proxy Assistant 🤖",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/TG-Proxy_Assistant",
-    "pathSuffix": "",
-    "kvBindings": [
-      "PROXY_KV"
-    ],
-    "vars": [
-      {
-        "name": "BOT_TOKEN",
-        "required": true,
-        "autoGenType": "manual"
-      },
-      {
-        "name": "ADMIN_PASSWORD",
-        "required": true,
-        "autoGenType": "alphanumeric"
-      }
-    ],
-    "description": "ربات دستیار تلگرام و کنترل‌کننده پروکسی و کانفیگ‌ها بر بستر کلادفلر ورکرز.",
-    "category": "clashfa"
-  },
-  {
-    "id": "iran_proxy",
-    "name": "Iran Proxy 🛡️",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
-    "pathSuffix": "",
-    "kvBindings": [],
-    "vars": [],
-    "description": "ابزاری برای جمع‌آوری پروکسی‌های ساکس با آی‌پی تمیز ایران.",
-    "category": "clashfa"
-  },
-  {
-    "id": "iptv_player",
-    "name": "IPTV Player 📺",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
-    "pathSuffix": "",
-    "kvBindings": [],
-    "vars": [],
-    "description": "پخش‌کننده تلویزیون اینترنتی IPTV هوشمند و پرسرعت بر روی ورکرز کلادفلر.",
-    "category": "clashfa"
-  },
-  {
-    "id": "faceless-bot",
-    "name": "ربات پیشرفته چت و پیام ناشناس (Faceless) 🎭",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
-    "pathSuffix": "/setup",
-    "author": "ClashFa Team",
-    "version": "2.2.0",
-    "icon": "🎭",
-    "repo": "https://github.com/10ium/free-config",
-    "branch": "main",
-    "entrypoint": "worker/faceless_chat_bot",
-    "compatibility_date": "2024-09-01",
-    "kvBindings": [],
-    "d1_databases": [
-      {
-        "binding": "DB",
-        "database_name": "faceless_db"
-      }
-    ],
-    "vars": [
-      {
-        "name": "D1_ID_DB",
-        "required": true,
-        "autoGenType": "d1_auto",
-        "description": "دیتابیس D1 ابری فیسلس (DB)"
-      },
-      {
-        "name": "BOT_USERNAME",
-        "required": true,
-        "defaultValue": "facelesscahtbot",
-        "autoGenType": "manual",
-        "description": "آیدی ربات بدون @"
-      },
-      {
-        "name": "ADMIN_IDS",
-        "required": true,
-        "autoGenType": "manual",
-        "description": "شناسه عددی ادمین اصلی"
-      },
-      {
-        "name": "BOT_TOKEN",
-        "required": true,
-        "autoGenType": "manual",
-        "description": "توکن ربات تلگرام از BotFather"
-      },
-      {
-        "name": "WEBHOOK_SECRET",
-        "required": false,
-        "autoGenType": "alphanumeric",
-        "length": 32,
-        "description": "کلید امنیتی وب‌هوک"
-      },
-      {
-        "name": "SECRET_SALT",
-        "required": false,
-        "autoGenType": "alphanumeric",
-        "length": 32,
-        "description": "رشته Salt رمزنگاری"
-      },
-      {
-        "name": "AES_KEY",
-        "required": false,
-        "autoGenType": "aes_key",
-        "length": 32,
-        "description": "کلید رمزنگاری AES"
-      }
-    ],
-    "post_deploy": {
-      "action": "open_url",
-      "pathSuffix": "/setup",
-      "description": "راه‌اندازی خودکار ۳ در ۱: ساخت جداول D1، فعال‌سازی وب‌هوک و ثبت منوی دستورات"
+    "useCase": "هدایت ترافیک کلادفلر به سمت رله‌های SOCKS5.",
+    "panelInfo": {
+      "path": "/{UUID}",
+      "defaultUser": "-",
+      "defaultPass": "-"
     },
-    "description": "ربات پیام ناشناس مدرن با لینک اختصاصی، اتصال به سوپرگروه تاپیک‌دار، حالت پیش‌نمایش، فیلتر مدیا، پاسخ مستقیم و حفظ حریم خصوصی. (راه‌اندازی خودکار ۳ در ۱ در مسیر /setup).",
-    "category": "clashfa"
+    "description": "این اسکریپت امکان عبور دادن ترافیک از سرورهای میانی SOCKS5 را فراهم می‌کند و مشخصات اتصال را در مسیری اختصاصی با شناسه کاربر (UUID) به نمایش می‌گذارد.",
+    "category": "config",
+    "platform": "worker"
   },
   {
-    "id": "clashfa_cf_deployer_bot",
-    "name": "ClashFa CF Deployer Bot 🤖",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
-    "isLegacy": false,
+    "id": "hamed_panel",
+    "name": "Hamed Panel (Aurora) 🌅",
+    "summary": "پنل مدیریت پروکسی Aurora با قابلیت تعریف کاربران و اختصاص حجم و زمان انقضا.",
+    "url": "https://raw.githubusercontent.com/hamedp-71/Hamed_Panel/main/_worker.js",
+    "pathSuffix": "/panel",
     "kvBindings": [
-      "BOT_KV"
+      "KV"
     ],
-    "vars": [
-      {
-        "name": "TELEGRAM_BOT_TOKEN",
-        "required": true,
-        "autoGenType": "manual",
-        "description": "توکن ربات تلگرام از BotFather"
-      },
-      {
-        "name": "SECRET_TOKEN",
-        "required": false,
-        "autoGenType": "alphanumeric",
-        "description": "توکن امنیتی وب‌هوک"
-      }
+    "vars": [],
+    "features": [
+      "امکان ایجاد کاربران مختلف با تعیین سقف حجم مصرفی و مهلت زمانی",
+      "دارای داشبورد مدیریت در مسیر /panel برای کنترل وضعیت حساب‌ها",
+      "ارائه لینک سابسکریپشن و کدهای QR برای کاربران تعریف‌شده",
+      "پشتیبانی از ویرایش و تغییر آی‌پی‌های اتصال"
     ],
-    "pathSuffix": "",
-    "description": "ربات تلگرام و داشبورد جامع وب برای استقرار، ارکستراسیون و مدیریت خودکار ورکرها و پیجز بر بستر کلادفلر.",
-    "category": "clashfa"
+    "useCase": "راه‌اندازی پنل شخصی برای تعریف چند حساب با سهمیه حجم و زمان مشخص.",
+    "panelInfo": {
+      "path": "/panel",
+      "defaultUser": "تعیین در اولین ورود",
+      "defaultPass": "تعیین در اولین ورود"
+    },
+    "description": "این پنل امکان تعریف و مدیریت چندین کاربر را به همراه تخصیص سهمیه حجم مصرفی و مهلت زمانی فراهم می‌کند. ورود به پنل از مسیر /panel صورت می‌گیرد.",
+    "category": "config",
+    "platform": "worker"
+  },
+  {
+    "id": "apex_panel",
+    "name": "Apex Panel (Netra) 🏔️",
+    "summary": "پنل مدیریت پروکسی اپکس با رابط کاربری مدرن و امکانات کنترل کاربران و اتصالات.",
+    "url": "https://raw.githubusercontent.com/netrair/apex/main/_worker.js",
+    "pathSuffix": "/apex/panel",
+    "kvBindings": [
+      "KV"
+    ],
+    "vars": [],
+    "features": [
+      "رابط کاربری مدرن و واکنش‌گرا تحت وب در مسیر /apex/panel",
+      "امکان تعریف کاربران و تعیین مشخصات اتصال",
+      "تولید کانفیگ‌ها و لینک‌های سابسکریپشن مستقیم از پنل",
+      "تنظیم رمز عبور پنل در مرحله راه‌اندازی اولیه"
+    ],
+    "useCase": "مدیریت کاربران و دریافت کانفیگ‌های متصل از طریق رابط کاربری وب.",
+    "panelInfo": {
+      "path": "/apex/panel",
+      "defaultUser": "تعیین در اولین ورود",
+      "defaultPass": "تعیین در اولین ورود"
+    },
+    "description": "اپکس یک پنل وب با طراحی جدید و واکنش‌گرا است که امکان تعریف حساب‌ها و پایش ترافیک را از طریق مسیر /apex/panel در اختیارتان می‌گذارد.",
+    "category": "config",
+    "platform": "worker"
   },
   {
     "id": "doh_4n0nymou3",
-    "name": "Cloudflare DoH Proxy (4n0nymou3) 🌐",
-    "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",
-    "pathSuffix": "",
+    "name": "DoH Proxy (4n0nymou3) 🌐",
+    "summary": "پروکسی دی‌ان‌اس بر بستر HTTPS (DoH) برای رمزنگاری درخواست‌های DNS در شبکه.",
+    "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh/main/build/worker.build.js",
+    "pathSuffix": "/dns-query",
     "kvBindings": [],
     "vars": [],
-    "description": "پروکسی ایمن و سبک DNS over HTTPS (DoH) بر روی کلادفلر ورکرز.",
-    "category": "dns"
+    "features": [
+      "پاسخ‌دهی به پرس‌وجوهای DNS از طریق پروتکل امن HTTPS",
+      "رفع اختلالات ناشی از دستکاری و آلودگی DNS در شبکه",
+      "استفاده از اندپوینت استاندارد /dns-query",
+      "قابل تنظیم در مرورگرها، برنامه‌های فیلترشکن و اپ‌های اختصاصی DNS"
+    ],
+    "useCase": "رمزنگاری ترافیک DNS برای حل مشکل لود نشدن سایت‌ها؛ قابل استفاده در مرورگر، کلاینت‌های فیلترشکن و اپ‌های DNS.",
+    "panelInfo": {
+      "path": "/dns-query",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر به عنوان یک سرور DoH عمل می‌کند و درخواست‌های نام دامنه شما را رمزنگاری کرده و پاسخ معتبر را برمی‌گرداند تا از اختلال در DNS جلوگیری شود. در مرورگرها (کروم، فایرفاکس)، نرم‌افزارهای فیلترشکن (v2rayNG, Hiddify, Clash) و نرم‌افزارهای مخصوص DNS قابل استفاده است.",
+    "category": "dns",
+    "platform": "worker"
   },
   {
     "id": "doh_thegreatazizi",
     "name": "Secure DoH (TheGreatAzizi) 🔒",
-    "url": "https://raw.githubusercontent.com/TheGreatAzizi/Secure-DNS-over-HTTPS-Cloudflare-Worker/main/Worker.js",
-    "pathSuffix": "",
+    "summary": "سرور DoH ایمن با مکانیزم‌های جلوگیری از نشت درخواست‌ها و رمزنگاری ترافیک DNS.",
+    "url": "https://raw.githubusercontent.com/TheGreatAzizi/DoH/main/worker.js",
+    "pathSuffix": "/dns-query",
     "kvBindings": [],
     "vars": [],
-    "description": "پروکسی دی‌ان‌اس اختصاصی با امنیت پیشرفته و تاخیر بسیار کم.",
-    "category": "dns"
+    "features": [
+      "رمزنگاری درخواست‌های نام دامنه جهت جلوگیری از شنود ارائه‌دهنده اینترنت",
+      "پاسخ‌دهی به درخواست‌های استاندارد DoH در مسیر /dns-query",
+      "کاهش خطاهای اتصال ناشی از فیلترینگ بر پایه DNS",
+      "قابل استفاده مستقیم در مرورگرها، برنامه‌های فیلترشکن و تنظیمات تلفن همراه"
+    ],
+    "useCase": "افزایش امنیت و حفظ حریم خصوصی در ارسال درخواست‌های DNS در مرورگرها، کلاینت‌های فیلترشکن و برنامه‌های تغییر DNS.",
+    "panelInfo": {
+      "path": "/dns-query",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "یک سرویس DoH برای رمزنگاری درخواست‌های ترجمه دامنه که به جلوگیری از رهگیری و تغییر پاسخ‌های DNS کمک می‌کند. به راحتی در مرورگر، تنظیمات DNS اپ‌های وی‌پی‌ان و برنامه‌های اختصاصی دی‌ان‌اس ست می‌شود.",
+    "category": "dns",
+    "platform": "worker"
   },
   {
     "id": "doh_code3_dev",
-    "name": "DoH Proxy (code3-dev) ⚡",
-    "url": "https://raw.githubusercontent.com/code3-dev/doh-proxy-worker/master/workers.js",
-    "pathSuffix": "",
+    "name": "DoH Gateway (code3-dev) 🚦",
+    "summary": "دروازه دی‌ان‌اس مبتنی بر HTTPS با هدایت درخواست‌ها به سرورهای بالادستی.",
+    "url": "https://raw.githubusercontent.com/code3-dev/cloudflare-doh/main/build/worker.build.js",
+    "pathSuffix": "/dns-query",
     "kvBindings": [],
     "vars": [],
-    "description": "پروکسی ساده و فوق‌العاده سریع DNS-over-HTTPS.",
-    "category": "dns"
+    "features": [
+      "هدایت درخواست‌های DNS به سرورهای بالادستی از بستر کلادفلر",
+      "پشتیبانی از پروتکل استاندارد DoH با مسیر /dns-query",
+      "کاهش تاخیر در پاسخ‌دهی به نام‌های دامنه",
+      "قابل استفاده در انواع مرورگرها، نرم‌افزارهای پروکسی و اپ‌های موبایل"
+    ],
+    "useCase": "هدایت ایمن ترافیک DNS برای پایدارسازی دسترسی به خدمات وب در مرورگرها، برنامه‌های فیلترشکن و نرم‌افزارهای دی‌ان‌اس.",
+    "panelInfo": {
+      "path": "/dns-query",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "این ورکر درخواست‌های DNS را از طریق پروتکل HTTPS دریافت کرده و به سرورهای معتبر بالادستی ارسال می‌کند تا پاسخی بدون دستکاری دریافت شود. در انواع مرورگرهای وب، کلاینت‌های فیلترشکن و نرم‌افزارهای DNS کار می‌کند.",
+    "category": "dns",
+    "platform": "worker"
   },
   {
     "id": "doh_seramo",
-    "name": "DoH Proxy (seramo) 🌐",
-    "url": "https://raw.githubusercontent.com/seramo/doh-proxy-worker/main/worker.js",
-    "pathSuffix": "",
+    "name": "DoH AntiFilter (seramo) 📡",
+    "summary": "سرور DoH تنظیم‌شده برای عبور از محدودیت‌های دی‌ان‌اس روی انواع شبکه‌های اینترنت.",
+    "url": "https://raw.githubusercontent.com/seramo/doh/main/doh.js",
+    "pathSuffix": "/dns-query",
     "kvBindings": [],
     "vars": [],
-    "description": "کلاینت و پروکسی هوشمند DoH برای عبور آسان از سانسور دی‌ان‌اس.",
-    "category": "dns"
-  },
-  {
-    "id": "hamed_panel",
-    "name": "Hamed Panel (Aurora) 🦊",
-    "url": "https://raw.githubusercontent.com/hamedp-71/Hamed_Panel/main/_worker.js",
-    "pathSuffix": "/panel",
-    "kvBindings": [],
-    "vars": [
-      {
-        "name": "D1_ID_IOT_DB",
-        "required": true,
-        "autoGenType": "d1_auto",
-        "description": "دیتابیس ابری D1 برای ذخیره کاربران و تنظیمات پنل حامد (IOT_DB)"
-      }
+    "features": [
+      "تنظیم ساختار برای عبور از فیلترینگ و مسمومیت DNS روی انواع شبکه‌های اینترنت",
+      "پاسخ‌دهی روی اندپوینت استاندارد /dns-query",
+      "رفع خطاهای اتصال به سایت‌ها و بازی‌ها بدون نیاز به فیلترشکن",
+      "سازگار با مرورگرها، نرم‌افزارهای فیلترشکن و اپلیکیشن‌های ویژه DNS"
     ],
-    "description": "پنل پروکسی قدرتمند و چندکاربره حامد (Hamed Panel - Aurora Edition v1.0.9) مبتنی بر دیتابیس D1. پس از استقرار، از مسیر /panel با رمز پیش‌فرض admin وارد شوید.",
-    "category": "config"
-  },
-  {
-    "id": "apex_panel",
-    "name": "Apex Panel (Netra) ⚡",
-    "url": "https://raw.githubusercontent.com/netrair/Apex/main/worker.js",
-    "pathSuffix": "/apex/panel",
-    "kvBindings": [],
-    "vars": [
-      {
-        "name": "D1_ID_NETRA",
-        "required": true,
-        "autoGenType": "d1_auto",
-        "description": "دیتابیس ابری D1 برای ذخیره کاربران و تنظیمات پنل اپکس (netra)"
-      }
-    ],
-    "description": "پنل پیشرفته و چندکاربره Apex (محصول تیم نترا) با مدیریت ترافیک، انقضا و سابسکریپشن بر بستر ورکرز و D1. پس از استقرار از مسیر /apex/panel رمز پنل خود را تعیین کنید.",
-    "category": "config"
+    "useCase": "رفع اختلالات DNS روی انواع اینترنت‌های موبایل و خانگی؛ قابل استفاده در مرورگر، کلاینت‌های فیلترشکن و اپ‌های دی‌ان‌اس.",
+    "panelInfo": {
+      "path": "/dns-query",
+      "defaultUser": "-",
+      "defaultPass": "-"
+    },
+    "description": "ورکر DoH که به طور ویژه برای خنثی کردن اختلالات ایجادشده روی رکوردهای DNS تنظیم شده است تا دامنه‌ها به آدرس‌های صحیح هدایت شوند. قابل استفاده مستقیم در مرورگرها، بخش تنظیمات DNS کلاینت‌های فیلترشکن و منوی Private DNS تلفن همراه است.",
+    "category": "dns",
+    "platform": "worker"
   }
 ]

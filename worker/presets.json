@@ -85,6 +85,9 @@
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/Faceless_Chat_Bot.js",
     "pathSuffix": "/setup",
     "kvBindings": [],
+    "d1Bindings": [
+      "DB"
+    ],
     "vars": [
       {
         "name": "BOT_TOKEN",
@@ -93,10 +96,10 @@
         "description": "توکن ربات تلگرام از BotFather"
       },
       {
-        "name": "GROUP_ID",
-        "required": true,
-        "autoGenType": "alphanumeric",
-        "description": "شناسه عددی گروه یا کانال دریافت پیام‌ها"
+        "name": "ADMIN_IDS",
+        "required": false,
+        "autoGenType": "chat_id",
+        "description": "شناسه عددی تلگرام ادمین جهت دریافت گزارش‌ها (اختیاری)"
       }
     ],
     "features": [
@@ -369,6 +372,9 @@
     "kvBindings": [
       "KV"
     ],
+    "d1Bindings": [
+      "DB"
+    ],
     "vars": [
       {
         "name": "D1_ID_DB",
@@ -400,6 +406,9 @@
     "url": "https://raw.githubusercontent.com/itsyebekhe/nahan/main/_worker.js",
     "pathSuffix": "/sync/dash",
     "kvBindings": [],
+    "d1Bindings": [
+      "IOT_DB"
+    ],
     "vars": [
       {
         "name": "D1_ID_IOT_DB",
@@ -599,7 +608,10 @@
     "url": "https://raw.githubusercontent.com/hamedp-71/Hamed_Panel/main/_worker.js",
     "pathSuffix": "/panel",
     "kvBindings": [
-      "KV"
+      "SESSIONS_KV"
+    ],
+    "d1Bindings": [
+      "IOT_DB"
     ],
     "vars": [],
     "features": [
@@ -611,8 +623,8 @@
     "useCase": "راه‌اندازی پنل شخصی برای تعریف چند حساب با سهمیه حجم و زمان مشخص.",
     "panelInfo": {
       "path": "/panel",
-      "defaultUser": "تعیین در اولین ورود",
-      "defaultPass": "تعیین در اولین ورود"
+      "defaultUser": "admin",
+      "defaultPass": "admin"
     },
     "description": "این پنل امکان تعریف و مدیریت چندین کاربر را به همراه تخصیص سهمیه حجم مصرفی و مهلت زمانی فراهم می‌کند. ورود به پنل از مسیر /panel صورت می‌گیرد.",
     "category": "config",
@@ -622,10 +634,13 @@
     "id": "apex_panel",
     "name": "Apex Panel (Netra) 🏔️",
     "summary": "پنل مدیریت پروکسی اپکس با رابط کاربری مدرن و امکانات کنترل کاربران و اتصالات.",
-    "url": "https://raw.githubusercontent.com/netrair/apex/main/_worker.js",
+    "url": "https://raw.githubusercontent.com/netrair/apex/main/worker.js",
     "pathSuffix": "/apex/panel",
     "kvBindings": [
-      "KV"
+      "kv"
+    ],
+    "d1Bindings": [
+      "netra"
     ],
     "vars": [],
     "features": [
@@ -637,7 +652,7 @@
     "useCase": "مدیریت کاربران و دریافت کانفیگ‌های متصل از طریق رابط کاربری وب.",
     "panelInfo": {
       "path": "/apex/panel",
-      "defaultUser": "تعیین در اولین ورود",
+      "defaultUser": "admin",
       "defaultPass": "تعیین در اولین ورود"
     },
     "description": "اپکس یک پنل وب با طراحی جدید و واکنش‌گرا است که امکان تعریف حساب‌ها و پایش ترافیک را از طریق مسیر /apex/panel در اختیارتان می‌گذارد.",

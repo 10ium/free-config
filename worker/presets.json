@@ -58,7 +58,7 @@
     "id": "iptv_player",
     "name": "IPTV Player 📺",
     "summary": "پخش‌کننده آنلاین شبکه‌های تلویزیونی در مرورگر با پشتیبانی از چند کیفیت، صوت، زیرنویس و ترجمه هوش مصنوعی.",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_IPTV_Player.js",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/iptv_player.txt",
     "pathSuffix": "/",
     "kvBindings": [],
     "vars": [],
@@ -82,7 +82,7 @@
     "id": "faceless-bot",
     "name": "Faceless Chat Bot 🎭",
     "summary": "ربات پیام ناشناس تلگرام با امنیت بالا، بدون جوین اجباری و بدون تبلیغات مزاحم.",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/Faceless_Chat_Bot.js",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/faceless_chat_bot",
     "pathSuffix": "/setup",
     "kvBindings": [],
     "d1Bindings": [
@@ -123,7 +123,7 @@
     "id": "clashfa_cf_deployer_bot",
     "name": "ClashFa Deployer Bot ⚡",
     "summary": "ربات تلگرام و پنل وب برای استقرار خودکار و مدیریت قالب‌ها و اسکریپت‌های کلادفلر.",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot.js",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
     "pathSuffix": "/",
     "kvBindings": [
       "BOT_KV"
@@ -162,7 +162,7 @@
     "id": "clashfa_mirror",
     "name": "ClashFa Mirror Pro 🪞",
     "summary": "شتاب‌دهنده دانلود از گیت‌هاب با تفکیک سیستم‌عامل، میرور کامل سایت‌ها و بازنویسی پرووایدرهای کلش.",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.js",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mirror_Pro.txt",
     "pathSuffix": "/",
     "kvBindings": [],
     "vars": [],
@@ -186,7 +186,7 @@
     "id": "tg_proxy_assistant",
     "name": "TG Proxy Assistant 🤖",
     "summary": "ربات تلگرام برای واکشی پروکسی‌ها با امکان ارسال به کانال یا دریافت مستقیم فایل کانفیگ در چت.",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_TG_Proxy_Assistant.js",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/TG-Proxy_Assistant",
     "pathSuffix": "/",
     "kvBindings": [],
     "vars": [
@@ -223,8 +223,8 @@
     "id": "mihomo_converter",
     "name": "Mihomo Converter 🔄",
     "summary": "مبدل کانفیگ‌های متفرقه به فایل سابسکریپشن استاندارد نرم‌افزار کلش (Mihomo).",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Mihomo_Converter.js",
-    "pathSuffix": "/sub",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/great_mihomo_converter",
+    "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -235,7 +235,7 @@
     ],
     "useCase": "یکپارچه‌سازی و تبدیل کانفیگ‌های متفرقه به پروفایل استاندارد برای برنامه کلش.",
     "panelInfo": {
-      "path": "/sub",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -247,7 +247,7 @@
     "id": "iran_proxy",
     "name": "Iran Proxy 🇮🇷",
     "summary": "تجمیع‌کننده پروکسی‌های دارای موقعیت مکانی ایران از منابع متنی عمومی آنلاین.",
-    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Iran_Proxy.js",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/iran_proxy.txt",
     "pathSuffix": "/",
     "kvBindings": [],
     "vars": [],
@@ -323,7 +323,7 @@
     "id": "cf_vless_trojan_yongge",
     "name": "CF VLESS & Trojan (yonggekkk) 👑",
     "summary": "ورکر چندپروتکله با قابلیت تولید لینک‌های اشتراک کلاینت‌های Clash، Sing-box و ویتوری.",
-    "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare_vless_trojan/main/_worker.js",
+    "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
     "pathSuffix": "/{UUID}",
     "kvBindings": [],
     "vars": [
@@ -663,8 +663,8 @@
     "id": "doh_4n0nymou3",
     "name": "DoH Proxy (4n0nymou3) 🌐",
     "summary": "پروکسی دی‌ان‌اس بر بستر HTTPS (DoH) برای رمزنگاری درخواست‌های DNS در شبکه.",
-    "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh/main/build/worker.build.js",
-    "pathSuffix": "/dns-query",
+    "url": "https://raw.githubusercontent.com/4n0nymou3/cloudflare-doh-proxy/main/manual-worker/worker.js",
+    "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -675,7 +675,7 @@
     ],
     "useCase": "رمزنگاری ترافیک DNS برای حل مشکل لود نشدن سایت‌ها؛ قابل استفاده در مرورگر، کلاینت‌های فیلترشکن و اپ‌های DNS.",
     "panelInfo": {
-      "path": "/dns-query",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -687,8 +687,8 @@
     "id": "doh_thegreatazizi",
     "name": "Secure DoH (TheGreatAzizi) 🔒",
     "summary": "سرور DoH ایمن با مکانیزم‌های جلوگیری از نشت درخواست‌ها و رمزنگاری ترافیک DNS.",
-    "url": "https://raw.githubusercontent.com/TheGreatAzizi/DoH/main/worker.js",
-    "pathSuffix": "/dns-query",
+    "url": "https://raw.githubusercontent.com/TheGreatAzizi/Secure-DNS-over-HTTPS-Cloudflare-Worker/main/Worker.js",
+    "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -699,7 +699,7 @@
     ],
     "useCase": "افزایش امنیت و حفظ حریم خصوصی در ارسال درخواست‌های DNS در مرورگرها، کلاینت‌های فیلترشکن و برنامه‌های تغییر DNS.",
     "panelInfo": {
-      "path": "/dns-query",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -711,8 +711,8 @@
     "id": "doh_code3_dev",
     "name": "DoH Gateway (code3-dev) 🚦",
     "summary": "دروازه دی‌ان‌اس مبتنی بر HTTPS با هدایت درخواست‌ها به سرورهای بالادستی.",
-    "url": "https://raw.githubusercontent.com/code3-dev/cloudflare-doh/main/build/worker.build.js",
-    "pathSuffix": "/dns-query",
+    "url": "https://raw.githubusercontent.com/code3-dev/doh-proxy-worker/master/workers.js",
+    "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -723,7 +723,7 @@
     ],
     "useCase": "هدایت ایمن ترافیک DNS برای پایدارسازی دسترسی به خدمات وب در مرورگرها، برنامه‌های فیلترشکن و نرم‌افزارهای دی‌ان‌اس.",
     "panelInfo": {
-      "path": "/dns-query",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -735,8 +735,8 @@
     "id": "doh_seramo",
     "name": "DoH AntiFilter (seramo) 📡",
     "summary": "سرور DoH تنظیم‌شده برای عبور از محدودیت‌های دی‌ان‌اس روی انواع شبکه‌های اینترنت.",
-    "url": "https://raw.githubusercontent.com/seramo/doh/main/doh.js",
-    "pathSuffix": "/dns-query",
+    "url": "https://raw.githubusercontent.com/seramo/doh-proxy-worker/main/worker.js",
+    "pathSuffix": "",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -747,7 +747,7 @@
     ],
     "useCase": "رفع اختلالات DNS روی انواع اینترنت‌های موبایل و خانگی؛ قابل استفاده در مرورگر، کلاینت‌های فیلترشکن و اپ‌های دی‌ان‌اس.",
     "panelInfo": {
-      "path": "/dns-query",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },

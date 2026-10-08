@@ -245,7 +245,7 @@
     "name": "Iran Proxy 🇮🇷",
     "summary": "تجمیع‌کننده پروکسی‌های دارای موقعیت مکانی ایران از منابع متنی عمومی آنلاین.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Iran_Proxy.js",
-    "pathSuffix": "/sub",
+    "pathSuffix": "/",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -256,7 +256,7 @@
     ],
     "useCase": "دسترسی به لیست پروکسی‌های داخلی ایران برای استفاده در نرم‌افزارهای مختلف.",
     "panelInfo": {
-      "path": "/sub",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },

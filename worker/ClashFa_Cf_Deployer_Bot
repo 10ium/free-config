@@ -273,7 +273,7 @@ const PRESETS = [
     "name": "Iran Proxy 🇮🇷",
     "summary": "تجمیع‌کننده پروکسی‌های دارای موقعیت مکانی ایران از منابع متنی عمومی آنلاین.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Iran_Proxy.js",
-    "pathSuffix": "/sub",
+    "pathSuffix": "/",
     "kvBindings": [],
     "vars": [],
     "features": [
@@ -284,7 +284,7 @@ const PRESETS = [
     ],
     "useCase": "دسترسی به لیست پروکسی‌های داخلی ایران برای استفاده در نرم‌افزارهای مختلف.",
     "panelInfo": {
-      "path": "/sub",
+      "path": "/",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -1756,9 +1756,24 @@ function deriveFallbackSubdomain(accountName, accountId = "") {
   return base;
 }
 
+function getVarName(v) {
+  if (!v) return "";
+  return typeof v === "object" ? (v.name || "") : v.toString();
+}
+
+function getVarNames(vars) {
+  if (!Array.isArray(vars)) return [];
+  return vars.map(v => getVarName(v)).filter(Boolean);
+}
+
 function autoGenerateVars(varList, context = {}) {
   const generated = {};
-  varList.forEach(v => {
+  if (!Array.isArray(varList)) return generated;
+
+  varList.forEach(rawVar => {
+    const v = typeof rawVar === "object" ? (rawVar.name || "") : rawVar.toString();
+    if (!v) return;
+
     // Preserve explicit non-empty user input
     if (context[v] !== undefined && context[v] !== null && context[v] !== "") {
       generated[v] = context[v];
@@ -1798,8 +1813,10 @@ function autoGenerateVars(varList, context = {}) {
       generated[v] = context.BOT_TOKEN || "";
     } else if (v === "BOT_USERNAME") {
       generated[v] = context.BOT_USERNAME || "facelesscahtbot";
-    } else if (v === "ADMIN_IDS") {
+    } else if (v === "ADMIN_IDS" || v === "ADMIN_ID") {
       generated[v] = context.chatId ? context.chatId.toString() : "";
+    } else if (typeof rawVar === "object" && rawVar.defaultValue !== undefined) {
+      generated[v] = rawVar.defaultValue;
     } else {
       generated[v] = generateRandomString(CharsetAlphaNumeric, 12);
     }
@@ -2190,7 +2207,8 @@ async function proceedToNextVarOrDeploy(chatId, session, env, currentVarName, va
   }
 
   const collectedKeys = Object.keys(session.deployPayload.vars);
-  const missingVar = currentPreset.vars.find(v => !collectedKeys.includes(v));
+  const varNames = getVarNames(currentPreset.vars);
+  const missingVar = varNames.find(v => !collectedKeys.includes(v));
 
   pushHistory(session, `VAR_COLLECT_${currentVarName}`);
 
@@ -2480,10 +2498,11 @@ async function handleTelegramCallback(cb, env) {
 
   if (data === "var_mode_auto") {
     const preset = PRESETS[userSession.deployPayload.templateIdx];
-    const needsBotToken = preset.vars.includes("BOT_TOKEN");
+    const varNames = getVarNames(preset.vars);
+    const needsBotToken = varNames.includes("BOT_TOKEN");
     
     if (needsBotToken) {
-      await sendMessage(chatId, "⚙️ حالت نیمه خودکار فعال شد. متغیرهای ساختاری به صورت رندوم ایجاد خواهند شد. لطفاً توکن ربات تلگرام را ارسال کنید تا فرآیند ادامه یابد:", env, false, [getNavKeyboardRow()]);
+      await sendMessage(chatId, "⚙️ حالت خودکار فعال شد. برای اتصال ربات، لطفاً <b>توکن ربات تلگرام (Bot Token)</b> دریافتی از @BotFather را ارسال کنید (بقیه متغیرها به صورت خودکار ایجاد خواهند شد):", env, false, [getNavKeyboardRow()]);
       userSession.deployPayload.autoGenTemplate = true;
       userSession.state = "VAR_COLLECT_BOT_TOKEN";
       await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
@@ -2496,12 +2515,12 @@ async function handleTelegramCallback(cb, env) {
 
   if (data === "var_mode_manual") {
     const preset = PRESETS[userSession.deployPayload.templateIdx];
-    const firstVar = preset.vars[0];
+    const firstVarName = getVarName(preset.vars[0]);
 
     pushHistory(userSession, "CHOOSE_VAR_MODE");
-    userSession.state = `VAR_COLLECT_${firstVar}`;
+    userSession.state = `VAR_COLLECT_${firstVarName}`;
     await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
-    return sendVariablePrompt(chatId, firstVar, env);
+    return sendVariablePrompt(chatId, firstVarName, env);
   }
 
   // --- SINGLE VARIABLE INLINE AUTO-GENERATOR ---

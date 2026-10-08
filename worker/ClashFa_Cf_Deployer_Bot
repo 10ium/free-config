@@ -2018,8 +2018,24 @@ async function handleTelegramMessage(msg, env) {
   if (userSession.state === "AWAITING_CF_TOKEN") {
     text = text.trim();
 
-    if (/^d{8,11}:[A-Za-z0-9_-]{30,}$/.test(text)) {
-      return sendMessage(chatId, "⚠️ <b>توجه:</b> متنی که ارسال کردید <b>توکن ربات تلگرام (دریافت شده از @BotFather)</b> است!\n\nدر این مرحله، ربات برای اتصال به حساب ابری شما جهت ساخت و استقرار ورکرها، نیاز به <b>API Token کلادفلر (Cloudflare)</b> دارد، نه توکن تلگرام.\n\n💡 <i>توکن ربات تلگرام را هنگام انتخاب قالب ربات‌ها (مانند فیسلس) در مرحله بعد وارد خواهید کرد.</i>\n\n👉 توکن کلادفلر خود را از بخش زیر در سایت کلادفلر دریافت کنید:\n<code>https://dash.cloudflare.com/profile/api-tokens</code>", env, false, [getNavKeyboardRow()]);
+    // Guard 1: Telegram Bot Token misinput
+    if (/^[0-9]{8,11}:[A-Za-z0-9_-]{30,}$/.test(text)) {
+      return sendMessage(chatId, "⚠️ <b>توجه:</b> متنی که ارسال کردید <b>توکن ربات تلگرام (دریافت شده از @BotFather)</b> است!\n\nدر این مرحله، ربات برای اتصال به حساب ابری شما جهت ساخت و استقرار ورکرها، نیاز به <b>API Token کلادفلر (Cloudflare)</b> دارد، نه توکن تلگرام.\n\n💡 <i>توکن ربات تلگرام را هنگام انتخاب قالب ربات‌ها (مانند فیسلس) در مرحله تنظیم متغیرها وارد خواهید کرد.</i>\n\n👉 توکن کلادفلر خود را از بخش زیر در سایت کلادفلر دریافت کنید:\n<code>https://dash.cloudflare.com/profile/api-tokens</code>", env, false, [getNavKeyboardRow()]);
+    }
+
+    // Guard 2: 64-character Hex string (e.g., Origin CA Key, secret hash, AES key)
+    if (/^[a-fA-F0-9]{64}$/.test(text)) {
+      return sendMessage(chatId, "⚠️ <b>توجه:</b> متنی که ارسال کردید یک کلید یا هش ۶۴ کاراکتری است (احتمالاً کلید مبدأ Origin CA Key یا کلید رمزنگاری)، نه <b>API Token کلادفلر</b>!\n\n🔑 توکن معتبر کلادفلر معمولاً ۴۰ کاراکتر است یا با پیشوند <code>cfat_</code> شروع می‌شود.\n\n👉 جهت ساخت API Token صحیح:\n۱. وارد آدرس زیر در کلادفلر شوید:\n<code>https://dash.cloudflare.com/profile/api-tokens</code>\n۲. دکمه <b>Create Token</b> را بزنید.\n۳. قالب <b>Edit Cloudflare Workers</b> را انتخاب کنید و تأیید نمایید.", env, false, [getNavKeyboardRow()]);
+    }
+
+    // Guard 3: 32-character Hex string (Account ID or Zone ID)
+    if (/^[a-fA-F0-9]{32}$/.test(text)) {
+      return sendMessage(chatId, "⚠️ <b>توجه:</b> متنی که ارسال کردید <b>شناسه حساب (Account ID)</b> است، نه <b>API Token کلادفلر</b>!\n\nشناسه حساب فقط آدرس اکانت شماست، در حالی که برای اتصال نیاز به کلید امنیتی (API Token) دارید.\n\n👉 توکن خود را از مسیر زیر در کلادفلر دریافت فرمایید:\n<code>https://dash.cloudflare.com/profile/api-tokens</code>", env, false, [getNavKeyboardRow()]);
+    }
+
+    // Guard 4: 37-character Hex string (Global API Key)
+    if (/^[a-fA-F0-9]{37}$/.test(text)) {
+      return sendMessage(chatId, "⚠️ <b>توجه:</b> متنی که ارسال کردید <b>Global API Key</b> است.\n\nجهت حفظ حداکثر امنیت اکانت شما، این ربات منحصراً با <b>API Token</b> استاندارد کار می‌کند.\n\n👉 لطفاً از بخش زیر یک API Token بسازید:\n<code>https://dash.cloudflare.com/profile/api-tokens</code>", env, false, [getNavKeyboardRow()]);
     }
 
     await sendMessage(chatId, "⏳ در حال بررسی اطلاعات و تست مجوزهای توکن کلادفلر...", env);

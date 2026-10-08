@@ -118,16 +118,50 @@ const PRESETS = [
     ],
     "vars": [
       {
+        "name": "D1_ID_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس D1 ابری فیسلس (DB)"
+      },
+      {
+        "name": "BOT_USERNAME",
+        "required": true,
+        "defaultValue": "facelesscahtbot",
+        "autoGenType": "alphanumeric",
+        "description": "آیدی ربات بدون @"
+      },
+      {
+        "name": "ADMIN_IDS",
+        "required": true,
+        "autoGenType": "chat_id",
+        "description": "شناسه عددی ادمین اصلی"
+      },
+      {
         "name": "BOT_TOKEN",
         "required": true,
         "autoGenType": "alphanumeric",
         "description": "توکن ربات تلگرام از BotFather"
       },
       {
-        "name": "ADMIN_IDS",
+        "name": "WEBHOOK_SECRET",
         "required": false,
-        "autoGenType": "chat_id",
-        "description": "شناسه عددی تلگرام ادمین جهت دریافت گزارش‌ها (اختیاری)"
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "کلید امنیتی وبهوک"
+      },
+      {
+        "name": "SECRET_SALT",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "رشته Salt رمزنگاری"
+      },
+      {
+        "name": "AES_KEY",
+        "required": false,
+        "autoGenType": "aes_key",
+        "length": 32,
+        "description": "کلید رمزنگاری AES"
       }
     ],
     "features": [
@@ -352,27 +386,27 @@ const PRESETS = [
     "name": "CF VLESS & Trojan (yonggekkk) 👑",
     "summary": "ورکر چندپروتکله با قابلیت تولید لینک‌های اشتراک کلاینت‌های Clash، Sing-box و ویتوری.",
     "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
-    "pathSuffix": "/{UUID}",
+    "pathSuffix": "/{uuid}",
     "kvBindings": [],
     "vars": [
       {
-        "name": "UUID",
+        "name": "uuid",
         "required": true,
         "autoGenType": "uuid",
-        "description": "شناسه یکتای کاربری VLESS"
+        "description": "شناسه کاربری اتصال VLESS (حروف کوچک)"
       },
       {
-        "name": "PASSWORD",
+        "name": "pswd",
         "required": true,
         "autoGenType": "alphanumeric",
-        "description": "رمز عبور تروجان"
+        "description": "رمز عبور تروجان (حروف کوچک)"
       },
       {
-        "name": "PROXYIP",
+        "name": "proxyip",
         "required": false,
         "autoGenType": "static",
         "defaultValue": "",
-        "description": "آی‌پی تمیز اختیاری"
+        "description": "آی‌پی یا دامنه تمیز اختیاری"
       }
     ],
     "features": [
@@ -383,7 +417,7 @@ const PRESETS = [
     ],
     "useCase": "کاربرانی که می‌خواهند با یک ورکر به نرم‌افزارهای مختلف کلاینت متصل شوند.",
     "panelInfo": {
-      "path": "/{UUID}",
+      "path": "/{uuid}",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -1797,7 +1831,7 @@ function autoGenerateVars(varList, context = {}) {
     if (v === "UUID" || v === "uuid") {
       const u = (context && (context.UUID || context.uuid)) || crypto.randomUUID();
       generated[v] = u;
-    } else if (v === "TR_PASS" || v === "ADMIN_PASSWORD" || v === "ADMIN") {
+    } else if (v === "TR_PASS" || v === "ADMIN_PASSWORD" || v === "ADMIN" || v === "pswd") {
       generated[v] = generateRandomString(CharsetTrojanPassword, 12);
     } else if (v === "SUB_PATH") {
       generated[v] = "/sub/" + generateRandomString(CharsetURIPath, 16);
@@ -2062,6 +2096,51 @@ async function handleTelegramMessage(msg, env) {
     await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
     await sendMessage(chatId, `✅ ساب‌دومین ورکرز حساب <b>${escapeHTML(account.name)}</b> با موفقیت به <code>${escapeHTML(text)}</code> تنظیم شد.`, env);
     return sendMainMenu(chatId, env);
+  }
+
+    // --- STATE: AWAITING WORKER VARIABLE INPUT ---
+  if (userSession.state === "AWAITING_WORKER_VAR") {
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    if (!text || !text.includes("=")) {
+      return sendMessage(chatId, "⚠️ فرمت ورودی نامعتبر است. لطفاً به صورت <code>NAME=VALUE</code> ارسال فرمایید (مثال: <code>UUID=123...</code> یا <code>PROXYIP=speed.cloudflare.com</code>):", env, false, [[{ text: "❌ انصراف", callback_data: "wk_menu_back" }]]);
+    }
+
+    const firstEq = text.indexOf("=");
+    const varKey = text.substring(0, firstEq).trim();
+    const varVal = text.substring(firstEq + 1).trim();
+
+    if (!varKey) {
+      return sendMessage(chatId, "⚠️ نام متغیر نمی‌تواند خالی باشد.", env, false, [[{ text: "❌ انصراف", callback_data: "wk_menu_back" }]]);
+    }
+
+    await sendMessage(chatId, `⏳ در حال ذخیره متغیر <code>${escapeHTML(varKey)}</code> در ورکر <code>${escapeHTML(workerName)}</code>...`, env);
+
+    try {
+      const settings = await getWorkerSettings(account.token, account.id, workerName);
+      let bindings = (settings && settings.bindings) ? [...settings.bindings] : [];
+
+      const existingIdx = bindings.findIndex(b => b.name === varKey);
+      if (existingIdx !== -1) {
+        bindings[existingIdx] = { ...bindings[existingIdx], text: varVal, type: "plain_text" };
+      } else {
+        bindings.push({ name: varKey, text: varVal, type: "plain_text" });
+      }
+
+      await updateWorkerBindings(account.token, account.id, workerName, bindings);
+      await logEvent(env, `متغیر ${varKey} برای ورکر ${workerName} ثبت یا ویرایش شد.`, "info");
+      
+      userSession.state = "IDLE";
+      userSession.activeBindings = bindings;
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+
+      await sendMessage(chatId, `✅ متغیر محیطی <code>${escapeHTML(varKey)}</code> با مقدار <code>${escapeHTML(varVal)}</code> با موفقیت بر روی ورکر ثبت شد.`, env);
+      return displayWorkerBindings(chatId, userSession, env);
+    } catch (err) {
+      return sendMessage(chatId, `❌ خطا در ذخیره متغیر محیطی:\n<code>${escapeHTML(err.message)}</code>`, env, false, [[{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]]);
+    }
   }
 
   // --- STATE: AWAITING CUSTOM URL ---
@@ -2640,6 +2719,8 @@ async function handleTelegramCallback(cb, env) {
 
       const keyboard = [
         [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }],
+        [{ text: "🔄 بروزرسانی سورس‌کد با قالب‌های آماده", callback_data: "upd_wrk_code_menu" }],
+        [{ text: "➕ افزودن / ویرایش متغیر محیطی", callback_data: "add_wrk_var_start" }],
         [{ text: "📥 دریافت و دانلود سورس‌کد ورکر (.js)", callback_data: `dl_wrk_code_${idx}` }],
         [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
         [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${userSession.activeAccIdx}` }]
@@ -2678,6 +2759,8 @@ async function handleTelegramCallback(cb, env) {
       if (idx !== -1) {
         const keyboard = [
           [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }],
+          [{ text: "🔄 بروزرسانی سورس‌کد با قالب‌های آماده", callback_data: "upd_wrk_code_menu" }],
+          [{ text: "➕ افزودن / ویرایش متغیر محیطی", callback_data: "add_wrk_var_start" }],
           [{ text: "📥 دریافت و دانلود سورس‌کد ورکر (.js)", callback_data: `dl_wrk_code_${idx}` }],
           [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
           [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${userSession.activeAccIdx}` }]
@@ -2686,6 +2769,164 @@ async function handleTelegramCallback(cb, env) {
       }
     }
     return sendMainMenu(chatId, env);
+  }
+
+  // --- ADD / EDIT VARIABLE START ---
+  if (data === "add_wrk_var_start") {
+    const workerName = userSession.activeWorker;
+    userSession.state = "AWAITING_WORKER_VAR";
+    await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+    const keyboard = [[{ text: "❌ انصراف و بازگشت", callback_data: "wk_menu_back" }]];
+    return sendMessage(chatId, `✏️ <b>افزودن یا ویرایش متغیر محیطی برای ورکر:</b> <code>${escapeHTML(workerName)}</code>\n\nلطفاً نام و مقدار متغیر را با فرمت <code>NAME=VALUE</code> ارسال نمایید.\n\n💡 <b>مثال‌ها:</b>\n<code>UUID=123e4567-e89b-12d3-a456-426614174000</code>\n<code>PROXYIP=speed.cloudflare.com</code>\n<code>PASSWORD=mySecret123</code>`, env, false, keyboard);
+  }
+
+  // --- UPDATE WORKER CODE PRESETS MENU ---
+  if (data === "upd_wrk_code_menu" || data.startsWith("upd_wrk_page_")) {
+    const page = data.startsWith("upd_wrk_page_") ? parseInt(data.replace("upd_wrk_page_", ""), 10) : 0;
+    const workerName = userSession.activeWorker;
+    const pageSize = 5;
+    const totalPages = Math.ceil(PRESETS.length / pageSize) || 1;
+    const curPage = Math.max(0, Math.min(page, totalPages - 1));
+    const pageItems = PRESETS.slice(curPage * pageSize, (curPage + 1) * pageSize);
+
+    const keyboard = [];
+    pageItems.forEach((preset, relIdx) => {
+      const absIdx = curPage * pageSize + relIdx;
+      keyboard.push([{ text: preset.name, callback_data: `upd_tpl_${absIdx}` }]);
+    });
+
+    if (totalPages > 1) {
+      const navRow = [];
+      if (curPage > 0) {
+        navRow.push({ text: "⬅️ قبلی", callback_data: `upd_wrk_page_${curPage - 1}` });
+      }
+      navRow.push({ text: `📄 ${curPage + 1} از ${totalPages}`, callback_data: "noop" });
+      if (curPage < totalPages - 1) {
+        navRow.push({ text: "بعدی ➡️", callback_data: `upd_wrk_page_${curPage + 1}` });
+      }
+      keyboard.push(navRow);
+    }
+
+    keyboard.push([{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]);
+
+    return sendMessage(chatId, `🔄 <b>بروزرسانی سورس‌کد ورکر:</b> <code>${escapeHTML(workerName)}</code>\n\nقالب مورد نظر را انتخاب کنید تا آخرین نسخه سورس‌کد آن مستقیماً بر روی این ورکر جایگزین و مستقر شود (بایندینگ‌ها و منابع موجود حفظ خواهند شد):`, env, false, keyboard);
+  }
+
+  if (data.startsWith("upd_tpl_")) {
+    const pIdx = parseInt(data.replace("upd_tpl_", ""), 10);
+    const preset = PRESETS[pIdx];
+    const workerName = userSession.activeWorker;
+
+    if (!preset) return sendMessage(chatId, "⚠️ قالب یافت نشد.", env);
+
+    const keyboard = [
+      [{ text: `✅ بله، بروزرسانی به «${preset.name}»`, callback_data: `upd_exec_${pIdx}` }],
+      [{ text: "❌ انصراف و بازگشت", callback_data: "wk_menu_back" }]
+    ];
+
+    return sendMessage(chatId, `⚠️ <b>تأییدیه بروزرسانی سورس‌کد ورکر:</b>\n\n🔹 ورکر هدف: <code>${escapeHTML(workerName)}</code>\n🔹 قالب جدید: <b>${escapeHTML(preset.name)}</b>\n🔹 توضیحات: ${escapeHTML(preset.summary || preset.description || "")}\n\nآیا مطمئن هستید که می‌خواهید سورس‌کد این ورکر به آخرین نسخه قالب فوق آپدیت شود؟\n(بایندینگ‌ها و متغیرهای کنونی ورکر حفظ و موارد لازم جدید اضافه خواهند شد).`, env, false, keyboard);
+  }
+
+  if (data.startsWith("upd_exec_")) {
+    const pIdx = parseInt(data.replace("upd_exec_", ""), 10);
+    const preset = PRESETS[pIdx];
+    const workerName = userSession.activeWorker;
+    const accIdx = userSession.activeAccIdx;
+    const account = userSession.accounts[accIdx];
+
+    await sendMessage(chatId, `⏳ در حال دریافت آخرین نسخه کدهای قالب «${escapeHTML(preset.name)}» و آماده‌سازی بایندینگ‌ها...`, env);
+
+    try {
+      const codeRes = await fetchWithTimeout(preset.url, {}, 15000);
+      if (!codeRes.ok) throw new Error(`خطا در دریافت کد قالب (${codeRes.status})`);
+      const code = await codeRes.text();
+
+      const settings = await getWorkerSettings(account.token, account.id, workerName);
+      let bindings = (settings && settings.bindings) ? [...settings.bindings] : [];
+
+      if (preset.kvBindings && preset.kvBindings.length > 0) {
+        for (const kvName of preset.kvBindings) {
+          if (!bindings.some(b => b.name === kvName && b.type === "kv_namespace")) {
+            const nsName = `${workerName}-${kvName}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            const nsId = await createKVNamespace(account.token, account.id, nsName);
+            if (nsId) {
+              bindings.push({ name: kvName, namespace_id: nsId, type: "kv_namespace" });
+            }
+          }
+        }
+      }
+
+      if (preset.d1Bindings && preset.d1Bindings.length > 0) {
+        for (const d1Name of preset.d1Bindings) {
+          if (!bindings.some(b => b.name === d1Name && b.type === "d1")) {
+            const dbName = `${workerName}-${d1Name}`.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            const dbId = await createD1Database(account.token, account.id, dbName);
+            if (dbId) {
+              bindings.push({ name: d1Name, id: dbId, database_id: dbId, type: "d1" });
+              if (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot") {
+                const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id_hash TEXT NOT NULL UNIQUE, encrypted_tg_id TEXT NOT NULL, nickname TEXT NOT NULL, link_token TEXT NOT NULL UNIQUE, is_link_active INTEGER NOT NULL DEFAULT 1, is_vacation INTEGER NOT NULL DEFAULT 0, delivery_mode TEXT NOT NULL DEFAULT 'direct', is_banned INTEGER NOT NULL DEFAULT 0, personal_rate_limit INTEGER NOT NULL DEFAULT 0, delivery_destination TEXT NOT NULL DEFAULT 'pv', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_active DATETIME DEFAULT CURRENT_TIMESTAMP);\nCREATE INDEX IF NOT EXISTS idx_users_link_token ON users(link_token);\nCREATE INDEX IF NOT EXISTS idx_users_user_id_hash ON users(user_id_hash);\n`;
+                await executeD1Statements(account.token, account.id, dbId, schemaSql);
+              } else if (preset.id === "apex_panel" || preset.id === "apex") {
+                const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, uuid TEXT NOT NULL UNIQUE, sub_token TEXT NOT NULL UNIQUE, trojan_pass TEXT NOT NULL DEFAULT '', trojan_hash TEXT NOT NULL DEFAULT '', quota_bytes INTEGER NOT NULL DEFAULT 0, used_bytes INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'active', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER);\nCREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);\nCREATE INDEX IF NOT EXISTS idx_users_token ON users(sub_token);\nCREATE INDEX IF NOT EXISTS idx_users_trojan ON users(trojan_hash);\nCREATE INDEX IF NOT EXISTS idx_users_expires ON users(expires_at);\nCREATE INDEX IF NOT EXISTS idx_users_status ON users(status);\nCREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, user_id INTEGER NOT NULL, up_bytes INTEGER NOT NULL DEFAULT 0, down_bytes INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, user_id));\nCREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);\n`;
+                await executeD1Statements(account.token, account.id, dbId, schemaSql);
+              }
+            }
+          }
+        }
+      }
+
+      if (preset.vars && preset.vars.length > 0) {
+        const missingVars = [];
+        preset.vars.forEach(rawV => {
+          const vName = typeof rawV === "object" ? rawV.name : rawV;
+          if (vName && !vName.startsWith("D1_ID_") && !bindings.some(b => b.name === vName)) {
+            missingVars.push(vName);
+          }
+        });
+        if (missingVars.length > 0) {
+          const gen = autoGenerateVars(missingVars, { chatId: chatId.toString() });
+          for (const [k, v] of Object.entries(gen)) {
+            bindings.push({ name: k, text: v.toString(), type: "plain_text" });
+          }
+        }
+      }
+
+      await deployWorkerScript(account.token, account.id, workerName, code, bindings, 0, preset);
+
+      let sub = account.subdomain;
+      if (!sub || !sub.trim()) {
+        sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
+      }
+      sub = sub ? sub.trim().replace(/^\.+|\.+$/g, "") : "";
+      if (!sub && account.name) sub = deriveFallbackSubdomain(account.name);
+
+      const rawBaseUrl = sub ? `https://${workerName}.${sub}.workers.dev` : `https://${workerName}.workers.dev`;
+      const contextVars = {};
+      bindings.forEach(b => { if (b.text) contextVars[b.name] = b.text; });
+      const pathSuffix = resolvePathSuffix(preset, contextVars);
+      const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+
+      let updSuccessMsg = `🎉 <b>سورس‌کد ورکر با موفقیت بروزرسانی شد!</b>\n\n` +
+        `🏷 <b>نام ورکر:</b> <code>${escapeHTML(workerName)}</code>\n` +
+        `📦 <b>قالب اعمال‌شده:</b> <b>${escapeHTML(preset.name)}</b>\n` +
+        `🌐 <b>آدرس ورکر:</b>\n<a href="${finalUrl}">${finalUrl}</a>\n\n` +
+        `✅ کدهای جدید بارگذاری و تمام بایندینگ‌های لازم بررسی و حفظ شدند.`;
+
+      if (preset.id === "cf_vless_trojan_yongge") {
+        const vlessUrl = `${rawBaseUrl}/${contextVars.uuid || ""}`;
+        const trojanUrl = `${rawBaseUrl}/${contextVars.pswd || ""}`;
+        updSuccessMsg += `\n\n🔗 <b>لینک‌های دسترسی و سابسکریپشن:</b>\n` +
+          `🔹 <b>لینک ساب VLESS:</b> <a href="${vlessUrl}">${vlessUrl}</a>\n` +
+          `🔹 <b>لینک ساب Trojan:</b> <a href="${trojanUrl}">${trojanUrl}</a>\n`;
+      }
+
+      await logEvent(env, `ورکر ${workerName} با موفقیت به قالب ${preset.name} بروزرسانی شد.`, "info");
+      return sendMessage(chatId, updSuccessMsg, env, false, [[{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]]);
+
+    } catch (err) {
+      await logEvent(env, `خطا در بروزرسانی ورکر ${workerName}: ${err.message}`, "error");
+      return sendMessage(chatId, `❌ خطا در بروزرسانی ورکر:\n<code>${escapeHTML(err.message)}</code>`, env, false, [[{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]]);
+    }
   }
 
   if (data === "manage_binds") {
@@ -2986,26 +3227,22 @@ async function executeTelegramDeployment(chatId, session, env) {
               await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس (users, chats, logs) برای بات چت ناشناس...", env);
               const schemaSql = `
 CREATE TABLE IF NOT EXISTS users (
-  user_id INTEGER PRIMARY KEY,
-  gender TEXT,
-  target_gender TEXT,
-  status TEXT DEFAULT 'idle',
-  chat_id TEXT DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS chats (
-  chat_id TEXT PRIMARY KEY,
-  user1 INTEGER,
-  user2 INTEGER,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER,
-  action TEXT,
-  details TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  user_id_hash TEXT NOT NULL UNIQUE,
+  encrypted_tg_id TEXT NOT NULL,
+  nickname TEXT NOT NULL,
+  link_token TEXT NOT NULL UNIQUE,
+  is_link_active INTEGER NOT NULL DEFAULT 1,
+  is_vacation INTEGER NOT NULL DEFAULT 0,
+  delivery_mode TEXT NOT NULL DEFAULT 'direct',
+  is_banned INTEGER NOT NULL DEFAULT 0,
+  personal_rate_limit INTEGER NOT NULL DEFAULT 0,
+  delivery_destination TEXT NOT NULL DEFAULT 'pv',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_active DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_users_link_token ON users(link_token);
+CREATE INDEX IF NOT EXISTS idx_users_user_id_hash ON users(user_id_hash);
 `;
               await executeD1Statements(account.token, account.id, dbId, schemaSql);
             } else if (currentPreset && (currentPreset.id === "apex_panel" || currentPreset.id === "apex")) {
@@ -3286,12 +3523,21 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
 
     await logEvent(env, `استقرار موفق پروژه ${name} بر روی اکانت ${account.name}`, "info");
 
+    let extraLinks = "";
+    if (activePreset && activePreset.id === "cf_vless_trojan_yongge") {
+      const vlessUrl = `${rawBaseUrl}/${finalVars.uuid || ""}`;
+      const trojanUrl = `${rawBaseUrl}/${finalVars.pswd || ""}`;
+      extraLinks = `\n\n🔗 <b>لینک‌های دسترسی و سابسکریپشن:</b>\n` +
+        `🔹 <b>لینک ساب و کانفیگ VLESS:</b>\n<a href="${vlessUrl}">${vlessUrl}</a>\n` +
+        `🔹 <b>لینک ساب و کانفیگ Trojan:</b>\n<a href="${trojanUrl}">${trojanUrl}</a>\n`;
+    }
+
     const successMsg = `🎉 <b>استقرار با موفقیت کامل انجام شد!</b>\n\n` +
       `🏷 <b>نام پروژه:</b> <code>${escapeHTML(name)}</code>\n` +
       `👤 <b>حساب کلادفلر:</b> <code>${escapeHTML(account.name)}</code>\n` +
       `🌐 <b>آدرس نهایی ورکر:</b>\n` +
       `<a href="${finalUrl}">${finalUrl}</a>` +
-      `${varsMsg}${postDeployNotice}\n\n` +
+      `${varsMsg}${postDeployNotice}${extraLinks}\n\n` +
       `✅ تمام دیتابیس‌ها و متغیرهای لازم ساخته و بایند شدند.`;
 
     return sendMessage(chatId, successMsg, env);
@@ -3521,6 +3767,8 @@ async function sendVariablePrompt(chatId, varName, env) {
     promptText = "🧂 لطفاً عبارت دلخواه <b>SECRET_SALT</b> (جهت هش شناسه‌ها) را بنویسید یا دکمه تولید خودکار را لمس کنید:";
   } else if (varName === "ADMIN_PASSWORD") {
     promptText = "🔑 لطفاً یک <b>رمز عبور برای پنل مدیریت (ADMIN_PASSWORD)</b> وارد کنید یا دکمه تولید خودکار را لمس کنید:";
+  } else if (varName === "pswd") {
+    promptText = "🔑 لطفاً رمز عبور اتصال تروجان (<b>pswd</b>) را وارد کنید یا دکمه تولید خودکار را لمس کنید:";
   } else if (varName === "PASSWORD") {
     promptText = "🔑 لطفاً یک <b>رمز عبور برای ورود به صفحه اصلی ورکر (PASSWORD)</b> وارد کنید یا دکمه تولید خودکار را لمس کنید:";
   } else if (varName === "UUID" || varName === "uuid") {
@@ -3687,6 +3935,7 @@ async function displayWorkerBindings(chatId, userSession, env) {
       keyboard.push([{ text: `🗑️ حذف بایندینگ ${b.name}`, callback_data: `del_b_${idx}` }]);
     });
 
+    keyboard.push([{ text: "➕ افزودن / ویرایش متغیر محیطی", callback_data: "add_wrk_var_start" }]);
     keyboard.push([{ text: "💥 حذف همه بایندینگ‌ها با هم", callback_data: "del_all_b" }]);
     keyboard.push([{ text: "🔙 بازگشت به منوی ورکر", callback_data: "wk_menu_back" }]);
 
@@ -3753,7 +4002,8 @@ async function logEvent(env, message, type = "info") {
     return;
   }
   try {
-    const logs = await env.BOT_KV.get("system:logs", { type: "json" }) || [];
+    let logs = await env.BOT_KV.get("system:logs", { type: "json" }) || [];
+    if (!Array.isArray(logs)) logs = [];
     const newLog = {
       timestamp: new Date().toLocaleString("fa-IR", { timeZone: "Asia/Tehran" }),
       message: sanitizeForLog(message),
@@ -4089,9 +4339,9 @@ async function handleApiRoutes(request, url, env) {
 
               if (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot") {
                 const schemaSql = `
-CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, gender TEXT, target_gender TEXT, status TEXT DEFAULT 'idle', chat_id TEXT DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS chats (chat_id TEXT PRIMARY KEY, user1 INTEGER, user2 INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, details TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id_hash TEXT NOT NULL UNIQUE, encrypted_tg_id TEXT NOT NULL, nickname TEXT NOT NULL, link_token TEXT NOT NULL UNIQUE, is_link_active INTEGER NOT NULL DEFAULT 1, is_vacation INTEGER NOT NULL DEFAULT 0, delivery_mode TEXT NOT NULL DEFAULT 'direct', is_banned INTEGER NOT NULL DEFAULT 0, personal_rate_limit INTEGER NOT NULL DEFAULT 0, delivery_destination TEXT NOT NULL DEFAULT 'pv', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_active DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS idx_users_link_token ON users(link_token);
+CREATE INDEX IF NOT EXISTS idx_users_user_id_hash ON users(user_id_hash);
 `;
                 await executeD1Statements(account.token, account.id, dbId, schemaSql);
               } else if (preset.id === "apex_panel" || preset.id === "apex") {
@@ -4126,9 +4376,9 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
 
               if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
                 const schemaSql = `
-CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, gender TEXT, target_gender TEXT, status TEXT DEFAULT 'idle', chat_id TEXT DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS chats (chat_id TEXT PRIMARY KEY, user1 INTEGER, user2 INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, details TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id_hash TEXT NOT NULL UNIQUE, encrypted_tg_id TEXT NOT NULL, nickname TEXT NOT NULL, link_token TEXT NOT NULL UNIQUE, is_link_active INTEGER NOT NULL DEFAULT 1, is_vacation INTEGER NOT NULL DEFAULT 0, delivery_mode TEXT NOT NULL DEFAULT 'direct', is_banned INTEGER NOT NULL DEFAULT 0, personal_rate_limit INTEGER NOT NULL DEFAULT 0, delivery_destination TEXT NOT NULL DEFAULT 'pv', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_active DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS idx_users_link_token ON users(link_token);
+CREATE INDEX IF NOT EXISTS idx_users_user_id_hash ON users(user_id_hash);
 `;
                 await executeD1Statements(account.token, account.id, dbId, schemaSql);
               } else if (preset && (preset.id === "apex_panel" || preset.id === "apex")) {

@@ -202,6 +202,13 @@ var Database = class {
       )`,
       `CREATE INDEX IF NOT EXISTS idx_rcb_pair ON random_chat_blocks(blocker_hash, blocked_hash)`
     ];
+    try {
+      const usersInfo = await this.db.prepare("PRAGMA table_info(users)").all();
+      const cols = (usersInfo.results || []).map(c => c.name);
+      if (cols.length > 0 && !cols.includes("link_token")) {
+        await this.db.prepare("DROP TABLE IF EXISTS users").run().catch(() => {});
+      }
+    } catch (_) {}
     for (const sql of stmts) {
       await this.db.prepare(sql).run();
     }

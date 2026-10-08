@@ -90,16 +90,50 @@
     ],
     "vars": [
       {
+        "name": "D1_ID_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس D1 ابری فیسلس (DB)"
+      },
+      {
+        "name": "BOT_USERNAME",
+        "required": true,
+        "defaultValue": "facelesscahtbot",
+        "autoGenType": "alphanumeric",
+        "description": "آیدی ربات بدون @"
+      },
+      {
+        "name": "ADMIN_IDS",
+        "required": true,
+        "autoGenType": "chat_id",
+        "description": "شناسه عددی ادمین اصلی"
+      },
+      {
         "name": "BOT_TOKEN",
         "required": true,
         "autoGenType": "alphanumeric",
         "description": "توکن ربات تلگرام از BotFather"
       },
       {
-        "name": "ADMIN_IDS",
+        "name": "WEBHOOK_SECRET",
         "required": false,
-        "autoGenType": "chat_id",
-        "description": "شناسه عددی تلگرام ادمین جهت دریافت گزارش‌ها (اختیاری)"
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "کلید امنیتی وبهوک"
+      },
+      {
+        "name": "SECRET_SALT",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "رشته Salt رمزنگاری"
+      },
+      {
+        "name": "AES_KEY",
+        "required": false,
+        "autoGenType": "aes_key",
+        "length": 32,
+        "description": "کلید رمزنگاری AES"
       }
     ],
     "features": [
@@ -324,27 +358,27 @@
     "name": "CF VLESS & Trojan (yonggekkk) 👑",
     "summary": "ورکر چندپروتکله با قابلیت تولید لینک‌های اشتراک کلاینت‌های Clash، Sing-box و ویتوری.",
     "url": "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker%E6%98%8E.js",
-    "pathSuffix": "/{UUID}",
+    "pathSuffix": "/{uuid}",
     "kvBindings": [],
     "vars": [
       {
-        "name": "UUID",
+        "name": "uuid",
         "required": true,
         "autoGenType": "uuid",
-        "description": "شناسه یکتای کاربری VLESS"
+        "description": "شناسه کاربری اتصال VLESS (حروف کوچک)"
       },
       {
-        "name": "PASSWORD",
+        "name": "pswd",
         "required": true,
         "autoGenType": "alphanumeric",
-        "description": "رمز عبور تروجان"
+        "description": "رمز عبور تروجان (حروف کوچک)"
       },
       {
-        "name": "PROXYIP",
+        "name": "proxyip",
         "required": false,
         "autoGenType": "static",
         "defaultValue": "",
-        "description": "آی‌پی تمیز اختیاری"
+        "description": "آی‌پی یا دامنه تمیز اختیاری"
       }
     ],
     "features": [
@@ -355,7 +389,7 @@
     ],
     "useCase": "کاربرانی که می‌خواهند با یک ورکر به نرم‌افزارهای مختلف کلاینت متصل شوند.",
     "panelInfo": {
-      "path": "/{UUID}",
+      "path": "/{uuid}",
       "defaultUser": "-",
       "defaultPass": "-"
     },

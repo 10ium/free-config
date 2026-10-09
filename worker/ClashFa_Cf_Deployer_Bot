@@ -1444,21 +1444,58 @@ async function enableWorkerSubdomain(token, accountId, scriptName) {
   }
 }
 
+function deriveFallbackSubdomain(accountName, accountId = "") {
+  if (!accountName) return "";
+  let clean = typeof accountName === "object" && accountName !== null ? (accountName.name || accountName.email || "") : String(accountName || "");
+  const accId = typeof accountName === "object" && accountName !== null ? (accountName.id || accountId) : accountId;
+
+  if (clean.includes("'s Account")) {
+    clean = clean.replace(/'s Account/gi, "");
+  }
+  if (clean.includes("@")) {
+    clean = clean.split("@")[0];
+  }
+
+  // Cloudflare converts all non-alphanumeric separators (dots, underscores, pluses, spaces) into hyphens
+  let base = clean.toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (base.length > 32) {
+    base = base.substring(0, 32).replace(/-+$/, "");
+  }
+
+  if (base && base.length >= 3) {
+    return base;
+  }
+
+  return accId ? `acc-${accId.substring(0, 8)}` : "worker";
+}
+
 // Subdomain Resolution System
 async function getWorkerSubdomain(token, accountId, env, accountName = "") {
-  // 1. Check KV Cache
+  // 1. Check KV Cache with self-healing check
   if (env && env.BOT_KV) {
     const cached = await env.BOT_KV.get(`subdomain:${accountId}`);
-    if (cached && cached.trim()) return cached.trim().replace(/^\.+|\.+$/g, "");
+    if (cached && cached.trim()) {
+      const cleanCached = cached.trim().replace(/^\.+|\.+$/g, "");
+      const nameStr = typeof accountName === "string" ? accountName : (accountName?.name || "");
+      if (!cleanCached.includes("-") && (nameStr.includes(".") || nameStr.includes("-"))) {
+        const liveSub = await refreshWorkerSubdomainLive(token, accountId, env);
+        if (liveSub && liveSub.trim()) return liveSub.trim().replace(/^\.+|\.+$/g, "");
+      }
+      return cleanCached;
+    }
   }
 
   // 2. Fetch Live from Cloudflare API
   const liveSub = await refreshWorkerSubdomainLive(token, accountId, env);
   if (liveSub && liveSub.trim()) return liveSub.trim().replace(/^\.+|\.+$/g, "");
 
-  // 3. Derive Intelligent Fallback (e.g. pcwwrk@hi2.in -> pcwwrk)
+  // 3. Derive Intelligent Fallback (e.g. Quentin.10.coldwater@atomicmail.io -> quentin-10-coldwater)
   if (accountName) {
-    const fallbackSub = deriveFallbackSubdomain(accountName);
+    const fallbackSub = deriveFallbackSubdomain(accountName, accountId);
     if (env && env.BOT_KV && fallbackSub) {
       await env.BOT_KV.put(`subdomain:${accountId}`, fallbackSub);
     }
@@ -1486,6 +1523,89 @@ async function refreshWorkerSubdomainLive(token, accountId, env = null) {
     if (env) await logEvent(env, `هشدار در استعلام ساب‌دومین: ${sanitizeForLog(err.message)}`, "warning");
   }
   return "";
+}
+
+async function getWorkerCustomDomains(token, accountId, scriptName) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/domains`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 12000);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.result)) {
+      return data.result
+        .filter(d => !scriptName || d.service === scriptName)
+        .map(d => d.hostname)
+        .filter(Boolean);
+    }
+  } catch (_) {}
+  return [];
+}
+
+async function getPagesCustomDomains(token, accountId, projectName) {
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/domains`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    }, 12000);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.result)) {
+      return data.result.map(d => d.name).filter(Boolean);
+    }
+  } catch (_) {}
+  return [];
+}
+
+// Universal Deployment URLs Resolver (Covers all scenarios: live subdomain, customized subdomain, custom domains, routes & Pages)
+async function resolveDeploymentUrls(token, accountId, name, type, preset, vars, env, accountName = "") {
+  let sub = "";
+
+  if (type === "pages") {
+    const defaultUrl = `https://${name}.pages.dev`;
+    const pDomains = await getPagesCustomDomains(token, accountId, name);
+    return {
+      primaryUrl: defaultUrl,
+      rawBaseUrl: defaultUrl,
+      customUrls: pDomains.map(d => `https://${d}`),
+      subdomain: name,
+      pathSuffix: ""
+    };
+  }
+
+  // Priority 1: Check live Cloudflare subdomain API (most authoritative source)
+  sub = await refreshWorkerSubdomainLive(token, accountId, env);
+
+  // Priority 2: Check KV cache if live API timed out or failed
+  if (!sub || !sub.trim()) {
+    if (env && env.BOT_KV && accountId) {
+      sub = await env.BOT_KV.get(`subdomain:${accountId}`);
+    }
+  }
+
+  // Priority 3: Derive intelligent fallback if live & KV are empty
+  if (!sub || !sub.trim()) {
+    sub = deriveFallbackSubdomain(accountName, accountId);
+    if (sub && env && env.BOT_KV && accountId) {
+      await env.BOT_KV.put(`subdomain:${accountId}`, sub);
+    }
+  }
+
+  sub = sub ? sub.trim().replace(/^\.+|\.+$/g, "") : "";
+
+  // Check for any Custom Domains bound to this worker script
+  const wDomains = await getWorkerCustomDomains(token, accountId, name);
+
+  const pathSuffix = preset ? resolvePathSuffix(preset, vars) : "";
+  const rawBaseUrl = sub ? `https://${name}.${sub}.workers.dev` : `https://${name}.workers.dev`;
+  const primaryUrl = `${rawBaseUrl}${pathSuffix}`;
+
+  const customUrls = wDomains.map(d => `https://${d}${pathSuffix}`);
+
+  return {
+    rawBaseUrl,
+    primaryUrl,
+    customUrls,
+    subdomain: sub,
+    pathSuffix
+  };
 }
 
 async function listWorkerScripts(token, accountId) {
@@ -1831,22 +1951,6 @@ function generateRandomString(charset, length) {
   return result;
 }
 
-function deriveFallbackSubdomain(accountName, accountId = "") {
-  if (!accountName) return "";
-  let clean = typeof accountName === "object" && accountName !== null ? (accountName.name || accountName.email || "") : String(accountName || "");
-  const accId = typeof accountName === "object" && accountName !== null ? (accountName.id || accountId) : accountId;
-  if (clean.includes("@")) {
-    clean = clean.split("@")[0];
-  } else if (clean.includes("'s Account")) {
-    clean = clean.replace(/'s Account/gi, "");
-  }
-  let base = clean.toLowerCase().replace(/[^a-z0-9-]/g, "");
-  if (!base && accId) {
-    base = "cf-" + String(accId).replace(/[^a-z0-9]/gi, "").substring(0, 8);
-  }
-  if (base.length > 25) base = base.substring(0, 25);
-  return base;
-}
 
 function getVarName(v) {
   if (!v) return "";
@@ -2042,6 +2146,10 @@ async function handleTelegramMessage(msg, env) {
       }
       const acc = userSession.accounts[0];
       const sub = await getWorkerSubdomain(acc.token, acc.id, env, acc.name);
+      if (sub && acc.subdomain !== sub) {
+        acc.subdomain = sub;
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      }
       return sendMessage(chatId, `🌐 <b>اطلاعات ساب‌دومین ورکرز:</b>\n\n👤 حساب: <b>${escapeHTML(acc.name)}</b>\n🏷 ساب‌دومین: <code>${escapeHTML(sub || "ثبت‌نشده")}</code>\n\nجهت تغییر یا استعلام مجدد، از منوی 🔑 مدیریت اکانت‌ها اقدام کنید.`, env);
     }
     if (cmd === "/status") {
@@ -2171,7 +2279,9 @@ async function handleTelegramMessage(msg, env) {
       return sendMessage(chatId, "⚠️ فرمت ساب‌دومین نامعتبر است. مجدداً تلاش کنید:", env);
     }
 
-    await env.BOT_KV.put(`subdomain:${account.id}`, text.toLowerCase().trim());
+    const cleanSub = text.toLowerCase().trim().replace(/^.+|.+$/g, "");
+    account.subdomain = cleanSub;
+    await env.BOT_KV.put(`subdomain:${account.id}`, cleanSub);
     await logEvent(env, `ساب‌دومین دستی برای حساب ${account.name} ذخیره شد: ${text}`, "info");
 
     userSession.state = "IDLE";
@@ -2529,7 +2639,19 @@ async function handleTelegramCallback(cb, env) {
   if (data.startsWith("view_acc_")) {
     const idx = parseInt(data.replace("view_acc_", ""), 10);
     const acc = userSession.accounts[idx];
-    const sub = await env.BOT_KV.get(`subdomain:${acc.id}`) || "ثبت نشده (تلاش برای دریافت خودکار)";
+    let sub = await env.BOT_KV.get(`subdomain:${acc.id}`);
+    if (!sub || !sub.trim()) {
+      sub = acc.subdomain;
+    }
+    const accNameStr = typeof acc.name === "string" ? acc.name : "";
+    if (!sub || !sub.trim() || (!sub.includes("-") && (accNameStr.includes(".") || accNameStr.includes("-")))) {
+      sub = await getWorkerSubdomain(acc.token, acc.id, env, acc.name);
+      if (sub && acc.subdomain !== sub) {
+        acc.subdomain = sub;
+        await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
+      }
+    }
+    const displaySub = sub || "ثبت نشده (تلاش برای دریافت خودکار)";
     
     const kb = [
       [{ text: "🔍 بررسی جامع مجوزهای توکن", callback_data: `check_perms_${idx}` }],
@@ -2537,7 +2659,7 @@ async function handleTelegramCallback(cb, env) {
       [{ text: "✏️ ویرایش دستی ساب‌دامین", callback_data: `set_sub_${idx}` }],
       [{ text: "🔙 بازگشت به لیست حساب‌ها", callback_data: "manage_accounts" }]
     ];
-    return sendMessage(chatId, `👤 <b>جزئیات حساب کلادفلر:</b>\n\n🔹 نام: <code>${escapeHTML(acc.name)}</code>\n🔹 شناسه: <code>${acc.id}</code>\n🔹 ساب‌دومین ورکرز: <code>${escapeHTML(sub)}</code>\n🔹 توکن: <code>${acc.token.substring(0, 8)}***</code>`, env, false, kb);
+    return sendMessage(chatId, `👤 <b>جزئیات حساب کلادفلر:</b>\n\n🔹 نام: <code>${escapeHTML(acc.name)}</code>\n🔹 شناسه: <code>${acc.id}</code>\n🔹 ساب‌دومین ورکرز: <code>${escapeHTML(displaySub)}</code>\n🔹 توکن: <code>${acc.token.substring(0, 8)}***</code>`, env, false, kb);
   }
 
   if (data.startsWith("check_perms_")) {
@@ -2573,6 +2695,8 @@ async function handleTelegramCallback(cb, env) {
     await sendMessage(chatId, "⏳ در حال استعلام مستقیم ساب‌دامین از کلادفلر...", env);
     const liveSub = await refreshWorkerSubdomainLive(acc.token, acc.id, env);
     if (liveSub) {
+      acc.subdomain = liveSub;
+      await env.BOT_KV.put(`session:${chatId}`, JSON.stringify(userSession));
       return sendMessage(chatId, `✅ ساب‌دامین با موفقیت از کلادفلر استعلام و ذخیره شد:\n<code>${escapeHTML(liveSub)}</code>`, env);
     } else {
       return sendMessage(chatId, "⚠️ ساب‌دامین فعالی برای این حساب یافت نشد. می‌توانید با دکمه ویرایش دستی، ساب‌دامین را وارد کنید.", env);
@@ -3004,23 +3128,27 @@ async function handleTelegramCallback(cb, env) {
 
       await deployWorkerScript(account.token, account.id, workerName, code, bindings, 0, preset);
 
-      let sub = account.subdomain;
-      if (!sub || !sub.trim()) {
-        sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
-      }
-      sub = sub ? sub.trim().replace(/^\.+|\.+$/g, "") : "";
-      if (!sub && account.name) sub = deriveFallbackSubdomain(account.name);
-
-      const rawBaseUrl = sub ? `https://${workerName}.${sub}.workers.dev` : `https://${workerName}.workers.dev`;
       const contextVars = {};
       bindings.forEach(b => { if (b.text) contextVars[b.name] = b.text; });
-      const pathSuffix = resolvePathSuffix(preset, contextVars);
-      const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+
+      const urlInfo = await resolveDeploymentUrls(account.token, account.id, workerName, "worker", preset, contextVars, env, account.name);
+      const rawBaseUrl = urlInfo.rawBaseUrl;
+      const finalUrl = urlInfo.primaryUrl;
+      account.subdomain = urlInfo.subdomain;
+
+      let customDomainsMsg = "";
+      if (urlInfo.customUrls && urlInfo.customUrls.length > 0) {
+        customDomainsMsg = `\n\n🌐 <b>دامنه‌های اختصاصی متصل (Custom Domains):</b>\n`;
+        for (const cUrl of urlInfo.customUrls) {
+          customDomainsMsg += `🔸 <a href="${cUrl}">${cUrl}</a>\n`;
+        }
+      }
 
       let updSuccessMsg = `🎉 <b>سورس‌کد ورکر با موفقیت بروزرسانی شد!</b>\n\n` +
         `🏷 <b>نام ورکر:</b> <code>${escapeHTML(workerName)}</code>\n` +
         `📦 <b>قالب اعمال‌شده:</b> <b>${escapeHTML(preset.name)}</b>\n` +
-        `🌐 <b>آدرس ورکر:</b>\n<a href="${finalUrl}">${finalUrl}</a>\n\n` +
+        `🌐 <b>آدرس ورکر:</b>\n<a href="${finalUrl}">${finalUrl}</a>` +
+        `${customDomainsMsg}\n\n` +
         `✅ کدهای جدید بارگذاری و تمام بایندینگ‌های لازم بررسی و حفظ شدند.`;
 
       if (preset.id === "cf_vless_trojan_yongge") {
@@ -3458,27 +3586,11 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
       await enableWorkerSubdomain(account.token, account.id, name);
     }
 
-    // Resolve workers subdomain & path suffix
-    let sub = account.subdomain;
-    if (!sub || !sub.trim()) {
-      sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
-    }
-    sub = sub ? sub.trim().replace(/^.+|.+$/g, "") : "";
-    if (!sub && account.name) {
-      sub = deriveFallbackSubdomain(account.name);
-    }
-
-    let pathSuffix = "";
-    if (templateIdx !== "custom") {
-      const preset = PRESETS[templateIdx];
-      pathSuffix = resolvePathSuffix(preset, finalVars);
-    }
-
-    const rawBaseUrl = (type === "pages")
-      ? `https://${name}.pages.dev`
-      : (sub ? `https://${name}.${sub}.workers.dev` : `https://${name}.workers.dev`);
-
-    const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+    // Resolve workers subdomain, custom domains & path suffix across all scenarios
+    const urlInfo = await resolveDeploymentUrls(account.token, account.id, name, type, activePreset, finalVars, env, account.name);
+    const rawBaseUrl = urlInfo.rawBaseUrl;
+    const finalUrl = urlInfo.primaryUrl;
+    account.subdomain = urlInfo.subdomain;
 
     // Build precise success variable list output
     // Build comprehensive success variable and resource list output
@@ -3634,6 +3746,14 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
 
     await logEvent(env, `استقرار موفق پروژه ${name} بر روی اکانت ${account.name}`, "info");
 
+    let customDomainsMsg = "";
+    if (urlInfo.customUrls && urlInfo.customUrls.length > 0) {
+      customDomainsMsg = `\n\n🌐 <b>دامنه‌های اختصاصی متصل (Custom Domains):</b>\n`;
+      for (const cUrl of urlInfo.customUrls) {
+        customDomainsMsg += `🔸 <a href="${cUrl}">${cUrl}</a>\n`;
+      }
+    }
+
     let extraLinks = "";
     if (activePreset && activePreset.id === "cf_vless_trojan_yongge") {
       const vlessUrl = `${rawBaseUrl}/${finalVars.uuid || ""}`;
@@ -3648,6 +3768,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
       `👤 <b>حساب کلادفلر:</b> <code>${escapeHTML(account.name)}</code>\n` +
       `🌐 <b>آدرس نهایی ورکر:</b>\n` +
       `<a href="${finalUrl}">${finalUrl}</a>` +
+      `${customDomainsMsg}` +
       `${varsMsg}${postDeployNotice}${extraLinks}\n\n` +
       `✅ تمام دیتابیس‌ها و متغیرهای لازم ساخته و بایند شدند.`;
 
@@ -4533,14 +4654,11 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
         const actualDeployedName = (deployResult && deployResult.deployedName) ? deployResult.deployedName : workerName;
         await enableWorkerSubdomain(account.token, account.id, actualDeployedName);
 
-        let sub = account.subdomain;
-        if (!sub || !sub.trim()) {
-          sub = await getWorkerSubdomain(account.token, account.id, env, account.name);
-        }
-        const cleanSub = sub ? sub.trim().replace(/^.+|.+$/g, "") : deriveFallbackSubdomain(account.name);
-        const pathSuffix = resolvePathSuffix(preset, finalVars);
-        const rawBaseUrl = cleanSub ? `https://${actualDeployedName}.${cleanSub}.workers.dev` : `https://${actualDeployedName}.workers.dev`;
-        const finalUrl = `${rawBaseUrl}${pathSuffix}`;
+        const urlInfo = await resolveDeploymentUrls(account.token, account.id, actualDeployedName, "worker", preset, finalVars, env, account.name);
+        const rawBaseUrl = urlInfo.rawBaseUrl;
+        const finalUrl = urlInfo.primaryUrl;
+        account.subdomain = urlInfo.subdomain;
+        const pathSuffix = urlInfo.pathSuffix;
 
         // Automated post-deploy actions for bot presets
         if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
@@ -4564,6 +4682,8 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
         return jsonResponse({ 
           success: true, 
           url: finalUrl, 
+          rawBaseUrl,
+          customUrls: urlInfo.customUrls,
           workerName: actualDeployedName, 
           pathSuffix, 
           finalVars, 

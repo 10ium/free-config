@@ -1874,10 +1874,23 @@ function autoGenerateVars(varList, context = {}) {
 
 // --- TELEGRAM UPDATE HANDLER ---
 async function handleTelegramUpdate(update, env) {
-  if (update.message) {
-    await handleTelegramMessage(update.message, env);
-  } else if (update.callback_query) {
-    await handleTelegramCallback(update.callback_query, env);
+  try {
+    if (update.message) {
+      await handleTelegramMessage(update.message, env);
+    } else if (update.callback_query) {
+      await handleTelegramCallback(update.callback_query, env);
+    }
+  } catch (err) {
+    console.error("FATAL ERROR in handleTelegramUpdate:", err);
+    if (env) {
+      await logEvent(env, `خطا در پردازش پیام تلگرام: ${err.message}`, "error");
+    }
+    const chatId = update.message?.chat?.id || update.callback_query?.message?.chat?.id;
+    if (chatId && env) {
+      try {
+        await sendMessage(chatId.toString(), "❌ یک خطای غیرمنتظره رخ داد. لطفاً دستور /start را ارسال نمایید.", env);
+      } catch (_) {}
+    }
   }
 }
 
@@ -1893,7 +1906,7 @@ function popHistory(session) {
 
 async function handleTelegramMessage(msg, env) {
   const chatId = msg.chat.id.toString();
-  const text = msg.text ? msg.text.trim() : "";
+  let text = msg.text ? msg.text.trim() : "";
   
   let userSession = await env.BOT_KV.get(`session:${chatId}`, { type: "json" }) || { state: "IDLE", accounts: [], history: [] };
   if (!userSession.accounts) userSession.accounts = [];
@@ -2016,7 +2029,6 @@ async function handleTelegramMessage(msg, env) {
 
   // --- STATE: AWAITING CF API TOKEN ---
   if (userSession.state === "AWAITING_CF_TOKEN") {
-    text = text.trim();
 
     // Guard 1: Telegram Bot Token misinput
     if (/^[0-9]{8,11}:[A-Za-z0-9_-]{30,}$/.test(text)) {

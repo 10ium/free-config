@@ -4066,6 +4066,23 @@ async function handleFetch(request, event) {
     return await handleWebhookSetup(url.origin, env);
   }
 
+  // Telegram Webhook Status Diagnostic endpoint
+  if (url.pathname === "/webhook-status") {
+    if (!env.TELEGRAM_BOT_TOKEN) {
+      return new Response("TELEGRAM_BOT_TOKEN is not configured.", { status: 400 });
+    }
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`);
+      const tgData = await tgRes.json();
+      return new Response(JSON.stringify(tgData, null, 2), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
   // --- REST API ENDPOINTS FOR WEB DASHBOARD ---
   if (url.pathname.startsWith("/api/")) {
     return await handleApiRoutes(request, url, env);

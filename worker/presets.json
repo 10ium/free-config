@@ -158,7 +158,7 @@
     "name": "Cloudflare Deployer Bot ⚡",
     "summary": "ربات تلگرام و پنل وب برای استقرار خودکار و مدیریت قالب‌ها و اسکریپت‌های کلادفلر.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
-    "pathSuffix": "/",
+    "pathSuffix": "/setup",
     "kvBindings": [
       "BOT_KV"
     ],
@@ -167,13 +167,7 @@
         "name": "BOT_TOKEN",
         "required": true,
         "autoGenType": "alphanumeric",
-        "description": "توکن ربات تلگرام"
-      },
-      {
-        "name": "ADMIN_ID",
-        "required": true,
-        "autoGenType": "alphanumeric",
-        "description": "شناسه عددی ادمین تلگرام"
+        "description": "توکن ربات تلگرام از BotFather"
       }
     ],
     "features": [
@@ -184,7 +178,7 @@
     ],
     "useCase": "راه‌اندازی و مدیریت آسان انواع ورکرها روی اکانت شخصی کلادفلر.",
     "panelInfo": {
-      "path": "/",
+      "path": "/setup",
       "defaultUser": "-",
       "defaultPass": "-"
     },

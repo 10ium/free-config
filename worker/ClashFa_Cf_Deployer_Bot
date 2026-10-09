@@ -186,7 +186,7 @@ const PRESETS = [
     "name": "Cloudflare Deployer Bot ⚡",
     "summary": "ربات تلگرام و پنل وب برای استقرار خودکار و مدیریت قالب‌ها و اسکریپت‌های کلادفلر.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
-    "pathSuffix": "/",
+    "pathSuffix": "/setup",
     "kvBindings": [
       "BOT_KV"
     ],
@@ -195,13 +195,7 @@ const PRESETS = [
         "name": "BOT_TOKEN",
         "required": true,
         "autoGenType": "alphanumeric",
-        "description": "توکن ربات تلگرام"
-      },
-      {
-        "name": "ADMIN_ID",
-        "required": true,
-        "autoGenType": "alphanumeric",
-        "description": "شناسه عددی ادمین تلگرام"
+        "description": "توکن ربات تلگرام از BotFather"
       }
     ],
     "features": [
@@ -212,7 +206,7 @@ const PRESETS = [
     ],
     "useCase": "راه‌اندازی و مدیریت آسان انواع ورکرها روی اکانت شخصی کلادفلر.",
     "panelInfo": {
-      "path": "/",
+      "path": "/setup",
       "defaultUser": "-",
       "defaultPass": "-"
     },
@@ -1814,7 +1808,8 @@ async function sendMessage(chatId, text, env, useReplyMarkup = false, customKeyb
 }
 
 async function sendSingleMessage(chatId, text, env, replyMarkup) {
-  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const botToken = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   try {
     const res = await fetchWithTimeout(url, {
       method: "POST",
@@ -1846,7 +1841,8 @@ async function sendSingleMessage(chatId, text, env, replyMarkup) {
 }
 
 async function editMessageText(chatId, messageId, text, env, forceKeyboard = false) {
-  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`;
+  const botToken = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/editMessageText`;
   const replyMarkup = forceKeyboard ? {
     inline_keyboard: [[{ text: "🔙 بازگشت به منوی اصلی", callback_data: "go_main" }]]
   } : undefined;
@@ -1883,7 +1879,8 @@ async function editMessageText(chatId, messageId, text, env, forceKeyboard = fal
 }
 
 async function sendTelegramDocument(chatId, filename, content, env, caption = "") {
-  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`;
+  const botToken = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/sendDocument`;
   const formData = new FormData();
   formData.append("chat_id", chatId);
   if (caption) {
@@ -1906,7 +1903,8 @@ async function sendTelegramDocument(chatId, filename, content, env, caption = ""
 }
 
 async function answerCallbackQuery(callbackQueryId, env) {
-  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+  const botToken = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
+  const url = `https://api.telegram.org/bot${botToken}/answerCallbackQuery`;
   try {
     await fetchWithTimeout(url, {
       method: "POST",
@@ -3573,6 +3571,18 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
       }
     }
 
+    if (activePreset && (activePreset.id === "clashfa_cf_deployer_bot" || activePreset.id === "cf_deployer_bot")) {
+      const tToken = finalVars.TELEGRAM_BOT_TOKEN || finalVars.BOT_TOKEN;
+      if (tToken) {
+        if (!activeBindings.some(b => b.name === "TELEGRAM_BOT_TOKEN")) {
+          activeBindings.push({ name: "TELEGRAM_BOT_TOKEN", text: tToken.toString(), type: "plain_text" });
+        }
+        if (!activeBindings.some(b => b.name === "BOT_TOKEN")) {
+          activeBindings.push({ name: "BOT_TOKEN", text: tToken.toString(), type: "plain_text" });
+        }
+      }
+    }
+
     await sendMessage(chatId, "🚀 در حال انتشار و استقرار نهایی پروژه در لبه‌های ابری کلادفلر...", env);
 
     if (type === "pages") {
@@ -3715,6 +3725,29 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
       } catch (e) {
         postDeployNotice = `\n\n⚙️ <b>صفحه راه‌اندازی ربات:</b>\n<a href="${rawBaseUrl}/setup">${rawBaseUrl}/setup</a>\n` +
           `🌐 <b>رابط کاربری وب:</b> <a href="${rawBaseUrl}/">${rawBaseUrl}/</a>\n`;
+      }
+    } else if (activePreset && (activePreset.id === "clashfa_cf_deployer_bot" || activePreset.id === "cf_deployer_bot")) {
+      await sendMessage(chatId, "⏳ در حال راه‌اندازی و ثبت خودکار وب‌هوک ربات استقرار (/setup)...", env);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const setupUrl = `${rawBaseUrl}/setup`;
+        const setupRes = await fetchWithTimeout(setupUrl, {}, 10000).catch(() => null);
+        let setupOk = false;
+        if (setupRes && setupRes.ok) {
+          try {
+            const setupData = await setupRes.json();
+            setupOk = setupData && (setupData.ok === true || setupData.result === true);
+          } catch (_) {
+            setupOk = true;
+          }
+        }
+        postDeployNotice = `\n\n🤖 <b>وضعیت راه‌اندازی خودکار ربات استقرار (Deployer Bot):</b>\n` +
+          `🔹 ثبت وب‌هوک تلگرام (/setup): ${setupOk ? "✅ با موفقیت فعال شد" : '⚠️ در صورت نیاز لینک را باز کنید: <a href="' + setupUrl + '">' + setupUrl + '</a>'}\n` +
+          (finalVars.BOT_USERNAME ? `🔹 آیدی ربات شما: @${finalVars.BOT_USERNAME.toString().replace(/^@/, "")} (<a href="https://t.me/${finalVars.BOT_USERNAME.toString().replace(/^@/, "")}">ورود به ربات</a>)\n` : "") +
+          `🔹 پنل وب مدیریت ورکرها: <a href="${rawBaseUrl}/">${rawBaseUrl}/</a>\n`;
+      } catch (e) {
+        postDeployNotice = `\n\n⚙️ <b>صفحه راه‌اندازی وب‌هوک ربات:</b>\n<a href="${rawBaseUrl}/setup">${rawBaseUrl}/setup</a>\n` +
+          `🌐 <b>داشبورد وب مدیریت:</b> <a href="${rawBaseUrl}/">${rawBaseUrl}/</a>\n`;
       }
     } else if (finalVars.BOT_TOKEN && (finalVars.WEBHOOK_SECRET || finalVars.ADMIN_IDS)) {
       try {
@@ -4175,12 +4208,13 @@ async function displayWorkerBindings(chatId, userSession, env) {
 
 // --- TELEGRAM WEBHOOK SETUP HANDLER ---
 async function handleWebhookSetup(origin, env) {
-  if (!env.TELEGRAM_BOT_TOKEN) {
+  const token = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
+  if (!token) {
     return new Response("TELEGRAM_BOT_TOKEN is not configured.", { status: 400 });
   }
 
   const webhookUrl = `${origin}/`;
-  const setWebhookApi = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setWebhook`;
+  const setWebhookApi = `https://api.telegram.org/bot${token}/setWebhook`;
   
   const payload = {
     url: webhookUrl,
@@ -4215,10 +4249,18 @@ async function handleWebhookSetup(origin, env) {
 
 // --- ENVIRONMENT LOADER HELPER ---
 function getEnv() {
+  const bToken = (typeof TELEGRAM_BOT_TOKEN !== "undefined" && TELEGRAM_BOT_TOKEN)
+    ? TELEGRAM_BOT_TOKEN
+    : (typeof BOT_TOKEN !== "undefined" && BOT_TOKEN ? BOT_TOKEN : null);
+  const sToken = (typeof SECRET_TOKEN !== "undefined" && SECRET_TOKEN)
+    ? SECRET_TOKEN
+    : (typeof WEBHOOK_SECRET !== "undefined" && WEBHOOK_SECRET ? WEBHOOK_SECRET : null);
+
   return {
     BOT_KV: typeof BOT_KV !== "undefined" ? BOT_KV : null,
-    TELEGRAM_BOT_TOKEN: typeof TELEGRAM_BOT_TOKEN !== "undefined" ? TELEGRAM_BOT_TOKEN : null,
-    SECRET_TOKEN: typeof SECRET_TOKEN !== "undefined" ? SECRET_TOKEN : null
+    TELEGRAM_BOT_TOKEN: bToken,
+    BOT_TOKEN: bToken,
+    SECRET_TOKEN: sToken
   };
 }
 
@@ -4278,11 +4320,12 @@ async function handleFetch(request, event) {
 
   // Telegram Webhook Status Diagnostic endpoint
   if (url.pathname === "/webhook-status") {
-    if (!env.TELEGRAM_BOT_TOKEN) {
+    const token = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
+    if (!token) {
       return new Response("TELEGRAM_BOT_TOKEN is not configured.", { status: 400 });
     }
     try {
-      const tgRes = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getWebhookInfo`);
+      const tgRes = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
       const tgData = await tgRes.json();
       return new Response(JSON.stringify(tgData, null, 2), {
         status: 200,
@@ -4646,6 +4689,18 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
           }
         }
 
+        if (preset && (preset.id === "clashfa_cf_deployer_bot" || preset.id === "cf_deployer_bot")) {
+          const tToken = finalVars.TELEGRAM_BOT_TOKEN || finalVars.BOT_TOKEN;
+          if (tToken) {
+            if (!activeBindings.some(b => b.name === "TELEGRAM_BOT_TOKEN")) {
+              activeBindings.push({ name: "TELEGRAM_BOT_TOKEN", text: tToken.toString(), type: "plain_text" });
+            }
+            if (!activeBindings.some(b => b.name === "BOT_TOKEN")) {
+              activeBindings.push({ name: "BOT_TOKEN", text: tToken.toString(), type: "plain_text" });
+            }
+          }
+        }
+
         const deployResult = await deployWorkerScript(account.token, account.id, workerName, signedCode, activeBindings, 0, preset);
         const actualDeployedName = (deployResult && deployResult.deployedName) ? deployResult.deployedName : workerName;
         await enableWorkerSubdomain(account.token, account.id, actualDeployedName);
@@ -4671,6 +4726,11 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
           try {
             await new Promise(r => setTimeout(r, 2500));
             await fetchWithTimeout(`${rawBaseUrl}/setup?action=setWebhook`, { method: "POST" }, 8000).catch(() => {});
+          } catch (_) {}
+        } else if (preset && (preset.id === "clashfa_cf_deployer_bot" || preset.id === "cf_deployer_bot")) {
+          try {
+            await new Promise(r => setTimeout(r, 2500));
+            await fetchWithTimeout(`${rawBaseUrl}/setup`, {}, 8000).catch(() => {});
           } catch (_) {}
         }
 

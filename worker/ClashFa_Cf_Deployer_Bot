@@ -824,6 +824,9 @@ function resolvePathSuffix(preset, contextVars = {}) {
   if (s.includes("{uuid}") && uuidVal) {
     return s.replace("{uuid}", uuidVal);
   }
+  if ((preset.id === "faceless-bot" || preset.id === "faceless_chat_bot") && contextVars && contextVars.WEBHOOK_SECRET) {
+    return "/setup?secret=" + encodeURIComponent(contextVars.WEBHOOK_SECRET);
+  }
   return s;
 }
 
@@ -1296,13 +1299,16 @@ async function cacheAllPresets(env, forceRefresh = true) {
 
 function isESModule(code) {
   if (!code) return false;
-  // If the script explicitly registers fetch event listener, it is definitively a Service Worker
+  // 1. If the script explicitly defines a top-level export default or export as default, it MUST be an ES Module
+  if (/(?:^|[;\n}])\s*export\s+default\b/m.test(code) || /(?:^|[;\n}])\s*export\s*\{[^}]*\bas\s+default\b/im.test(code)) {
+    return true;
+  }
+  // 2. If the script explicitly registers fetch event listener, it is definitively a Service Worker
   if (/addEventListener\s*\(\s*['"]fetch['"]/.test(code)) {
     return false;
   }
-  return /export\s*\{[^}]*\bas\s+default\b/i.test(code) ||
-         /(?:^|[;\n}])\s*export\s+default\b/m.test(code) ||
-         /(?:^|[;\n}])\s*export\s*\{/m.test(code) ||
+  // 3. Otherwise, check for standard ES module export/import syntax
+  return /(?:^|[;\n}])\s*export\s*\{/m.test(code) ||
          /(?:^|[;\n}])\s*import\s*\{/m.test(code) ||
          /(?:^|[;\n}])\s*import\s+[\w$*]+/m.test(code);
 }
@@ -3932,15 +3938,17 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
       await sendMessage(chatId, "⏳ در حال اجرای راه‌اندازی خودکار ۳ در ۱ ربات فیسلس (/setup)...", env);
       try {
         await new Promise(resolve => setTimeout(resolve, 3000));
-        const setupUrl = `${rawBaseUrl}/setup`;
+        const setupSecretQuery = finalVars.WEBHOOK_SECRET ? `?secret=${encodeURIComponent(finalVars.WEBHOOK_SECRET)}` : "";
+        const setupUrl = `${rawBaseUrl}/setup${setupSecretQuery}`;
         const setupRes = await fetchWithTimeout(setupUrl, {}, 10000).catch(() => null);
         const setupOk = setupRes && setupRes.ok;
         postDeployNotice = `\n\n🤖 <b>وضعیت راه‌اندازی خودکار ۳ در ۱ فیسلس:</b>\n` +
           `🔹 عملیات ست‌آپ (/setup): ${setupOk ? "✅ با موفقیت انجام شد" : '⚠️ در صورت لزوم باز کنید: <a href="' + setupUrl + '">لینک /setup</a>'}\n` +
           (finalVars.BOT_USERNAME ? `🔹 آیدی ربات: @${finalVars.BOT_USERNAME.toString().replace(/^@/, "")} (<a href="https://t.me/${finalVars.BOT_USERNAME.toString().replace(/^@/, "")}">ورود به ربات</a>)\n` : "");
       } catch (e) {
+        const setupSecretQuery = finalVars.WEBHOOK_SECRET ? `?secret=${encodeURIComponent(finalVars.WEBHOOK_SECRET)}` : "";
         postDeployNotice = `\n\n⚠️ جهت تکمیل راه‌اندازی، آدرس زیر را یک‌بار در مرورگر باز کنید:\n` +
-          `👉 <code>${rawBaseUrl}/setup</code>\n`;
+          `👉 <code>${rawBaseUrl}/setup${setupSecretQuery}</code>\n`;
       }
     } else if (activePreset && activePreset.id === "tg_proxy_assistant") {
       await sendMessage(chatId, "⏳ در حال فعال‌سازی خودکار وب‌هوک ربات تلگرام...", env);
@@ -4981,7 +4989,8 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
         if (preset && (preset.id === "faceless-bot" || preset.id === "faceless_chat_bot")) {
           try {
             await new Promise(r => setTimeout(r, 2500));
-            await fetchWithTimeout(`${rawBaseUrl}/setup`, {}, 8000).catch(() => {});
+            const setupSecretQuery = finalVars.WEBHOOK_SECRET ? `?secret=${encodeURIComponent(finalVars.WEBHOOK_SECRET)}` : "";
+            await fetchWithTimeout(`${rawBaseUrl}/setup${setupSecretQuery}`, {}, 8000).catch(() => {});
           } catch (_) {}
         } else if (preset && preset.id === "tg_proxy_assistant" && finalVars.BOT_TOKEN) {
           try {

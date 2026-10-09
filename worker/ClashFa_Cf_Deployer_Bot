@@ -3388,6 +3388,7 @@ async function promptCurrentResource(chatId, session, env) {
 // --- TELEGRAM DEPLOYMENT EXECUTOR ---
 async function executeTelegramDeployment(chatId, session, env) {
   const { account, name, templateIdx, templateUrl, isLegacy, kvBindings, d1Bindings, vars, type, autoGenTemplate } = session.deployPayload;
+  const activePreset = templateIdx !== "custom" ? PRESETS[templateIdx] : null;
 
   await sendMessage(chatId, "⚡ در حال خواندن سورس کد قالب...", env);
   let sourceCode = "";
@@ -3395,8 +3396,7 @@ async function executeTelegramDeployment(chatId, session, env) {
     if (templateIdx === "custom") {
       sourceCode = await getPresetCode(null, env, templateUrl);
     } else {
-      const preset = PRESETS[templateIdx];
-      sourceCode = await getPresetCode(preset, env);
+      sourceCode = await getPresetCode(activePreset, env);
     }
   } catch (err) {
     session.state = "IDLE";
@@ -3413,9 +3413,8 @@ async function executeTelegramDeployment(chatId, session, env) {
 
     // Process presets' variables & DB mappings
     let finalVars = { ...vars };
-    if (autoGenTemplate && templateIdx !== "custom") {
-      const preset = PRESETS[templateIdx];
-      finalVars = autoGenerateVars(preset.vars, { ...vars, chatId: chatId.toString() });
+    if (autoGenTemplate && activePreset) {
+      finalVars = autoGenerateVars(activePreset.vars, { ...vars, chatId: chatId.toString() });
     }
 
     // Auto-detect BOT_USERNAME via Telegram API if needed
@@ -3527,13 +3526,12 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
             createdResources.push({ type: "d1", id: dbId, name: `${name}-${bindingName}` });
 
             // Execute D1 Database Schema if preset requires it
-            if (templateIdx !== "custom" && dbId) {
-              const currentPreset = PRESETS[templateIdx];
-              if (currentPreset && (currentPreset.id === "faceless-bot" || currentPreset.id === "faceless_chat_bot")) {
+            if (activePreset && dbId) {
+              if (activePreset.id === "faceless-bot" || activePreset.id === "faceless_chat_bot") {
                 await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس (users, chats, logs) برای بات چت ناشناس...", env);
                 const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (\n  user_id INTEGER PRIMARY KEY,\n  gender TEXT,\n  target_gender TEXT,\n  status TEXT DEFAULT 'idle',\n  chat_id TEXT DEFAULT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\nCREATE TABLE IF NOT EXISTS chats (\n  chat_id TEXT PRIMARY KEY,\n  user1 INTEGER,\n  user2 INTEGER,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\nCREATE TABLE IF NOT EXISTS logs (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  user_id INTEGER,\n  action TEXT,\n  details TEXT,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n`;
                 await executeD1Statements(account.token, account.id, dbId, schemaSql);
-              } else if (currentPreset && (currentPreset.id === "apex_panel" || currentPreset.id === "apex")) {
+              } else if (activePreset && (activePreset.id === "apex_panel" || activePreset.id === "apex")) {
                 await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس D1 برای پنل Apex...", env);
                 const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, uuid TEXT NOT NULL UNIQUE, sub_token TEXT NOT NULL UNIQUE, trojan_pass TEXT NOT NULL DEFAULT '', trojan_hash TEXT NOT NULL DEFAULT '', quota_bytes INTEGER NOT NULL DEFAULT 0, used_bytes INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'active', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER);\nCREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);\nCREATE INDEX IF NOT EXISTS idx_users_token ON users(sub_token);\nCREATE INDEX IF NOT EXISTS idx_users_trojan ON users(trojan_hash);\nCREATE INDEX IF NOT EXISTS idx_users_expires ON users(expires_at);\nCREATE INDEX IF NOT EXISTS idx_users_status ON users(status);\nCREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, user_id INTEGER NOT NULL, up_bytes INTEGER NOT NULL DEFAULT 0, down_bytes INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, user_id);\nCREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);\n`;
                 await executeD1Statements(account.token, account.id, dbId, schemaSql);
@@ -3594,7 +3592,6 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
     // Build precise success variable list output
     // Build comprehensive success variable and resource list output
     let varsMsg = "";
-    const activePreset = templateIdx !== "custom" ? PRESETS[templateIdx] : null;
 
     if (activePreset && activePreset.d1Bindings && activePreset.d1Bindings.length > 0) {
       varsMsg += "\n\n🗄 <b>دیتابیس‌های ابری D1 متصل‌شده:</b>\n";
@@ -3686,7 +3683,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
         postDeployNotice = `\n\n⚠️ جهت تکمیل راه‌اندازی، آدرس زیر را یک‌بار در مرورگر باز کنید:\n` +
           `👉 <code>${rawBaseUrl}/setup</code>\n`;
       }
-    } else if (templateIdx !== "custom" && PRESETS[templateIdx].id === "tg_proxy_assistant") {
+    } else if (activePreset && activePreset.id === "tg_proxy_assistant") {
       await sendMessage(chatId, "⏳ در حال فعال‌سازی خودکار وب‌هوک ربات تلگرام...", env);
       try {
         await new Promise(resolve => setTimeout(resolve, 3000));

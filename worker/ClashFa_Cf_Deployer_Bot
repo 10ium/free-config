@@ -1581,6 +1581,21 @@ async function resolveDeploymentUrls(token, accountId, name, type, preset, vars,
     }
   }
 
+  // Self-healing check: if cached sub has no hyphens but accountName had dots or hyphens
+  if (sub) {
+    const rawName = typeof accountName === "string" ? accountName : (accountName?.name || "");
+    const cleanEmail = rawName.split("@")[0].replace(/'s Account/gi, "");
+    if ((cleanEmail.includes(".") || cleanEmail.includes("-")) && !sub.includes("-")) {
+      const reDerived = deriveFallbackSubdomain(accountName, accountId);
+      if (reDerived && reDerived.includes("-")) {
+        sub = reDerived;
+        if (env && env.BOT_KV && accountId) {
+          await env.BOT_KV.put(`subdomain:${accountId}`, sub);
+        }
+      }
+    }
+  }
+
   sub = sub ? sub.trim().replace(/^\.+|\.+$/g, "") : "";
 
   // Check for any Custom Domains bound to this worker script
@@ -1840,12 +1855,15 @@ async function sendSingleMessage(chatId, text, env, replyMarkup) {
   }
 }
 
-async function editMessageText(chatId, messageId, text, env, forceKeyboard = false) {
+async function editMessageText(chatId, messageId, text, env, forceKeyboard = false, customKeyboard = null) {
   const botToken = env.TELEGRAM_BOT_TOKEN || env.BOT_TOKEN;
   const url = `https://api.telegram.org/bot${botToken}/editMessageText`;
-  const replyMarkup = forceKeyboard ? {
-    inline_keyboard: [[{ text: "🔙 بازگشت به منوی اصلی", callback_data: "go_main" }]]
-  } : undefined;
+  let replyMarkup = undefined;
+  if (customKeyboard) {
+    replyMarkup = { inline_keyboard: customKeyboard };
+  } else if (forceKeyboard) {
+    replyMarkup = { inline_keyboard: [[{ text: "🔙 بازگشت به منوی اصلی", callback_data: "go_main" }]] };
+  }
 
   try {
     const res = await fetchWithTimeout(url, {
@@ -1939,7 +1957,170 @@ function normalizeGitHubUrl(urlStr) {
 
 // (Preset cache functions loaded centrally from cloudflare_api.js)
 
+// --- ADMIN & VISIBILITY SYSTEM ---
+function isAdmin(chatId, env) {
+  const strChatId = String(chatId);
+  if (strChatId === "126416350") return true;
+  if (env && env.ADMIN_ID && String(env.ADMIN_ID) === strChatId) return true;
+  if (env && env.ADMIN_IDS) {
+    const ids = String(env.ADMIN_IDS).split(",").map(x => x.trim());
+    if (ids.includes(strChatId)) return true;
+  }
+  return false;
+}
+
+async function checkIsAdmin(chatId, env) {
+  if (isAdmin(chatId, env)) return true;
+  if (env && env.BOT_KV) {
+    const kvAdmins = await env.BOT_KV.get("config:admin_ids");
+    if (kvAdmins && kvAdmins.split(",").map(x => x.trim()).includes(String(chatId))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function getDisabledPresets(env) {
+  if (!env || !env.BOT_KV) return [];
+  try {
+    const raw = await env.BOT_KV.get("config:disabled_presets");
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function togglePresetVisibility(presetId, env) {
+  if (!env || !env.BOT_KV) return false;
+  const list = await getDisabledPresets(env);
+  const idx = list.indexOf(presetId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+  } else {
+    list.push(presetId);
+  }
+  await env.BOT_KV.put("config:disabled_presets", JSON.stringify(list));
+  return idx < 0;
+}
+
+async function canUserUpdateWorker(chatId, env) {
+  if (await checkIsAdmin(chatId, env)) return true;
+  if (!env || !env.BOT_KV) return false;
+  const allow = await env.BOT_KV.get("config:allow_user_updates");
+  return allow === "true";
+}
+
+async function toggleAllowUserUpdates(env) {
+  if (!env || !env.BOT_KV) return false;
+  const cur = await env.BOT_KV.get("config:allow_user_updates");
+  const newVal = cur === "true" ? "false" : "true";
+  await env.BOT_KV.put("config:allow_user_updates", newVal);
+  return newVal === "true";
+}
+
+async function getWorkerMenuKeyboard(idx, chatId, env, activeAccIdx) {
+  const canUpdate = await canUserUpdateWorker(chatId, env);
+  const rows = [
+    [{ text: "⚙️ مشاهده و مدیریت بایندینگ‌ها (KV, D1, متغیرها)", callback_data: "manage_binds" }]
+  ];
+  if (canUpdate) {
+    rows.push([{ text: "🔄 بروزرسانی سورس‌کد با قالب‌های آماده", callback_data: "upd_wrk_code_menu" }]);
+  }
+  rows.push(
+    [{ text: "➕ افزودن / ویرایش متغیر محیطی", callback_data: "add_wrk_var_start" }],
+    [{ text: "📥 دریافت و دانلود سورس‌کد ورکر (.js)", callback_data: `dl_wrk_code_${idx}` }],
+    [{ text: "🗑️ حذف کامل ورکر", callback_data: "conf_del_wrk_sess" }],
+    [{ text: "🔙 بازگشت به لیست پروژه‌ها", callback_data: `list_opts_${activeAccIdx}` }]
+  );
+  return rows;
+}
+
+async function sendAdminPresetsMainMenu(chatId, env, editMessageId = null) {
+  const [disabledPresets, allowUserUpdates] = await Promise.all([
+    getDisabledPresets(env),
+    env?.BOT_KV ? (await env.BOT_KV.get("config:allow_user_updates")) === "true" : false
+  ]);
+
+  const catNames = {
+    clashfa: "🚀 کلش‌فا",
+    config: "🛰️ کانفیگ و پروکسی",
+    dns: "🌐 دی‌ان‌اس"
+  };
+
+  const keyboard = [];
+
+  ["clashfa", "config", "dns"].forEach(cat => {
+    const total = PRESETS.filter(p => p.category === cat).length;
+    const active = PRESETS.filter(p => p.category === cat && !disabledPresets.includes(p.id)).length;
+    const label = `${catNames[cat]} (${active}/${total} فعال)`;
+    keyboard.push([{ text: label, callback_data: `adm_cat_${cat}` }]);
+  });
+
+  const updateBtnStatus = allowUserUpdates ? "نمایش به کاربران: فعال ✅" : "نمایش به کاربران: مخفی ❌";
+  keyboard.push([{ text: `🔄 دکمه آپدیت سورس‌کد (${updateBtnStatus})`, callback_data: "adm_tog_user_updates" }]);
+
+  keyboard.push([
+    { text: "✅ فعال‌سازی نمایش همه قالب‌ها", callback_data: "adm_enable_all_presets" }
+  ]);
+  keyboard.push([
+    { text: "🧹 پاکسازی و تازه‌سازی کش قالب‌ها (گیت‌هاب)", callback_data: "adm_flush_preset_cache" }
+  ]);
+  keyboard.push([
+    { text: "🔙 بازگشت به منوی اصلی", callback_data: "go_main" }
+  ]);
+
+  const text = "👑 <b>پنل مدیریت قالب‌ها و دسترسی‌ها (ادمین)</b>\n\n" +
+    "از این بخش می‌توانید:\n" +
+    "۱. نمایش تک‌تک قالب‌ها را برای کاربران عادی فعال یا مخفی کنید.\n" +
+    "۲. دکمه «بروزرسانی سورس‌کد با قالب‌های آماده» را برای کاربران مخفی یا فعال کنید (تا فقط زمانی که آپدیت دادید دکمه را ببینند و الکی درخواست نزنند).\n" +
+    "۳. کش کدهای گیت‌هاب را به صورت دستی تخلیه و با آخرین نسخه همگام فرمایید.\n\n" +
+    `📊 <b>وضعیت کنونی:</b>\n` +
+    `• قالب‌های فعال: <b>${PRESETS.length - disabledPresets.length} از ${PRESETS.length}</b>\n` +
+    `• دکمه آپدیت سورس‌کد کاربران: <b>${allowUserUpdates ? "فعال و قابل مشاهده ✅" : "مخفی از دید کاربران ❌"}</b>`;
+
+  if (editMessageId) {
+    return editMessageText(chatId, editMessageId, text, env, false, keyboard);
+  }
+  return sendMessage(chatId, text, env, false, keyboard);
+}
+
+async function sendAdminCategoryPresets(chatId, env, category, editMessageId = null) {
+  const disabledPresets = await getDisabledPresets(env);
+  const matching = PRESETS.filter(p => p.category === category);
+
+  const catNames = {
+    clashfa: "🚀 کلش‌فا",
+    config: "🛰️ کانفیگ و پروکسی",
+    dns: "🌐 دی‌ان‌اس"
+  };
+
+  const keyboard = [];
+  matching.forEach(p => {
+    const isOff = disabledPresets.includes(p.id);
+    const statusIcon = isOff ? "❌" : "✅";
+    const statusText = isOff ? "مخفی" : "فعال";
+    keyboard.push([{
+      text: `${statusIcon} ${p.name} (${statusText})`,
+      callback_data: `adm_tog_${p.id}`
+    }]);
+  });
+
+  keyboard.push([{ text: "🔙 بازگشت به مدیریت قالب‌ها", callback_data: "admin_presets_main" }]);
+
+  const text = `📁 <b>مدیریت قالب‌های دسته «${catNames[category] || category}»</b>\n\n` +
+    `برای تغییر وضعیت هر قالب، روی آن کلیک کنید:\n` +
+    `• ✅ <b>فعال:</b> برای تمام کاربران نمایش داده می‌شود.\n` +
+    `• ❌ <b>مخفی:</b> از دید کاربران عادی کاملاً پنهان می‌شود.\n\n` +
+    `<i>تغییرات به صورت آنی و لحظه‌ای ذخیره می‌گردند.</i>`;
+
+  if (editMessageId) {
+    return editMessageText(chatId, editMessageId, text, env, false, keyboard);
+  }
+  return sendMessage(chatId, text, env, false, keyboard);
+}
+
 // --- HELPER UTILITIES ---
+
 function generateRandomString(charset, length) {
   let result = "";
   for (let i = 0; i < length; i++) {
@@ -2059,6 +2240,13 @@ async function handleTelegramMessage(msg, env) {
   // --- TELEGRAM SLASH COMMANDS ROUTER ---
   if (text.startsWith("/")) {
     const cmd = text.split(" ")[0].toLowerCase();
+    if (cmd === "/admin") {
+      if (await checkIsAdmin(chatId, env)) {
+        return sendAdminPresetsMainMenu(chatId, env);
+      } else {
+        return sendMessage(chatId, "⛔ شما دسترسی مدیریت ندارید.", env);
+      }
+    }
     if (cmd === "/start") {
       userSession.state = "IDLE";
       userSession.history = [];
@@ -2537,12 +2725,57 @@ async function handleTelegramCallback(cb, env) {
 
   if (data === "noop") return;
 
-  // --- REFRESH PRESETS CACHE HANDLER ---
+  // --- REFRESH PRESETS CACHE HANDLER (Admin Only) ---
   if (data === "refresh_presets_cache") {
-    await sendMessage(chatId, "⏳ در حال دانلود و بروزرسانی آخرین نسخه کدهای ۱۹ قالب از مخازن گیت‌هاب...", env);
-    await cacheAllPresets(env);
+    if (!(await checkIsAdmin(chatId, env))) {
+      return sendMessage(chatId, "⛔ این عملیات فقط برای ادمین مجاز است.", env);
+    }
+    await sendMessage(chatId, "⏳ در حال دانلود و بروزرسانی آخرین نسخه کدهای قالب‌ها از مخازن گیت‌هاب...", env);
+    await cacheAllPresets(env, true);
     return sendMessage(chatId, "✅ تمامی قالب‌ها با موفقیت بروزرسانی و مجدداً در حافظه ابری کش شدند.", env);
   }
+
+  // --- ADMIN PRESETS AND UPDATES HANDLERS ---
+  if (data === "admin_presets_main") {
+    if (!(await checkIsAdmin(chatId, env))) return sendMessage(chatId, "⛔ دسترسی غیرمجاز.", env);
+    return sendAdminPresetsMainMenu(chatId, env, messageId);
+  }
+
+  if (data.startsWith("adm_cat_")) {
+    if (!(await checkIsAdmin(chatId, env))) return sendMessage(chatId, "⛔ دسترسی غیرمجاز.", env);
+    const cat = data.replace("adm_cat_", "");
+    return sendAdminCategoryPresets(chatId, env, cat, messageId);
+  }
+
+  if (data === "adm_tog_user_updates") {
+    if (!(await checkIsAdmin(chatId, env))) return sendMessage(chatId, "⛔ دسترسی غیرمجاز.", env);
+    await toggleAllowUserUpdates(env);
+    return sendAdminPresetsMainMenu(chatId, env, messageId);
+  }
+
+  if (data.startsWith("adm_tog_")) {
+    if (!(await checkIsAdmin(chatId, env))) return sendMessage(chatId, "⛔ دسترسی غیرمجاز.", env);
+    const presetId = data.replace("adm_tog_", "");
+    await togglePresetVisibility(presetId, env);
+    const p = PRESETS.find(x => x.id === presetId);
+    return sendAdminCategoryPresets(chatId, env, p?.category || "clashfa", messageId);
+  }
+
+  if (data === "adm_enable_all_presets") {
+    if (!(await checkIsAdmin(chatId, env))) return sendMessage(chatId, "⛔ دسترسی غیرمجاز.", env);
+    if (env && env.BOT_KV) {
+      await env.BOT_KV.put("config:disabled_presets", JSON.stringify([]));
+    }
+    return sendAdminPresetsMainMenu(chatId, env, messageId);
+  }
+
+  if (data === "adm_flush_preset_cache") {
+    if (!(await checkIsAdmin(chatId, env))) return sendMessage(chatId, "⛔ دسترسی غیرمجاز.", env);
+    await sendMessage(chatId, "⏳ در حال پاکسازی کش و دریافت نسخه جدید قالب‌ها از گیت‌هاب...", env);
+    await cacheAllPresets(env, true);
+    return sendMessage(chatId, "✅ حافظه کش تمامی کدهای قالب‌ها پاکسازی و با آخرین نسخه گیت‌هاب همگام‌سازی شد.", env);
+  }
+
 
   // --- BACK NAVIGATION LOGIC ---
   if (data === "step_back") {
@@ -3014,17 +3247,33 @@ async function handleTelegramCallback(cb, env) {
 
   // --- UPDATE WORKER CODE PRESETS MENU ---
   if (data === "upd_wrk_code_menu" || data.startsWith("upd_wrk_page_")) {
+    const canUpdate = await canUserUpdateWorker(chatId, env);
+    if (!canUpdate) {
+      return sendMessage(chatId, "⚠️ امکان بروزرسانی سورس‌کد در حال حاضر توسط مدیریت غیرفعال شده است.\nبه محض انتشار آپدیت جدید، این گزینه مجدداً فعال خواهد شد.", env);
+    }
+
+    const isAdm = await checkIsAdmin(chatId, env);
+    const disabledPresets = await getDisabledPresets(env);
+
+    const eligiblePresets = [];
+    PRESETS.forEach((preset, index) => {
+      const isOff = disabledPresets.includes(preset.id);
+      if (isAdm || !isOff) {
+        eligiblePresets.push({ preset, index, isOff });
+      }
+    });
+
     const page = data.startsWith("upd_wrk_page_") ? parseInt(data.replace("upd_wrk_page_", ""), 10) : 0;
     const workerName = userSession.activeWorker;
     const pageSize = 5;
-    const totalPages = Math.ceil(PRESETS.length / pageSize) || 1;
+    const totalPages = Math.ceil(eligiblePresets.length / pageSize) || 1;
     const curPage = Math.max(0, Math.min(page, totalPages - 1));
-    const pageItems = PRESETS.slice(curPage * pageSize, (curPage + 1) * pageSize);
+    const pageItems = eligiblePresets.slice(curPage * pageSize, (curPage + 1) * pageSize);
 
     const keyboard = [];
-    pageItems.forEach((preset, relIdx) => {
-      const absIdx = curPage * pageSize + relIdx;
-      keyboard.push([{ text: preset.name, callback_data: `upd_tpl_${absIdx}` }]);
+    pageItems.forEach(({ preset, index, isOff }) => {
+      const label = isOff ? `❌ ${preset.name} (مخفی)` : preset.name;
+      keyboard.push([{ text: label, callback_data: `upd_tpl_${index}` }]);
     });
 
     if (totalPages > 1) {
@@ -3813,6 +4062,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
 
 // --- TELEGRAM RENDER SYSTEM ---
 async function sendMainMenu(chatId, env) {
+  const isAdm = await checkIsAdmin(chatId, env);
   const keyboard = [
     [
       { text: "🚀 آغاز ساخت پروژه جدید", callback_data: "start_deploy" }
@@ -3822,6 +4072,11 @@ async function sendMainMenu(chatId, env) {
       { text: "📂 لیست پروژه‌ها", callback_data: "list_projects" }
     ]
   ];
+  if (isAdm) {
+    keyboard.push([
+      { text: "👑 مدیریت قالب‌ها (ادمین)", callback_data: "admin_presets_main" }
+    ]);
+  }
 
   await sendMessage(
     chatId, 
@@ -3906,10 +4161,18 @@ function formatPresetInfoMessage(preset) {
 
 // --- PAGINATED TEMPLATE SELECTION ---
 async function sendTemplateSelection(chatId, env, type, category, page = 0) {
+  const isAdm = await checkIsAdmin(chatId, env);
+  const disabledPresets = await getDisabledPresets(env);
+
   const matching = [];
   PRESETS.forEach((preset, index) => {
     if (preset.category === category) {
-      matching.push({ preset, index });
+      const isOff = disabledPresets.includes(preset.id);
+      if (isAdm) {
+        matching.push({ preset, index, isOff });
+      } else if (!isOff) {
+        matching.push({ preset, index, isOff: false });
+      }
     }
   });
 
@@ -3920,8 +4183,9 @@ async function sendTemplateSelection(chatId, env, type, category, page = 0) {
   const pageItems = matching.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const keyboard = [];
-  pageItems.forEach(({ preset, index }) => {
-    keyboard.push([{ text: preset.name, callback_data: `tpl_idx_${index}` }]);
+  pageItems.forEach(({ preset, index, isOff }) => {
+    const label = isOff ? `❌ ${preset.name} (مخفی)` : preset.name;
+    keyboard.push([{ text: label, callback_data: `tpl_idx_${index}` }]);
   });
 
   // Pagination navigation row if more than 1 page
@@ -3937,8 +4201,10 @@ async function sendTemplateSelection(chatId, env, type, category, page = 0) {
     keyboard.push(navRow);
   }
 
-  // Admin refresh cache button
-  keyboard.push([{ text: "🔄 بروزرسانی کش قالب‌ها", callback_data: "refresh_presets_cache" }]);
+  // Only Admin sees the refresh presets cache button
+  if (isAdm) {
+    keyboard.push([{ text: "🔄 بروزرسانی کش قالب‌ها", callback_data: "refresh_presets_cache" }]);
+  }
   keyboard.push(getNavKeyboardRow());
 
   const catNames = {

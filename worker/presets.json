@@ -155,7 +155,7 @@
   },
   {
     "id": "clashfa_cf_deployer_bot",
-    "name": "ClashFa Deployer Bot ⚡",
+    "name": "Cloudflare Deployer Bot ⚡",
     "summary": "ربات تلگرام و پنل وب برای استقرار خودکار و مدیریت قالب‌ها و اسکریپت‌های کلادفلر.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
     "pathSuffix": "/",

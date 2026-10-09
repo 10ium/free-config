@@ -183,7 +183,7 @@ const PRESETS = [
   },
   {
     "id": "clashfa_cf_deployer_bot",
-    "name": "ClashFa Deployer Bot ⚡",
+    "name": "Cloudflare Deployer Bot ⚡",
     "summary": "ربات تلگرام و پنل وب برای استقرار خودکار و مدیریت قالب‌ها و اسکریپت‌های کلادفلر.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/main/worker/ClashFa_Cf_Deployer_Bot",
     "pathSuffix": "/",
@@ -1302,16 +1302,15 @@ async function cacheAllPresets(env, forceRefresh = true) {
 
 function isESModule(code) {
   if (!code) return false;
-  if (code.includes("export default") || code.includes("export{") || code.includes("export {")) return true;
-  if (code.includes("import{") || code.includes("import {")) return true;
-  return /export\s*\{/i.test(code) ||
-         /export\s+default\b/i.test(code) ||
-         /export\s+(const|let|var|function|async|class)\b/i.test(code) ||
-         /import\s*\{/i.test(code) ||
-         /import\s+[\w$*]+/i.test(code) ||
-         /import\s*['"]/i.test(code) ||
-         /\bimport\b/.test(code) ||
-         /\bexport\b/.test(code);
+  // If the script explicitly registers fetch event listener, it is definitively a Service Worker
+  if (/addEventListener\s*\(\s*['"]fetch['"]/.test(code)) {
+    return false;
+  }
+  return /export\s*\{[^}]*\bas\s+default\b/i.test(code) ||
+         /(?:^|[;\n}])\s*export\s+default\b/m.test(code) ||
+         /(?:^|[;\n}])\s*export\s*\{/m.test(code) ||
+         /(?:^|[;\n}])\s*import\s*\{/m.test(code) ||
+         /(?:^|[;\n}])\s*import\s+[\w$*]+/m.test(code);
 }
 
 // Deploy Worker Script with Auto-Retry on Name Conflict (up to 3 attempts)

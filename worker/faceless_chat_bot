@@ -202,13 +202,6 @@ var Database = class {
       )`,
       `CREATE INDEX IF NOT EXISTS idx_rcb_pair ON random_chat_blocks(blocker_hash, blocked_hash)`
     ];
-    try {
-      const usersInfo = await this.db.prepare("PRAGMA table_info(users)").all();
-      const cols = (usersInfo.results || []).map(c => c.name);
-      if (cols.length > 0 && !cols.includes("link_token")) {
-        await this.db.prepare("DROP TABLE IF EXISTS users").run().catch(() => {});
-      }
-    } catch (_) {}
     for (const sql of stmts) {
       await this.db.prepare(sql).run();
     }
@@ -1174,6 +1167,12 @@ function escapeHtml(str) {
   if (!str)
     return "";
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+function isUserBlockedBotError(err) {
+  if (!err)
+    return false;
+  const msg = (err?.message || String(err || "")).toLowerCase();
+  return msg.includes("bot was blocked by the user") || msg.includes("user is deactivated") || msg.includes("chat not found") || msg.includes("can't initiate conversation") || msg.includes("kicked from") || msg.includes("chat was deactivated") || msg.includes("have no rights to send a message");
 }
 var TelegramClient = class {
   constructor(botToken, fetchFn) {
@@ -2811,6 +2810,18 @@ async function handleMessage(msg, env, db, tg) {
             { reply_markup: randomChatSessionKeyboard() }
           );
         } catch (e) {
+          if (isUserBlockedBotError(e)) {
+            await db.endRandomSession(userHash);
+            await db.removeFromRandomQueue(partnerHash);
+            await db.setUserRandomChatEnabled(partnerHash, false);
+            await db.addToRandomQueue(userHash);
+            await tg.sendMessage(
+              from.id,
+              "\u{1F50D} <b>\u062F\u0631 \u062D\u0627\u0644 \u062D\u0627\u0636\u0631 \u0647\u0645\u200C\u0635\u062D\u0628\u062A\u06CC \u0622\u0646\u0644\u0627\u06CC\u0646 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F!</b>\n\n\u0634\u0645\u0627 \u062F\u0631 \u0635\u0641 \u0627\u0646\u062A\u0638\u0627\u0631 \u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u0642\u0631\u0627\u0631 \u06AF\u0631\u0641\u062A\u06CC\u062F. \u0628\u0647 \u0645\u062D\u0636 \u0627\u06CC\u0646\u06A9\u0647 \u06A9\u0627\u0631\u0628\u0631 \u062F\u06CC\u06AF\u0631\u06CC \u0648\u0627\u0631\u062F \u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u0634\u0648\u062F\u060C \u0628\u0647 \u0635\u0648\u0631\u062A \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0647 \u0634\u0645\u0627 \u0645\u062A\u0635\u0644 \u062E\u0648\u0627\u0647\u062F \u0634\u062F.\n\n<i>\u0644\u0637\u0641\u0627\u064B \u0645\u0646\u062A\u0638\u0631 \u0628\u0645\u0627\u0646\u06CC\u062F...</i>",
+              { reply_markup: randomChatSearchKeyboard() }
+            );
+            return;
+          }
         }
       }
       await tg.sendMessage(
@@ -2882,6 +2893,18 @@ async function handleMessage(msg, env, db, tg) {
             { reply_markup: randomChatSessionKeyboard() }
           );
         } catch (e) {
+          if (isUserBlockedBotError(e)) {
+            await db.endRandomSession(userHash);
+            await db.removeFromRandomQueue(partnerHash);
+            await db.setUserRandomChatEnabled(partnerHash, false);
+            await db.addToRandomQueue(userHash);
+            await tg.sendMessage(
+              from.id,
+              "\u{1F50D} <b>\u062F\u0631 \u062D\u0627\u0644 \u062D\u0627\u0636\u0631 \u0647\u0645\u200C\u0635\u062D\u0628\u062A\u06CC \u0622\u0646\u0644\u0627\u06CC\u0646 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F!</b>\n\n\u0634\u0645\u0627 \u062F\u0631 \u0635\u0641 \u0627\u0646\u062A\u0638\u0627\u0631 \u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u0642\u0631\u0627\u0631 \u06AF\u0631\u0641\u062A\u06CC\u062F. \u0628\u0647 \u0645\u062D\u0636 \u0648\u0631\u0648\u062F \u06A9\u0627\u0631\u0628\u0631 \u062F\u06CC\u06AF\u0631\u060C \u0627\u062A\u0635\u0627\u0644 \u0628\u0631\u0642\u0631\u0627\u0631 \u062E\u0648\u0627\u0647\u062F \u0634\u062F.",
+              { reply_markup: randomChatSearchKeyboard() }
+            );
+            return;
+          }
         }
       }
       await tg.sendMessage(
@@ -3210,7 +3233,15 @@ async function handleMessage(msg, env, db, tg) {
       return;
     }
   }
-  await dispatchAnonymousMessage(from.id, user, targetUserHash, msg, db, tg, env, replyToMsgId);
+  try {
+    await dispatchAnonymousMessage(from.id, user, targetUserHash, msg, db, tg, env, replyToMsgId);
+  } catch (err) {
+    if (isUserBlockedBotError(err)) {
+      await notifySenderRecipientBlocked(from.id, user.user_id_hash, targetUserHash, false, db, tg);
+      return;
+    }
+    throw err;
+  }
 }
 async function setupAnonymousChat(userId, user, targetToken, db, tg, env, isNewUser = false) {
   const botMode = await db.getBotMode();
@@ -3345,6 +3376,33 @@ async function showHelpMessage(chatId, tg, messageThreadId) {
     message_thread_id: messageThreadId,
     reply_markup: { inline_keyboard }
   });
+}
+async function notifySenderRecipientBlocked(senderTgId, senderUserHash, recipientHash, isRandomSession, db, tg) {
+  if (isRandomSession) {
+    await db.endRandomSession(senderUserHash).catch(() => {
+    });
+    await db.removeFromRandomQueue(recipientHash).catch(() => {
+    });
+    await db.setUserRandomChatEnabled(recipientHash, false).catch(() => {
+    });
+    await tg.sendMessage(
+      senderTgId,
+      "\u274C <b>\u0647\u0645\u200C\u0635\u062D\u0628\u062A \u0634\u0645\u0627 \u0631\u0628\u0627\u062A \u0631\u0627 \u0645\u062A\u0648\u0642\u0641 \u06CC\u0627 \u0645\u0633\u062F\u0648\u062F \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A.</b>\n\u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u067E\u0627\u06CC\u0627\u0646 \u06CC\u0627\u0641\u062A.",
+      { reply_markup: randomChatEndedKeyboard() }
+    ).catch(() => {
+    });
+  } else {
+    await db.setSetting(`state:${senderUserHash}`, "").catch(() => {
+    });
+    await db.setSetting(`last_target:${senderUserHash}`, "").catch(() => {
+    });
+    await tg.sendMessage(
+      senderTgId,
+      "\u274C <b>\u0627\u0631\u0633\u0627\u0644 \u067E\u06CC\u0627\u0645 \u0646\u0627\u0645\u0648\u0641\u0642 \u0628\u0648\u062F:</b>\n\u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u0631\u0628\u0627\u062A \u0631\u0627 \u0645\u062A\u0648\u0642\u0641 \u06CC\u0627 \u0645\u0633\u062F\u0648\u062F \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A \u0648 \u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u062A\u062D\u0648\u06CC\u0644 \u062F\u0627\u062F\u0647 \u0646\u0634\u062F.",
+      { reply_markup: mainMenuBar() }
+    ).catch(() => {
+    });
+  }
 }
 async function dispatchAnonymousMessage(senderTgId, senderUser, recipientHash, msg, db, tg, env, replyToMsgId) {
   const recipient = await db.getUserByHash(recipientHash);
@@ -3526,22 +3584,22 @@ async function dispatchAnonymousMessage(senderTgId, senderUser, recipientHash, m
           await db.recordConversation(senderUser.user_id_hash, recipientHash);
           return;
         }
-        const copiedList2 = await tg.copyMessages(connectedGroup.group_id, senderTgId, messageIds, {
+        const copiedList = await tg.copyMessages(connectedGroup.group_id, senderTgId, messageIds, {
           message_thread_id: topicId,
           reply_to_message_id: replyToMsgId
         });
         for (let i = 0; i < messageIds.length; i++) {
           const orig = messageIds[i];
-          const cop = copiedList2[i]?.message_id;
+          const cop = copiedList[i]?.message_id;
           if (cop) {
             await db.saveMessageMapping(senderUser.user_id_hash, orig, recipientHash, cop);
             await db.saveMessageMappingV2(senderTgId, orig, connectedGroup.group_id, cop, "forum");
           }
         }
-        const albumAnnouncement2 = msgHeader ? `${msgHeader}
+        const albumAnnouncement = msgHeader ? `${msgHeader}
 
 \u{1F4CE} <b>\u0622\u0644\u0628\u0648\u0645 \u0627\u0631\u0633\u0627\u0644\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB</b>` : `\u{1F4CE} <b>\u0622\u0644\u0628\u0648\u0645 \u0627\u0631\u0633\u0627\u0644\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB</b>`;
-        await tg.sendMessage(connectedGroup.group_id, albumAnnouncement2, {
+        await tg.sendMessage(connectedGroup.group_id, albumAnnouncement, {
           message_thread_id: topicId,
           reply_markup: actionsKeyboard
         }).catch(() => {
@@ -3557,56 +3615,64 @@ async function dispatchAnonymousMessage(senderTgId, senderUser, recipientHash, m
       }
     }
     const recipientTgId = await decryptTgId(recipient.encrypted_tg_id, env.AES_KEY);
-    if (isPeekMode) {
-      for (const it of albumItems) {
-        await db.addPendingPeek(recipientHash, senderUser.user_id_hash, senderTgId, it.message_id, senderUser.link_token, it.reply_to_msg_id || replyToMsgId);
-      }
-      const unreadPeeks = await db.getPendingPeeksByToken(recipientHash, senderUser.link_token);
-      const count = unreadPeeks.length;
-      const peekPromptMsg = await tg.sendMessage(
-        recipientTgId,
-        `\u{1F4E9} <b>\u0622\u0644\u0628\u0648\u0645 \u062C\u062F\u06CC\u062F\u06CC \u0634\u0627\u0645\u0644 ${messageIds.length} \u0631\u0633\u0627\u0646\u0647 \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB \u062F\u0627\u0631\u06CC\u062F!</b>
+    try {
+      if (isPeekMode) {
+        for (const it of albumItems) {
+          await db.addPendingPeek(recipientHash, senderUser.user_id_hash, senderTgId, it.message_id, senderUser.link_token, it.reply_to_msg_id || replyToMsgId);
+        }
+        const unreadPeeks = await db.getPendingPeeksByToken(recipientHash, senderUser.link_token);
+        const count = unreadPeeks.length;
+        const peekPromptMsg = await tg.sendMessage(
+          recipientTgId,
+          `\u{1F4E9} <b>\u0622\u0644\u0628\u0648\u0645 \u062C\u062F\u06CC\u062F\u06CC \u0634\u0627\u0645\u0644 ${messageIds.length} \u0631\u0633\u0627\u0646\u0647 \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB \u062F\u0627\u0631\u06CC\u062F!</b>
 
 \u0628\u0631\u0627\u06CC \u0645\u0634\u0627\u0647\u062F\u0647 \u0622\u0644\u0628\u0648\u0645 \u0631\u0648\u06CC \u062F\u06A9\u0645\u0647 \u0632\u06CC\u0631 \u0628\u0632\u0646\u06CC\u062F:`,
-        {
-          reply_markup: peekActionsKeyboard(senderUser.link_token, count)
+          {
+            reply_markup: peekActionsKeyboard(senderUser.link_token, count)
+          }
+        );
+        for (const mid of messageIds) {
+          await db.saveMessageMapping(senderUser.user_id_hash, mid, recipientHash, peekPromptMsg.message_id);
+          await db.saveMessageMappingV2(senderTgId, mid, recipientTgId, peekPromptMsg.message_id, "peek");
         }
-      );
-      for (const mid of messageIds) {
-        await db.saveMessageMapping(senderUser.user_id_hash, mid, recipientHash, peekPromptMsg.message_id);
-        await db.saveMessageMappingV2(senderTgId, mid, recipientTgId, peekPromptMsg.message_id, "peek");
+        await tg.sendMessage(senderTgId, "\u2705 \u0622\u0644\u0628\u0648\u0645 \u0634\u0645\u0627 \u0628\u0627 \u062D\u0627\u0644\u062A \u067E\u06CC\u0634\u200C\u0646\u0645\u0627\u06CC\u0634 \u0627\u0631\u0633\u0627\u0644 \u0634\u062F (\u0628\u0647 \u0645\u062D\u0636 \u0645\u0634\u0627\u0647\u062F\u0647 \u062A\u0648\u0633\u0637 \u0645\u062E\u0627\u0637\u0628\u060C \u0631\u0633\u06CC\u062F \u0633\u06CC\u0646 \u062F\u0631\u06CC\u0627\u0641\u062A \u062E\u0648\u0627\u0647\u06CC\u062F \u06A9\u0631\u062F).", {
+          reply_markup: messageSentConfirmationKeyboard(lastMid, recipient.link_token, recipient.nickname),
+          reply_to_message_id: lastMid
+        });
+        await db.recordConversation(senderUser.user_id_hash, recipientHash);
+        return;
       }
-      await tg.sendMessage(senderTgId, "\u2705 \u0622\u0644\u0628\u0648\u0645 \u0634\u0645\u0627 \u0628\u0627 \u062D\u0627\u0644\u062A \u067E\u06CC\u0634\u200C\u0646\u0645\u0627\u06CC\u0634 \u0627\u0631\u0633\u0627\u0644 \u0634\u062F (\u0628\u0647 \u0645\u062D\u0636 \u0645\u0634\u0627\u0647\u062F\u0647 \u062A\u0648\u0633\u0637 \u0645\u062E\u0627\u0637\u0628\u060C \u0631\u0633\u06CC\u062F \u0633\u06CC\u0646 \u062F\u0631\u06CC\u0627\u0641\u062A \u062E\u0648\u0627\u0647\u06CC\u062F \u06A9\u0631\u062F).", {
+      const copiedList = await tg.copyMessages(recipientTgId, senderTgId, messageIds, {
+        reply_to_message_id: replyToMsgId
+      });
+      for (let i = 0; i < messageIds.length; i++) {
+        const orig = messageIds[i];
+        const cop = copiedList[i]?.message_id;
+        if (cop) {
+          await db.saveMessageMapping(senderUser.user_id_hash, orig, recipientHash, cop);
+          await db.saveMessageMappingV2(senderTgId, orig, recipientTgId, cop, "direct");
+        }
+      }
+      const albumAnnouncement = msgHeader ? `${msgHeader}
+
+\u{1F4CE} <b>\u0622\u0644\u0628\u0648\u0645 \u0627\u0631\u0633\u0627\u0644\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB</b>` : `\u{1F4CE} <b>\u0622\u0644\u0628\u0648\u0645 \u0627\u0631\u0633\u0627\u0644\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB</b>`;
+      await tg.sendMessage(recipientTgId, albumAnnouncement, {
+        reply_markup: actionsKeyboard
+      }).catch(() => {
+      });
+      await tg.sendMessage(senderTgId, "\u2705 \u0622\u0644\u0628\u0648\u0645 \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0631\u0633\u0627\u0644 \u0634\u062F.", {
         reply_markup: messageSentConfirmationKeyboard(lastMid, recipient.link_token, recipient.nickname),
         reply_to_message_id: lastMid
       });
       await db.recordConversation(senderUser.user_id_hash, recipientHash);
       return;
-    }
-    const copiedList = await tg.copyMessages(recipientTgId, senderTgId, messageIds, {
-      reply_to_message_id: replyToMsgId
-    });
-    for (let i = 0; i < messageIds.length; i++) {
-      const orig = messageIds[i];
-      const cop = copiedList[i]?.message_id;
-      if (cop) {
-        await db.saveMessageMapping(senderUser.user_id_hash, orig, recipientHash, cop);
-        await db.saveMessageMappingV2(senderTgId, orig, recipientTgId, cop, "direct");
+    } catch (albumPvErr) {
+      if (isUserBlockedBotError(albumPvErr)) {
+        await notifySenderRecipientBlocked(senderTgId, senderUser.user_id_hash, recipientHash, isRandomSession, db, tg);
+        return;
       }
+      throw albumPvErr;
     }
-    const albumAnnouncement = msgHeader ? `${msgHeader}
-
-\u{1F4CE} <b>\u0622\u0644\u0628\u0648\u0645 \u0627\u0631\u0633\u0627\u0644\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB</b>` : `\u{1F4CE} <b>\u0622\u0644\u0628\u0648\u0645 \u0627\u0631\u0633\u0627\u0644\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB</b>`;
-    await tg.sendMessage(recipientTgId, albumAnnouncement, {
-      reply_markup: actionsKeyboard
-    }).catch(() => {
-    });
-    await tg.sendMessage(senderTgId, "\u2705 \u0622\u0644\u0628\u0648\u0645 \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0631\u0633\u0627\u0644 \u0634\u062F.", {
-      reply_markup: messageSentConfirmationKeyboard(lastMid, recipient.link_token, recipient.nickname),
-      reply_to_message_id: lastMid
-    });
-    await db.recordConversation(senderUser.user_id_hash, recipientHash);
-    return;
   }
   const burstDelaySec = await db.getBurstDelaySetting(senderUser.user_id_hash);
   const burstLockKey = `burst:${senderUser.user_id_hash}:${recipientHash}`;
@@ -3734,10 +3800,26 @@ async function dispatchAnonymousMessage(senderTgId, senderUser, recipientHash, m
         const peekPrompt = `\u{1F4E9} <b>\u067E\u06CC\u0627\u0645 \u0646\u0627\u0634\u0646\u0627\u0633 \u062C\u062F\u06CC\u062F\u06CC \u0627\u0632 \u0637\u0631\u0641 \xAB${senderDisplayName}\xBB \u062F\u0627\u0631\u06CC\u062F!${countText}</b>
 
 \u0628\u0631\u0627\u06CC \u0645\u0634\u0627\u0647\u062F\u0647 \u067E\u06CC\u0627\u0645 \u0631\u0648\u06CC \u062F\u06A9\u0645\u0647 \u0632\u06CC\u0631 \u0628\u0632\u0646\u06CC\u062F:`;
-        const peekPromptMsg = await tg.sendMessage(targetChatId, peekPrompt, {
-          message_thread_id: threadId,
-          reply_markup: peekActionsKeyboard(senderUser.link_token, count)
-        });
+        let peekPromptMsg;
+        try {
+          peekPromptMsg = await tg.sendMessage(targetChatId, peekPrompt, {
+            message_thread_id: threadId,
+            reply_markup: peekActionsKeyboard(senderUser.link_token, count)
+          });
+        } catch (peekErr) {
+          if (isUserBlockedBotError(peekErr)) {
+            await notifySenderRecipientBlocked(
+              item.sender_tg_id,
+              senderUser.user_id_hash,
+              recipientHash,
+              isRandomSession2,
+              db,
+              tg
+            );
+            return;
+          }
+          throw peekErr;
+        }
         await db.saveMessageMapping(senderUser.user_id_hash, item.message_id, recipientHash, peekPromptMsg.message_id);
         await db.saveMessageMappingV2(
           item.sender_tg_id,
@@ -3833,8 +3915,34 @@ ${escapeHtml2(msg.caption)}` : msgHeader : void 0;
               }
             } catch (err) {
             }
-            copied = await doCopyOrSend(recipientTgId, void 0);
+            try {
+              copied = await doCopyOrSend(recipientTgId, void 0);
+            } catch (pvErr) {
+              if (isUserBlockedBotError(pvErr)) {
+                await notifySenderRecipientBlocked(
+                  item.sender_tg_id,
+                  senderUser.user_id_hash,
+                  recipientHash,
+                  isRandomSession2,
+                  db,
+                  tg
+                );
+                return;
+              }
+              throw pvErr;
+            }
           } else {
+            if (isUserBlockedBotError(sendErr)) {
+              await notifySenderRecipientBlocked(
+                item.sender_tg_id,
+                senderUser.user_id_hash,
+                recipientHash,
+                isRandomSession2,
+                db,
+                tg
+              );
+              return;
+            }
             throw sendErr;
           }
         }
@@ -4266,6 +4374,18 @@ async function handleCallbackQuery(cb, env, db, tg) {
                 { reply_markup: randomChatSessionKeyboard() }
               );
             } catch (e) {
+              if (isUserBlockedBotError(e)) {
+                await db.endRandomSession(userHash);
+                await db.removeFromRandomQueue(partnerHash);
+                await db.setUserRandomChatEnabled(partnerHash, false);
+                await db.addToRandomQueue(userHash);
+                await tg.sendMessage(
+                  from.id,
+                  "\u{1F50D} <b>\u062F\u0631 \u062D\u0627\u0644 \u062D\u0627\u0636\u0631 \u0647\u0645\u200C\u0635\u062D\u0628\u062A\u06CC \u0622\u0646\u0644\u0627\u06CC\u0646 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F!</b>\n\n\u0634\u0645\u0627 \u062F\u0631 \u0635\u0641 \u0627\u0646\u062A\u0638\u0627\u0631 \u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u0642\u0631\u0627\u0631 \u06AF\u0631\u0641\u062A\u06CC\u062F. \u0628\u0647 \u0645\u062D\u0636 \u0648\u0631\u0648\u062F \u06A9\u0627\u0631\u0628\u0631 \u062F\u06CC\u06AF\u0631\u060C \u0627\u062A\u0635\u0627\u0644 \u0628\u0631\u0642\u0631\u0627\u0631 \u062E\u0648\u0627\u0647\u062F \u0634\u062F.",
+                  { reply_markup: randomChatSearchKeyboard() }
+                );
+                return;
+              }
             }
           }
           await tg.sendMessage(
@@ -4351,6 +4471,18 @@ async function handleCallbackQuery(cb, env, db, tg) {
             { reply_markup: randomChatSessionKeyboard() }
           );
         } catch (e) {
+          if (isUserBlockedBotError(e)) {
+            await db.endRandomSession(userHash);
+            await db.removeFromRandomQueue(partnerHash);
+            await db.setUserRandomChatEnabled(partnerHash, false);
+            await db.addToRandomQueue(userHash);
+            await tg.sendMessage(
+              from.id,
+              "\u{1F50D} <b>\u062F\u0631 \u062D\u0627\u0644 \u062D\u0627\u0636\u0631 \u0647\u0645\u200C\u0635\u062D\u0628\u062A\u06CC \u0622\u0646\u0644\u0627\u06CC\u0646 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F!</b>\n\n\u0634\u0645\u0627 \u062F\u0631 \u0635\u0641 \u0627\u0646\u062A\u0638\u0627\u0631 \u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u0642\u0631\u0627\u0631 \u06AF\u0631\u0641\u062A\u06CC\u062F. \u0628\u0647 \u0645\u062D\u0636 \u0627\u06CC\u0646\u06A9\u0647 \u06A9\u0627\u0631\u0628\u0631 \u062F\u06CC\u06AF\u0631\u06CC \u0648\u0627\u0631\u062F \u0686\u062A \u062A\u0635\u0627\u062F\u0641\u06CC \u0634\u0648\u062F\u060C \u0628\u0647 \u0635\u0648\u0631\u062A \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0647 \u0634\u0645\u0627 \u0645\u062A\u0635\u0644 \u062E\u0648\u0627\u0647\u062F \u0634\u062F.\n\n<i>\u0644\u0637\u0641\u0627\u064B \u0645\u0646\u062A\u0638\u0631 \u0628\u0645\u0627\u0646\u06CC\u062F...</i>",
+              { reply_markup: randomChatSearchKeyboard() }
+            );
+            return;
+          }
         }
       }
       await tg.sendMessage(
@@ -4437,6 +4569,18 @@ async function handleCallbackQuery(cb, env, db, tg) {
             { reply_markup: randomChatSessionKeyboard() }
           );
         } catch (e) {
+          if (isUserBlockedBotError(e)) {
+            await db.endRandomSession(userHash);
+            await db.removeFromRandomQueue(nextPartner);
+            await db.setUserRandomChatEnabled(nextPartner, false);
+            await db.addToRandomQueue(userHash);
+            await tg.sendMessage(
+              from.id,
+              "\u{1F50D} <b>\u062F\u0631 \u062D\u0627\u0644 \u062D\u0627\u0636\u0631 \u0647\u0645\u200C\u0635\u062D\u0628\u062A\u06CC \u0622\u0646\u0644\u0627\u06CC\u0646 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F!</b>\n\n\u0634\u0645\u0627 \u062F\u0631 \u0635\u0641 \u0627\u0646\u062A\u0638\u0627\u0631 \u0642\u0631\u0627\u0631 \u06AF\u0631\u0641\u062A\u06CC\u062F. \u0628\u0647 \u0645\u062D\u0636 \u0622\u0646\u0644\u0627\u06CC\u0646 \u0634\u062F\u0646 \u06A9\u0627\u0631\u0628\u0631 \u062F\u06CC\u06AF\u0631\u060C \u0628\u0647 \u0627\u0648 \u0645\u062A\u0635\u0644 \u062E\u0648\u0627\u0647\u06CC\u062F \u0634\u062F.",
+              { reply_markup: randomChatSearchKeyboard() }
+            );
+            return;
+          }
         }
       }
       await tg.sendMessage(
@@ -5794,6 +5938,18 @@ async function handleForumMessage(msg, env, db, tg) {
     }
     await db.recordConversation(senderUser.user_id_hash, mapping.recipient_hash);
   } catch (e) {
+    if (isUserBlockedBotError(e)) {
+      await tg.sendMessage(
+        chatId,
+        "\u26A0\uFE0F <b>\u0627\u0631\u0633\u0627\u0644 \u067E\u0627\u0633\u062E \u0646\u0627\u0645\u0648\u0641\u0642 \u0628\u0648\u062F:</b>\n\u0627\u06CC\u0646 \u0645\u062E\u0627\u0637\u0628 \u0646\u0627\u0634\u0646\u0627\u0633 \u0631\u0628\u0627\u062A \u0631\u0627 \u0645\u062A\u0648\u0642\u0641 \u06CC\u0627 \u0645\u0633\u062F\u0648\u062F \u06A9\u0631\u062F\u0647 \u0627\u0633\u062A \u0648 \u067E\u06CC\u0627\u0645 \u0634\u0645\u0627 \u062A\u062D\u0648\u06CC\u0644 \u062F\u0627\u062F\u0647 \u0646\u0634\u062F.",
+        {
+          message_thread_id: threadId,
+          reply_to_message_id: msg.message_id
+        }
+      ).catch(() => {
+      });
+      return;
+    }
     console.error("Failed to route forum reply to user:", e);
   }
 }
@@ -5804,6 +5960,9 @@ async function reportSystemErrorToAdmin(env, tg, error, context) {
   const primaryAdminId = adminIds[0];
   if (!primaryAdminId)
     return;
+  if (isUserBlockedBotError(error)) {
+    return;
+  }
   const errMsg = error?.message || String(error);
   const isTelegramApiError = errMsg.includes("Telegram API");
   const isCloudflareLimit = !isTelegramApiError && (errMsg.includes("D1_ERROR") || errMsg.includes("quota") || errMsg.includes("Worker exceeded resource limits") || errMsg.includes("memory") || errMsg.includes("subrequest") || errMsg.includes("rate limit") && !errMsg.toLowerCase().includes("telegram"));

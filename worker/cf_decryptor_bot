@@ -8601,6 +8601,26 @@ function buildSingboxOutbound(p, index) {
     if (p.serviceName && String(p.serviceName).trim()) {
       outbound.transport.service_name = String(p.serviceName).trim();
     }
+  } else if (net === "httpupgrade") {
+    let huPath = p.path || "/";
+    huPath = huPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+    outbound.transport = {
+      type: "httpupgrade",
+      path: huPath
+    };
+    if (p.host && String(p.host).trim()) {
+      outbound.transport.host = String(p.host).trim();
+    }
+  } else if (net === "xhttp" || net === "splithttp") {
+    let xPath = p.path || "/";
+    xPath = xPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+    outbound.transport = {
+      type: "http",
+      path: xPath
+    };
+    if (p.host && String(p.host).trim()) {
+      outbound.transport.host = [String(p.host).trim()];
+    }
   } else if (net === "http" || net === "h2") {
     outbound.transport = {
       type: "http",
@@ -8918,12 +8938,12 @@ function formatProxyYaml(p) {
   }
   const name = removeControlChars(p.name || `${proto.toUpperCase()}-${p.server}`);
   const escapedName = JSON.stringify(name);
-  const server = String(p.server || "").trim().replace(/^\[|\]$/g, "");
+  const server = String(p.server || "").trim().replace(/^\\[|\\]$/g, "");
   const port = parseInt(p.serverPort || p.port || 443, 10);
   const net = String(p.network || p.net || "tcp").toLowerCase();
   const tls = p.tls || p.security === "tls" || p.reality || p.security === "reality";
   let rawSni = p.sni || p.host || p.servername || "";
-  let cleanSni = String(rawSni || "").trim().replace(/^\[|\]$/g, "");
+  let cleanSni = String(rawSni || "").trim().replace(/^\\[|\\]$/g, "");
   if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(cleanSni) || cleanSni.includes(":")) {
     cleanSni = "";
   }
@@ -8943,7 +8963,15 @@ function formatProxyYaml(p) {
     if (net === "tcp" && p.flow && String(p.flow).toLowerCase().includes("vision")) {
       lines.push(`    flow: xtls-rprx-vision`);
     }
-    lines.push(`    network: ${["ws", "grpc", "http", "h2"].includes(net) ? net : "tcp"}`);
+    const isXhttp = net === "xhttp" || net === "splithttp";
+    const isHttpUpgrade = net === "httpupgrade";
+    if (isXhttp) {
+      lines.push(`    network: xhttp`);
+    } else if (isHttpUpgrade) {
+      lines.push(`    network: ws`);
+    } else {
+      lines.push(`    network: ${["ws", "grpc", "http", "h2"].includes(net) ? net : "tcp"}`);
+    }
     lines.push(`    tls: ${tls ? "true" : "false"}`);
     lines.push(`    udp: true`);
     if (p.encryption && p.encryption !== "none") {
@@ -8962,9 +8990,26 @@ function formatProxyYaml(p) {
         if (p.spiderX || p["spider-x"]) lines.push(`      spider-x: "${String(p.spiderX || p["spider-x"]).trim()}"`);
       }
     }
-    if (net === "ws") {
+    if (isXhttp) {
+      let xPath = p.path || "/";
+      xPath = xPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
+      lines.push(`    xhttp-opts:`);
+      lines.push(`      path: "${xPath}"`);
+      if (p.host || sni) lines.push(`      host: "${p.host || sni}"`);
+      lines.push(`      mode: "${p.mode || "auto"}"`);
+    } else if (isHttpUpgrade) {
       let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
+      lines.push(`    ws-opts:`);
+      lines.push(`      path: "${wsPath}"`);
+      if (p.host && String(p.host).trim()) {
+        lines.push(`      headers:`);
+        lines.push(`        Host: ${String(p.host).trim()}`);
+      }
+      lines.push(`      v2ray-http-upgrade: true`);
+    } else if (net === "ws") {
+      let wsPath = p.path || "/";
+      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
       lines.push(`    ws-opts:`);
       lines.push(`      path: "${wsPath}"`);
       if (p.host && String(p.host).trim()) {
@@ -8988,13 +9033,38 @@ function formatProxyYaml(p) {
       vmessCipher = String(p.security).toLowerCase();
     }
     lines.push(`    cipher: ${vmessCipher}`);
-    lines.push(`    network: ${net === "ws" ? "ws" : net === "grpc" ? "grpc" : "tcp"}`);
+    const isXhttp = net === "xhttp" || net === "splithttp";
+    const isHttpUpgrade = net === "httpupgrade";
+    if (isXhttp) {
+      lines.push(`    network: xhttp`);
+    } else if (isHttpUpgrade) {
+      lines.push(`    network: ws`);
+    } else {
+      lines.push(`    network: ${net === "ws" ? "ws" : net === "grpc" ? "grpc" : "tcp"}`);
+    }
     lines.push(`    tls: ${tls || p.security === "tls" ? "true" : "false"}`);
     lines.push(`    udp: true`);
     if (tls && sni) lines.push(`    servername: "${sni}"`);
-    if (net === "ws") {
+    if (isXhttp) {
+      let xPath = p.path || "/";
+      xPath = xPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
+      lines.push(`    xhttp-opts:`);
+      lines.push(`      path: "${xPath}"`);
+      if (p.host || sni) lines.push(`      host: "${p.host || sni}"`);
+      lines.push(`      mode: "${p.mode || "auto"}"`);
+    } else if (isHttpUpgrade) {
       let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
+      lines.push(`    ws-opts:`);
+      lines.push(`      path: "${wsPath}"`);
+      if (p.host && String(p.host).trim()) {
+        lines.push(`      headers:`);
+        lines.push(`        Host: ${String(p.host).trim()}`);
+      }
+      lines.push(`      v2ray-http-upgrade: true`);
+    } else if (net === "ws") {
+      let wsPath = p.path || "/";
+      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
       lines.push(`    ws-opts:`);
       lines.push(`      path: "${wsPath}"`);
       if (p.host && String(p.host).trim()) {
@@ -9009,13 +9079,34 @@ function formatProxyYaml(p) {
     const pass = p.password || p.uuid || "";
     if (!pass) return null;
     lines.push(`    password: ${JSON.stringify(String(pass))}`);
-    lines.push(`    network: ${net === "ws" ? "ws" : net === "grpc" ? "grpc" : "tcp"}`);
+    const isXhttp = net === "xhttp" || net === "splithttp";
+    const isHttpUpgrade = net === "httpupgrade";
+    if (isXhttp) {
+      lines.push(`    network: xhttp`);
+    } else if (isHttpUpgrade) {
+      lines.push(`    network: ws`);
+    } else {
+      lines.push(`    network: ${net === "ws" ? "ws" : net === "grpc" ? "grpc" : "tcp"}`);
+    }
     lines.push(`    udp: true`);
     if (sni) lines.push(`    sni: "${sni}"`);
     if (p.skipCertVerify || p.insecure) lines.push(`    skip-cert-verify: true`);
-    if (net === "ws") {
+    if (isXhttp) {
+      let xPath = p.path || "/";
+      xPath = xPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
+      lines.push(`    xhttp-opts:`);
+      lines.push(`      path: "${xPath}"`);
+      if (p.host || sni) lines.push(`      host: "${p.host || sni}"`);
+      lines.push(`      mode: "${p.mode || "auto"}"`);
+    } else if (isHttpUpgrade) {
       let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
+      lines.push(`    ws-opts:`);
+      lines.push(`      path: "${wsPath}"`);
+      lines.push(`      v2ray-http-upgrade: true`);
+    } else if (net === "ws") {
+      let wsPath = p.path || "/";
+      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
       lines.push(`    ws-opts:`);
       lines.push(`      path: "${wsPath}"`);
     }
@@ -9139,34 +9230,16 @@ function formatProxyYaml(p) {
     if (!hasUserPass && !hasCertKey) {
       return null;
     }
-    lines.push(`    proto: ${p.proto || (p.network === "tcp" ? "tcp" : "udp")}`);
-    if (p.username) lines.push(`    username: ${JSON.stringify(p.username)}`);
-    if (p.password) lines.push(`    password: ${JSON.stringify(p.password)}`);
-    if (p.cipher) lines.push(`    cipher: ${p.cipher}`);
-    if (p.auth) lines.push(`    auth: ${p.auth}`);
-    if (p.ca) {
-      lines.push(`    ca: |`);
-      p.ca.trim().split(/\r?\n/).forEach((l) => lines.push(`      ${l}`));
+    if (hasUserPass) {
+      lines.push(`    username: ${JSON.stringify(String(p.username))}`);
+      lines.push(`    password: ${JSON.stringify(String(p.password))}`);
     }
     if (hasCertKey) {
-      lines.push(`    cert: |`);
-      p.cert.trim().split(/\r?\n/).forEach((l) => lines.push(`      ${l}`));
-      lines.push(`    key: |`);
-      p.key.trim().split(/\r?\n/).forEach((l) => lines.push(`      ${l}`));
+      lines.push(`    certificate: ${JSON.stringify(String(p.cert))}`);
+      lines.push(`    private-key: ${JSON.stringify(String(p.key))}`);
     }
-    if (p.tlsAuth || p["tls-auth"]) {
-      const ta = p.tlsAuth || p["tls-auth"];
-      lines.push(`    tls-auth: |`);
-      ta.trim().split(/\r?\n/).forEach((l) => lines.push(`      ${l}`));
-    }
-    if (p.keyDirection !== void 0 || p["key-direction"] !== void 0) {
-      const kd = p.keyDirection !== void 0 ? p.keyDirection : p["key-direction"];
-      lines.push(`    key-direction: ${JSON.stringify(String(kd))}`);
-    }
-    if (p.tlsCrypt || p["tls-crypt"]) {
-      const tc = p.tlsCrypt || p["tls-crypt"];
-      lines.push(`    tls-crypt: |`);
-      tc.trim().split(/\r?\n/).forEach((l) => lines.push(`      ${l}`));
+    if (p.ca) {
+      lines.push(`    ca: ${JSON.stringify(String(p.ca))}`);
     }
   } else if (proto === "snell") {
     lines.push(`    psk: ${JSON.stringify(String(p.psk || p.password || ""))}`);
@@ -9254,6 +9327,9 @@ function formatProxyYaml(p) {
   }
   return lines.join("\n");
 }
+var HEADER_BLOCK = 'unified-delay: true\ntcp-concurrent: true\nfind-process-mode: strict\nprofile:\n  store-selected: true\n  store-fake-ip: true\nport: 7892\nsocks-port: 7891\nmixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: warning\nexternal-controller: "0.0.0.0:9090"\nsecret: ""\nipv6: true\ndns:\n  enable: true\n  listen: 0.0.0.0:53\n  ipv6: false\n  prefer-h3: false\n  cache-algorithm: arc\n  use-hosts: true\n  use-system-hosts: true\n  respect-rules: false\n\n  enhanced-mode: fake-ip\n  fake-ip-range: 198.18.0.1/16\n  fake-ip-filter-mode: blacklist\n\n  fake-ip-filter:\n    - "geosite:private"\n    - "+.lan"\n    - "+.localdomain"\n    - "+.invalid"\n    - "+.localhost"\n    - "+.test"\n    - "+.local"\n    - "+.home.arpa"\n    - "+.arpa"\n    - "+.ir"\n\n    - "time.*.com"\n    - "time.*.gov"\n    - "time.*.apple.com"\n    - "ntp.*.com"\n    - "+.pool.ntp.org"\n    - "+.ntp.org"\n    - "time.asis.io"\n    - "time.windows.com"\n    - "time.apple.com"\n\n    - "connectivitycheck.gstatic.com"\n    - "connectivitycheck.android.com"\n    - "clients3.google.com"\n    - "captive.apple.com"\n    - "+.msftconnecttest.com"\n    - "+.msftncsi.com"\n\n    - "router.asus.com"\n    - "tplinkwifi.net"\n    - "tplinkrepeater.net"\n    - "tplinkap.net"\n    - "routerlogin.net"\n    - "routerlogin.com"\n    - "melogin.cn"\n    - "falogin.cn"\n    - "tendawifi.com"\n    - "leike.cc"\n    - "miwifi.com"\n    - "goforward.link"\n    - "+.plex.direct"\n\n  nameserver-policy:\n    "geosite:private": system\n    "+.arpa": system\n    "+.lan": system\n    "+.local": system\n    "+.home.arpa": system\n\n    "router.asus.com": system\n    "tplinkwifi.net": system\n    "tplinkrepeater.net": system\n    "tplinkap.net": system\n    "routerlogin.net": system\n    "routerlogin.com": system\n    "melogin.cn": system\n    "falogin.cn": system\n    "tendawifi.com": system\n    "leike.cc": system\n    "miwifi.com": system\n    "goforward.link": system\n\n  default-nameserver:\n    - tcp://1.1.1.1\n    - tcp://8.8.8.8\n    - 1.1.1.1\n    - 8.8.8.8\n    - 9.9.9.9\n    - tcp://1.0.0.1\n    - tcp://8.8.4.4\n    - tcp://9.9.9.9\n    - tcp://149.112.112.112\n    - tcp://208.67.222.222\n    - tcp://208.67.220.220\n\n  nameserver:\n    - "https://freedns.controld.com/p2#\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n\n  fallback:\n    - "https://dns.adguard-dns.com/dns-query#\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n\n  fallback-lazy-query: true\n\n  fallback-filter:\n    geoip: false\n    ipcidr:\n      - 10.10.34.34/32\n      - 10.10.34.35/32\n      - 10.10.34.36/32\n      - 127.0.0.1/32\n      - 240.0.0.0/4\n\n  proxy-server-nameserver:\n    - tcp://1.1.1.1\n    - tcp://8.8.8.8\n    - tcp://9.9.9.9\n    - 1.1.1.1\n    - 8.8.8.8\n    - 9.9.9.9\n    - tcp://1.0.0.1\n    - tcp://8.8.4.4\n    - tcp://149.112.112.112\n    - tcp://208.67.222.222\n    - tcp://208.67.220.220\n\n\n  direct-nameserver:\n    - 78.157.42.100\n    - 78.157.42.101\n    - tcp://78.157.42.100\n    - tcp://78.157.42.101\n\n  direct-nameserver-follow-policy: true\n\nsniffer:\n  enable: true\n  force-dns-mapping: false\n  parse-pure-ip: false\n  override-destination: true\n\n  sniff:\n    HTTP:\n      ports:\n        - 80\n        - 8080-8880\n      override-destination: true\n\n    TLS:\n      ports:\n        - 443\n        - 8443\n\n    QUIC:\n      ports:\n        - 443\n        - 8443\n\ntun:\n  enable: true\n  stack: mips\n\n  dns-mode: hijack\n\n  dns-hijack:\n    - any:53\n    - tcp://any:53\n\n  auto-route: true\n  auto-detect-interface: true\n  strict-route: true\n\n  route-exclude-address:\n    - 10.0.0.0/8\n    - 172.16.0.0/12\n    - 192.168.0.0/16\n    - 127.0.0.0/8\n    - 169.254.0.0/16\n    - "::1/128"\n    - "fc00::/7"\n    - "fe80::/10"\n\nrule-providers:\n  DownloadManagers:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml"\n    interval: 86400\n    path: "./ruleset/DownloadManagers.yaml"\n  Download:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml"\n    interval: 86400\n    path: "./ruleset/Download.yaml"\n  stremio:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml"\n    interval: 86400\n    path: "./ruleset/stremio.yaml"\n  BanProgramAD:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml"\n    interval: 86400\n    path: "./ruleset/BanProgramAD.yaml"\n  BanAD:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml"\n    interval: 86400\n    path: "./ruleset/BanAD.yaml"\n  PrivateTracker:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml"\n    interval: 86400\n    path: "./ruleset/PrivateTracker.yaml"\n  category_public_tracker:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml"\n    interval: 86400\n    path: "./ruleset/category_public_tracker.yaml"\n  malware:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml"\n    interval: 86400\n    path: "./ruleset/malware.yaml"\n  phishing:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml"\n    interval: 86400\n    path: "./ruleset/phishing.yaml"\n  cryptominers:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml"\n    interval: 86400\n    path: "./ruleset/cryptominers.yaml"\n  warninglist:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml"\n    interval: 86400\n    path: "./ruleset/warninglist.yaml"\n  Ponzi:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml"\n    interval: 86400\n    path: "./ruleset/Ponzi.yaml"\n  LiteAds:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml"\n    interval: 86400\n    path: "./ruleset/LiteAds.yaml"\n  iran_ads:\n    type: http\n    behavior: domain\n    url: "https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"\n    interval: 86400\n    path: "./ruleset/iran_ads.yaml"\n  PersianBlocker:\n    type: http\n    behavior: domain\n    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"\n    interval: 86400\n    path: "./ruleset/PersianBlocker.yaml"\n  ads:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.yaml"\n    interval: 86400\n    path: "./ruleset/ads.yaml"\n  BanEasyList:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml"\n    interval: 86400\n    path: "./ruleset/BanEasyList.yaml"\n  twitch:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml"\n    interval: 86400\n    path: "./ruleset/twitch.yaml"\n  telegram:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml"\n    interval: 86400\n    path: "./ruleset/telegram.yaml"\n  YouTube:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml"\n    interval: 86400\n    path: "./ruleset/YouTube.yaml"\n  youtube:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml"\n    interval: 86400\n    path: "./ruleset/youtube.yaml"\n  YouTubeMusic:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml"\n    interval: 86400\n    path: "./ruleset/YouTubeMusic.yaml"\n  Chotwitter:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"\n    interval: 86400\n    path: "./ruleset/Chotwitter.yaml"\n  mihTwitter:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"\n    interval: 86400\n    path: "./ruleset/mihTwitter.yaml"\n  Domtwitter:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml"\n    interval: 86400\n    path: "./ruleset/Domtwitter.yaml"\n  DomainSpotify:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml"\n    interval: 86400\n    path: "./ruleset/DomainSpotify.yaml"\n  mihspotify:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml"\n    interval: 86400\n    path: "./ruleset/mihSpotify.yaml"\n  instagram:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml"\n    interval: 86400\n    path: "./ruleset/instagram.yaml"\n  Ai:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/Ai.yaml"\n    interval: 86400\n    path: "./ruleset/Ai.yaml"\n  category-ai:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml"\n    interval: 86400\n    path: "./ruleset/category-ai.yaml"\n  censor:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml"\n    interval: 86400\n    path: "./ruleset/censor.yaml"\n  apps:\n    type: http\n    format: yaml\n    behavior: classical\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"\n    interval: 86400\n    path: "./ruleset/apps.yaml"\n  iran:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml"\n    interval: 86400\n    path: "./ruleset/iran.yaml"\n  arvancloud:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml"\n    interval: 86400\n    path: "./ruleset/arvancloud.yaml"\n  derakcloud:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml"\n    interval: 86400\n    path: "./ruleset/derakcloud.yaml"\n  iranserver:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml"\n    interval: 86400\n    path: "./ruleset/iranserver.yaml"\n  parspack:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml"\n    interval: 86400\n    path: "./ruleset/parspack.yaml"\n  irasn:\n    type: http\n    format: yaml\n    behavior: classical\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml"\n    interval: 86400\n    path: "./ruleset/irasn.yaml"\n  ircidr:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml"\n    interval: 86400\n    path: "./ruleset/ircidr.yaml"\n  ir:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml"\n    interval: 86400\n    path: "./ruleset/ir.yaml"\n  category_ir:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml"\n    interval: 86400\n    path: "./ruleset/category_ir.yaml"\n  whatsapp:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml"\n    interval: 86400\n    path: "./ruleset/whatsapp.yaml"\n  steam:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml"\n    interval: 86400\n    path: "./ruleset/steam.yaml"\n  SteamRegionCheck:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml"\n    interval: 86400\n    path: "./ruleset/SteamRegionCheck.yaml"\n  game:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml"\n    interval: 86400\n    path: "./ruleset/game.yaml"\n  GameDownload:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml"\n    interval: 86400\n    path: "./ruleset/GameDownload.yaml"\n  category-games:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml"\n    interval: 86400\n    path: "./ruleset/category-games.yaml"\n  Xbox:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml"\n    interval: 86400\n    path: "./ruleset/Xbox.yaml"\n  discord:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"\n    interval: 86400\n    path: "./ruleset/discord.yaml"\n  xiaomi_white_list:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml"\n    interval: 86400\n    path: "./ruleset/xiaomi_white_list.yaml"\n  xiaomi_block_list:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml"\n    interval: 86400\n    path: "./ruleset/xiaomi_block_list.yaml"\n  windows:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"\n    interval: 86400\n    path: "./ruleset/windows.yaml"\n  cloudflare:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml"\n    interval: 86400\n    path: "./ruleset/cloudflare.yaml"\n  github:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml"\n    interval: 86400\n    path: "./ruleset/xgithub.yaml"\n  google-play:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml"\n    interval: 86400\n    path: "./ruleset/google-play.yaml"\n  google:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml"\n    interval: 86400\n    path: "./ruleset/google.yaml"\n  local_ips:\n    type: http\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml"\n    interval: 86400\n    path: "./ruleset/local_ips.yaml"\n  private:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml"\n    interval: 86400\n    path: "./ruleset/private.yaml"';
+var GROUPS_TEMPLATE = 'proxy-groups:\n  - name: "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n    type: select\n    proxies:\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u062A\u0648\u0632\u06CC\u0639 \u0628\u0627\u0631 \u0686\u0631\u062E\u0634\u06CC \u2696\uFE0F"\n      - "\u0642\u0637\u0639 \u0627\u06CC\u0646\u062A\u0631\u0646\u062A \u26D4"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/412721/choose.svg"\n\n  - name: "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n    type: select\n    lazy: true\n    proxies:\n__PROXIES_PLACEHOLDER__\n    icon: "https://cdn.jsdelivr.net/npm/lucide-static@1.61.0/icons/hand.svg"\n\n  - name: "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n    type: url-test\n    url: "https://www.gstatic.com/generate_204"\n    interval: 30\n    tolerance: 50\n    lazy: true\n    proxies:\n__PROXIES_PLACEHOLDER__\n    icon: "https://cdn.jsdelivr.net/npm/lucide-static@1.61.0/icons/refresh-cw.svg"\n\n  - name: "\u062A\u0648\u0632\u06CC\u0639 \u0628\u0627\u0631 \u0686\u0631\u062E\u0634\u06CC \u2696\uFE0F"\n    type: load-balance\n    strategy: round-robin\n    url: "https://www.gstatic.com/generate_204"\n    interval: 30\n    lazy: true\n    timeout: 1500\n    proxies:\n__PROXIES_PLACEHOLDER__\n    icon: "https://www.svgrepo.com/show/388466/rotating-forward.svg"\n\n  - name: "\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg"\n\n  - name: "\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/354443/telegram.svg"\n\n  - name: "\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/475700/youtube-color.svg"\n\n  - name: "\u06AF\u0648\u06AF\u0644 \u{1F30D}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/475656/google-color.svg"\n\n  - name: "\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/306500/openai.svg"\n\n  - name: "\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/475689/twitter-color.svg"\n\n  - name: "\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/452229/instagram-1.svg"\n\n  - name: "\u06A9\u0644\u0648\u062F\u0641\u0644\u0631 \u2601\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://icon.icepanel.io/Technology/svg/Cloudflare.svg"\n\n  - name: "\u06AF\u06CC\u062A\u0647\u0627\u0628 \u{1F419}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/355033/github.svg"\n\n  - name: "\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/475684/spotify-color.svg"\n\n  - name: "\u0648\u0627\u062A\u0633 \u0622\u067E \u{1F7E2}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg"\n\n  - name: "\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/336358/ad.svg"\n\n  - name: "\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/12172/smartphone-ad.svg"\n\n  - name: "\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/298725/tracking-track.svg"\n\n  - name: "\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Element_(software)_logo_(2020).svg"\n\n  - name: "\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/teamspeak/default.svg"\n\n  - name: "\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Delta_chat_(Instant_Messenger)_logo.svg"\n\n  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg"\n\n  - name: "\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/452107/steam.svg"\n\n  - name: "\u06AF\u06CC\u0645 \u{1F3AE}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/167729/game-controller.svg"\n\n  - name: "\u062A\u0648\u06CC\u06CC\u0686 \u{1F4E1}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/twitch.svg"\n\n  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg"\n\n  - name: "\u0648\u06CC\u0646\u062F\u0648\u0632 \u{1F9CA}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n    icon: "https://icon.icepanel.io/Technology/svg/Windows-11.svg"\n\n  - name: "\u062F\u06CC\u0633\u06A9\u0648\u0631\u062F \u{1F5E3}\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/svgs/brands/discord.svg"\n\n  - name: "\u0627\u0633\u062A\u0631\u06CC\u0645\u06CC\u0648 \u{1F3AC}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://stremio.github.io/stremio-addon-guide/img/stremio.svg"\n\n  - name: "\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/331289/anydesk.svg"\n\n  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0633\u0627\u0646\u0633\u0648\u0631\u06CC \u{1F92C}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://cdn.jsdelivr.net/npm/lucide-static@1.61.0/icons/clapperboard.svg"\n\n  - name: "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    type: select\n    proxies:\n      - "DIRECT"\n    hidden: true\n    icon: "https://www.svgrepo.com/show/6318/connection.svg"\n\n  - name: "\u0642\u0637\u0639 \u0627\u06CC\u0646\u062A\u0631\u0646\u062A \u26D4"\n    type: select\n    proxies:\n      - "REJECT"\n    hidden: true\n    icon: "https://www.svgrepo.com/show/305372/wifi-off.svg"\n\n  - name: "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    type: select\n    proxies:\n      - "REJECT"\n    hidden: true\n    icon: "https://www.svgrepo.com/show/444307/gui-ban.svg"\n';
+var RULES_BLOCK = 'rules:\n  - "IP-CIDR,127.0.0.0/8,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F,no-resolve"\n  - "DOMAIN,localhost,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n  - "RULE-SET,local_ips,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n  - "RULE-SET,private,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n  - "RULE-SET,DownloadManagers,\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"\n  - "RULE-SET,Download,\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"\n  - "RULE-SET,stremio,\u0627\u0633\u062A\u0631\u06CC\u0645\u06CC\u0648 \u{1F3AC}"\n  - "PROCESS-NAME,im.vector.app,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "PROCESS-NAME,io.element.android.x,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "PROCESS-NAME,Element.exe,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,chat.aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,site.aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,electonet.xyz,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,chat.electonet.xyz,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,rainbuwu.ir,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,cinny.rainbuwu.ir,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "PROCESS-NAME,chat.delta,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "PROCESS-NAME,DeltaChat.exe,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DOMAIN-SUFFIX,arsalandalvand.ir,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DST-PORT,993,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DST-PORT,465,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DST-PORT,587,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "PROCESS-NAME,com.teamspeak.ts3client,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "PROCESS-NAME,ts3client_win64.exe,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "PROCESS-NAME,ts3client_win32.exe,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "PROCESS-NAME,TeamSpeak.exe,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "DOMAIN-SUFFIX,ag.tssq.ir,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "DST-PORT,9987,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "RULE-SET,BanProgramAD,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"\n  - "RULE-SET,BanAD,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n  - "RULE-SET,PrivateTracker,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n  - "RULE-SET,category_public_tracker,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n  - "RULE-SET,malware,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,phishing,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,cryptominers,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,warninglist,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,Ponzi,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,LiteAds,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,iran_ads,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,PersianBlocker,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,ads,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,BanEasyList,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,twitch,\u062A\u0648\u06CC\u06CC\u0686 \u{1F4E1}"\n  - "PROCESS-NAME,Telegram.exe,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "PROCESS-NAME,org.telegram.messenger,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "PROCESS-NAME,org.telegram.messenger.web,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "RULE-SET,telegram,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "RULE-SET,YouTube,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n  - "RULE-SET,youtube,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n  - "RULE-SET,YouTubeMusic,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n  - "PROCESS-NAME,com.anydesk.anydeskandroid,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,AnyDesk.exe,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "DOMAIN-SUFFIX,anydesk.com,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,rustdesk.exe,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,com.carriez.flutter_hbb,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,dorsandesk.exe,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,Twitter.exe,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "PROCESS-NAME,com.twitter.android,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "RULE-SET,Chotwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "RULE-SET,mihTwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "RULE-SET,Domtwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "PROCESS-NAME,com.spotify.music,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "PROCESS-NAME,Spotify.exe,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "RULE-SET,DomainSpotify,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "RULE-SET,mihspotify,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "PROCESS-NAME,com.instagram.android,\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"\n  - "RULE-SET,instagram,\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"\n  - "RULE-SET,censor,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0633\u0627\u0646\u0633\u0648\u0631\u06CC \u{1F92C}"\n  - "RULE-SET,apps,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,iran,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,arvancloud,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,derakcloud,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,iranserver,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,parspack,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,irasn,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,ircidr,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,ir,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,category_ir,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "DOMAIN-SUFFIX,unimics.com,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,whatsapp,\u0648\u0627\u062A\u0633 \u0622\u067E \u{1F7E2}"\n  - "RULE-SET,Ai,\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"\n  - "RULE-SET,category-ai,\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"\n  - "RULE-SET,google-play,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "RULE-SET,google,\u06AF\u0648\u06AF\u0644 \u{1F30D}"\n  - "RULE-SET,steam,\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"\n  - "RULE-SET,SteamRegionCheck,\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"\n  - "RULE-SET,game,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,GameDownload,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,category-games,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,Xbox,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,discord,\u062F\u06CC\u0633\u06A9\u0648\u0631\u062F \u{1F5E3}\uFE0F"\n  - "RULE-SET,xiaomi_white_list,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "RULE-SET,xiaomi_block_list,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"\n  - "RULE-SET,windows,\u0648\u06CC\u0646\u062F\u0648\u0632 \u{1F9CA}"\n  - "RULE-SET,cloudflare,\u06A9\u0644\u0648\u062F\u0641\u0644\u0631 \u2601\uFE0F"\n  - "RULE-SET,github,\u06AF\u06CC\u062A\u0647\u0627\u0628 \u{1F419}"\n  - "PROCESS-NAME,com.android.vending,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "PROCESS-NAME,com.google.android.gms,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "IP-CIDR,10.10.34.0/24,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "MATCH,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"';
 function buildMihomoConfig(rawProfiles, options = {}) {
   const inputList = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
   const profiles = options.skipFilter ? inputList : filterAndDeduplicateProxies(inputList, options);
@@ -9277,947 +9353,18 @@ function buildMihomoConfig(rawProfiles, options = {}) {
     }
   }
   const proxyNamesListYaml = proxyNames.length > 0 ? proxyNames.map((n) => `      - ${n}`).join("\n") : '      - "DIRECT"';
-  const yamlOutput = `# Generated by Mihomo Clash Meta Config Converter
-# Time: ${(/* @__PURE__ */ new Date()).toISOString()}
-# Wiki: https://wiki.metacubex.one/
-
-port: 7892
-socks-port: 7891
-mixed-port: 7890
-allow-lan: true
-mode: rule
-log-level: info
-external-controller: "0.0.0.0:9090"
-secret: ""
-ipv6: false
-dns:
-  enable: true
-  ipv6: false
-  prefer-h3: false
-  cache-algorithm: arc
-  use-system-hosts: true
-  use-host: true
-  listen: "0.0.0.0:53"
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter-mode: blacklist
-  fake-ip-filter:
-    - ".lan"
-    - ".localdomain"
-    - ".invalid"
-    - ".localhost"
-    - ".test"
-    - ".local"
-    - ".home.arpa"
-    - "time.*.com"
-    - "ntp.*.com"
-    - "time.*.gov"
-    - "time.*.apple.com"
-    - time.asis.io
-    - ".ntp.org"
-    - time.windows.com
-    - time.apple.com
-    - ".ir"
-    - connectivitycheck.gstatic.com
-    - connectivitycheck.android.com
-    - clients3.google.com
-    - msftconnecttest.com
-    - msftncsi.com
-    - ".msftconnecttest.com"
-    - ".msftncsi.com"
-    - captive.apple.com
-    - ".gstatic.com"
-    - router.asus.com
-    - tplinkwifi.net
-    - tplinkrepeater.net
-    - tplinkap.net
-    - routerlogin.net
-    - routerlogin.com
-    - melogin.cn
-    - falogin.cn
-    - tendawifi.com
-    - leike.cc
-    - miwifi.com
-    - goforward.link
-    - ".plex.direct"
-    - ".home"
-  default-nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
-    - 9.9.9.9
-  nameserver:
-    - 1.1.1.1
-    - 1.0.0.1
-    - 8.8.8.8
-    - 8.8.4.4
-    - 9.9.9.9
-    - 149.112.112.112
-    - 208.67.222.222
-    - 208.67.220.222
-  fallback:
-    - 76.76.19.19
-    - 76.223.122.150
-    - 185.228.168.9
-    - 185.228.169.9
-    - 8.26.56.26
-    - 8.20.247.20
-    - 76.76.2.11
-    - 76.76.10.11
-    - 84.200.69.80
-    - 84.200.70.40
-    - 45.33.97.5
-    - 37.235.1.177
-    - 209.244.0.3
-    - 209.244.0.4
-    - 156.154.70.5
-    - 156.154.71.5
-    - 103.86.96.100
-    - 103.86.99.100
-    - 199.85.126.10
-    - 199.85.127.10
-    - 129.250.35.250
-    - 129.250.35.251
-    - 94.16.114.254
-    - 94.247.43.254
-    - 208.67.222.20
-    - 195.46.39.39
-    - 195.46.39.40
-    - 204.117.214.10
-    - 199.2.252.10
-    - 194.169.169.169
-    - 156.154.70.1
-    - 156.154.71.1
-    - 91.239.100.100
-    - 89.233.43.71
-    - 64.6.64.6
-    - 64.6.65.6
-    - 77.88.8.8
-    - 77.88.8.1
-  fallback-filter:
-    geoip: true
-    geoip-code: IR
-    geosite:
-      - gfw
-    ipcidr:
-      - 240.0.0.0/4
-      - 10.10.34.34/32
-      - 10.10.34.35/32
-      - 10.10.34.36/32
-      - 127.0.0.1/32
-    domain:
-      - "+.google.com"
-      - "+.facebook.com"
-      - "+.youtube.com"
-  proxy-server-nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
-  direct-nameserver:
-    - 78.157.42.100
-    - 78.157.42.101
-sniffer:
-  enable: true
-  force-dns-mapping: true
-  parse-pure-ip: true
-  override-destination: true
-tun:
-  enable: true
-  stack: mixed
-  auto-route: true
-  auto-detect-interface: true
-
-rule-providers:
-  DownloadManagers:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml"
-    interval: 86400
-    path: "./ruleset/DownloadManagers.yaml"
-  Download:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml"
-    interval: 86400
-    path: "./ruleset/Download.yaml"
-  stremio:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml"
-    interval: 86400
-    path: "./ruleset/stremio.yaml"
-  BanProgramAD:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml"
-    interval: 86400
-    path: "./ruleset/BanProgramAD.yaml"
-  BanAD:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml"
-    interval: 86400
-    path: "./ruleset/BanAD.yaml"
-  PrivateTracker:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml"
-    interval: 86400
-    path: "./ruleset/PrivateTracker.yaml"
-  category_public_tracker:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml"
-    interval: 86400
-    path: "./ruleset/category_public_tracker.yaml"
-  malware:
-    type: http
-    format: yaml
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml"
-    interval: 86400
-    path: "./ruleset/malware.yaml"
-  phishing:
-    type: http
-    format: yaml
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml"
-    interval: 86400
-    path: "./ruleset/phishing.yaml"
-  cryptominers:
-    type: http
-    format: yaml
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml"
-    interval: 86400
-    path: "./ruleset/cryptominers.yaml"
-  warninglist:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml"
-    interval: 86400
-    path: "./ruleset/warninglist.yaml"
-  Ponzi:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml"
-    interval: 86400
-    path: "./ruleset/Ponzi.yaml"
-  LiteAds:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml"
-    interval: 86400
-    path: "./ruleset/LiteAds.yaml"
-  iran_ads:
-    type: http
-    behavior: domain
-    url: "https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"
-    interval: 86400
-    path: "./ruleset/iran_ads.yaml"
-  PersianBlocker:
-    type: http
-    behavior: domain
-    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"
-    interval: 86400
-    path: "./ruleset/PersianBlocker.yaml"
-  ads:
-    type: http
-    format: yaml
-    behavior: domain
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.yaml"
-    interval: 86400
-    path: "./ruleset/ads.yaml"
-  BanEasyList:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml"
-    interval: 86400
-    path: "./ruleset/BanEasyList.yaml"
-  twitch:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml"
-    interval: 86400
-    path: "./ruleset/twitch.yaml"
-  telegram:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml"
-    interval: 86400
-    path: "./ruleset/telegram.yaml"
-  YouTube:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml"
-    interval: 86400
-    path: "./ruleset/YouTube.yaml"
-  youtube:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml"
-    interval: 86400
-    path: "./ruleset/youtube.yaml"
-  YouTubeMusic:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml"
-    interval: 86400
-    path: "./ruleset/YouTubeMusic.yaml"
-  Chotwitter:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"
-    interval: 86400
-    path: "./ruleset/Chotwitter.yaml"
-  mihTwitter:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"
-    interval: 86400
-    path: "./ruleset/mihTwitter.yaml"
-  Domtwitter:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml"
-    interval: 86400
-    path: "./ruleset/Domtwitter.yaml"
-  DomainSpotify:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml"
-    interval: 86400
-    path: "./ruleset/DomainSpotify.yaml"
-  mihspotify:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml"
-    interval: 86400
-    path: "./ruleset/mihSpotify.yaml"
-  instagram:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml"
-    interval: 86400
-    path: "./ruleset/instagram.yaml"
-  Ai:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/Ai.yaml"
-    interval: 86400
-    path: "./ruleset/Ai.yaml"
-  category-ai:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml"
-    interval: 86400
-    path: "./ruleset/category-ai.yaml"
-  censor:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml"
-    interval: 86400
-    path: "./ruleset/censor.yaml"
-  apps:
-    type: http
-    format: yaml
-    behavior: classical
-    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"
-    interval: 86400
-    path: "./ruleset/apps.yaml"
-  iran:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml"
-    interval: 86400
-    path: "./ruleset/iran.yaml"
-  arvancloud:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml"
-    interval: 86400
-    path: "./ruleset/arvancloud.yaml"
-  derakcloud:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml"
-    interval: 86400
-    path: "./ruleset/derakcloud.yaml"
-  iranserver:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml"
-    interval: 86400
-    path: "./ruleset/iranserver.yaml"
-  parspack:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml"
-    interval: 86400
-    path: "./ruleset/parspack.yaml"
-  irasn:
-    type: http
-    format: yaml
-    behavior: classical
-    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml"
-    interval: 86400
-    path: "./ruleset/irasn.yaml"
-  ircidr:
-    type: http
-    format: yaml
-    behavior: ipcidr
-    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml"
-    interval: 86400
-    path: "./ruleset/ircidr.yaml"
-  ir:
-    type: http
-    format: yaml
-    behavior: domain
-    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml"
-    interval: 86400
-    path: "./ruleset/ir.yaml"
-  category_ir:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml"
-    interval: 86400
-    path: "./ruleset/category_ir.yaml"
-  whatsapp:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml"
-    interval: 86400
-    path: "./ruleset/whatsapp.yaml"
-  steam:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml"
-    interval: 86400
-    path: "./ruleset/steam.yaml"
-  SteamRegionCheck:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml"
-    interval: 86400
-    path: "./ruleset/SteamRegionCheck.yaml"
-  game:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml"
-    interval: 86400
-    path: "./ruleset/game.yaml"
-  GameDownload:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml"
-    interval: 86400
-    path: "./ruleset/GameDownload.yaml"
-  category-games:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml"
-    interval: 86400
-    path: "./ruleset/category-games.yaml"
-  Xbox:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml"
-    interval: 86400
-    path: "./ruleset/Xbox.yaml"
-  discord:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"
-    interval: 86400
-    path: "./ruleset/discord.yaml"
-  xiaomi_white_list:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml"
-    interval: 86400
-    path: "./ruleset/xiaomi_white_list.yaml"
-  xiaomi_block_list:
-    type: http
-    format: yaml
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml"
-    interval: 86400
-    path: "./ruleset/xiaomi_block_list.yaml"
-  windows:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"
-    interval: 86400
-    path: "./ruleset/windows.yaml"
-  cloudflare:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml"
-    interval: 86400
-    path: "./ruleset/cloudflare.yaml"
-  github:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml"
-    interval: 86400
-    path: "./ruleset/xgithub.yaml"
-  google-play:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml"
-    interval: 86400
-    path: "./ruleset/google-play.yaml"
-  google:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml"
-    interval: 86400
-    path: "./ruleset/google.yaml"
-  local_ips:
-    type: http
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml"
-    interval: 86400
-    path: "./ruleset/local_ips.yaml"
-  private:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml"
-    interval: 86400
-    path: "./ruleset/private.yaml"
+  const proxiesSection = proxiesYaml.length > 0 ? proxiesYaml.join("\n\n") : '  - name: "DIRECT"\n    type: direct';
+  const renderedGroups = GROUPS_TEMPLATE.replaceAll("__PROXIES_PLACEHOLDER__", proxyNamesListYaml);
+  const fullYaml = `${HEADER_BLOCK}
 
 proxies:
-${proxiesYaml.join("\n\n")}
+${proxiesSection}
 
-proxy-groups:
-  - name: "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-    type: select
-    proxies:
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u062A\u0648\u0632\u06CC\u0639 \u0628\u0627\u0631 \u0686\u0631\u062E\u0634\u06CC \u2696\uFE0F"
-      - "\u0642\u0637\u0639 \u0627\u06CC\u0646\u062A\u0631\u0646\u062A \u26D4"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/412721/choose.svg"
+${renderedGroups}
 
-  - name: "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-    type: select
-    proxies:
-${proxyNamesListYaml}
-    icon: "https://www.svgrepo.com/show/417246/hand-pinch.svg"
-
-  - name: "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-    type: url-test
-    url: "https://www.gstatic.com/generate_204"
-    interval: 30
-    tolerance: 50
-    proxies:
-${proxyNamesListYaml}
-    icon: "https://www.svgrepo.com/show/417277/robot.svg"
-
-  - name: "\u062A\u0648\u0632\u06CC\u0639 \u0628\u0627\u0631 \u0686\u0631\u062E\u0634\u06CC \u2696\uFE0F"
-    type: load-balance
-    strategy: round-robin
-    url: "https://www.gstatic.com/generate_204"
-    interval: 30
-    lazy: false
-    timeout: 1500
-    proxies:
-${proxyNamesListYaml}
-    icon: "https://www.svgrepo.com/show/388466/rotating-forward.svg"
-
-  - name: "\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-    type: select
-    proxies:
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/353655/matrix-icon.svg"
-
-  - name: "\u062A\u06CC\u0645\u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"
-    type: select
-    proxies:
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/331567/teamspeak.svg"
-
-  - name: "\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-    type: select
-    proxies:
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/373771/mail.svg"
-
-  - name: "\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"
-    type: select
-    proxies:
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg"
-
-  - name: "\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/354443/telegram.svg"
-
-  - name: "\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/475700/youtube-color.svg"
-
-  - name: "\u06AF\u0648\u06AF\u0644 \u{1F30D}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/475656/google-color.svg"
-
-  - name: "\u0648\u0627\u062A\u0633 \u0622\u067E \u{1F7E2}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg"
-
-  - name: "\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/306500/openai.svg"
-
-  - name: "\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/475689/twitter-color.svg"
-
-  - name: "\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/475684/spotify-color.svg"
-
-  - name: "\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/452229/instagram-1.svg"
-
-  - name: "\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"
-    type: select
-    proxies:
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/336358/ad.svg"
-
-  - name: "\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"
-    type: select
-    proxies:
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/12172/smartphone-ad.svg"
-
-  - name: "\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"
-    type: select
-    proxies:
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/298725/tracking-track.svg"
-
-  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"
-    type: select
-    proxies:
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg"
-
-  - name: "\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/452107/steam.svg"
-
-  - name: "\u06AF\u06CC\u0645 \u{1F3AE}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/167729/game-controller.svg"
-
-  - name: "\u062A\u0648\u06CC\u06CC\u0686 \u{1F4E1}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/343527/twitch-network-communication-interaction-connection.svg"
-
-  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-    type: select
-    proxies:
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg"
-
-  - name: "\u0648\u06CC\u0646\u062F\u0648\u0632 \u{1F9CA}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-    icon: "https://icon.icepanel.io/Technology/svg/Windows-11.svg"
-
-  - name: "\u06A9\u0644\u0648\u062F\u0641\u0644\u0631 \u2601\uFE0F"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://icon.icepanel.io/Technology/svg/Cloudflare.svg"
-
-  - name: "\u06AF\u06CC\u062A\u0647\u0627\u0628 \u{1F419}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/355033/github.svg"
-
-  - name: "\u062F\u06CC\u0633\u06A9\u0648\u0631\u062F \u{1F5E3}\uFE0F"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://automatorplugin.com/wp-content/uploads/2024/10/discord-icon.svg"
-
-  - name: "\u0627\u0633\u062A\u0631\u06CC\u0645\u06CC\u0648 \u{1F3AC}"
-    type: select
-    proxies:
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://stremio.github.io/stremio-addon-guide/img/stremio.svg"
-
-  - name: "\u0627\u0646\u06CC\u062F\u0633\u06A9 \u{1F534}"
-    type: select
-    proxies:
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    icon: "https://www.svgrepo.com/show/331289/anydesk.svg"
-
-  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0633\u0627\u0646\u0633\u0648\u0631\u06CC \u{1F92C}"
-    type: select
-    proxies:
-      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"
-      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"
-      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Censorship.svg/300px-Censorship.svg.png"
-
-  - name: "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-    type: select
-    proxies:
-      - "DIRECT"
-    hidden: true
-    icon: "https://www.svgrepo.com/show/6318/connection.svg"
-
-  - name: "\u0642\u0637\u0639 \u0627\u06CC\u0646\u062A\u0631\u0646\u062A \u26D4"
-    type: select
-    proxies:
-      - "REJECT"
-    hidden: true
-    icon: "https://www.svgrepo.com/show/305372/wifi-off.svg"
-
-  - name: "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"
-    type: select
-    proxies:
-      - "REJECT"
-    hidden: true
-    icon: "https://www.svgrepo.com/show/444307/gui-ban.svg"
-
-rules:
-  - "RULE-SET,DownloadManagers,\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"
-  - "RULE-SET,Download,\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"
-  - "RULE-SET,stremio,\u0627\u0633\u062A\u0631\u06CC\u0645\u06CC\u0648 \u{1F3AC}"
-  - "PROCESS-NAME,im.vector.app,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "PROCESS-NAME,io.element.android.x,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "PROCESS-NAME,Element.exe,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,chat.aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,site.aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,electonet.xyz,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,chat.electonet.xyz,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,rainbuwu.ir,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "DOMAIN-SUFFIX,cinny.rainbuwu.ir,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"
-  - "PROCESS-NAME,chat.delta,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-  - "PROCESS-NAME,DeltaChat.exe,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-  - "DOMAIN-SUFFIX,arsalandalvand.ir,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-  - "DST-PORT,993,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-  - "DST-PORT,465,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-  - "DST-PORT,587,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"
-  - "PROCESS-NAME,com.teamspeak.ts3client,\u062A\u06CC\u0645\u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"
-  - "PROCESS-NAME,ts3client_win64.exe,\u062A\u06CC\u0645\u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"
-  - "PROCESS-NAME,ts3client_win32.exe,\u062A\u06CC\u0645\u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"
-  - "DOMAIN-SUFFIX,ag.tssq.ir,\u062A\u06CC\u0645\u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"
-  - "DST-PORT,9987,\u062A\u06CC\u0645\u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"
-  - "RULE-SET,BanProgramAD,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"
-  - "RULE-SET,BanAD,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"
-  - "RULE-SET,PrivateTracker,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"
-  - "RULE-SET,category_public_tracker,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"
-  - "RULE-SET,malware,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"
-  - "RULE-SET,phishing,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"
-  - "RULE-SET,cryptominers,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"
-  - "RULE-SET,warninglist,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"
-  - "RULE-SET,Ponzi,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"
-  - "RULE-SET,LiteAds,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"
-  - "RULE-SET,iran_ads,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"
-  - "RULE-SET,PersianBlocker,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"
-  - "RULE-SET,ads,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"
-  - "RULE-SET,BanEasyList,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"
-  - "RULE-SET,twitch,\u062A\u0648\u06CC\u06CC\u0686 \u{1F4E1}"
-  - "PROCESS-NAME,Telegram.exe,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"
-  - "PROCESS-NAME,org.telegram.messenger,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"
-  - "PROCESS-NAME,org.telegram.messenger.web,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"
-  - "RULE-SET,telegram,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"
-  - "RULE-SET,YouTube,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"
-  - "RULE-SET,youtube,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"
-  - "RULE-SET,YouTubeMusic,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"
-  - "PROCESS-NAME,com.anydesk.anydeskandroid,\u0627\u0646\u06CC\u062F\u0633\u06A9 \u{1F534}"
-  - "PROCESS-NAME,AnyDesk.exe,\u0627\u0646\u06CC\u062F\u0633\u06A9 \u{1F534}"
-  - "DOMAIN-SUFFIX,anydesk.com,\u0627\u0646\u06CC\u062F\u0633\u06A9 \u{1F534}"
-  - "PROCESS-NAME,Twitter.exe,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"
-  - "PROCESS-NAME,com.twitter.android,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"
-  - "RULE-SET,Chotwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"
-  - "RULE-SET,mihTwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"
-  - "RULE-SET,Domtwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"
-  - "PROCESS-NAME,com.spotify.music,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"
-  - "PROCESS-NAME,Spotify.exe,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"
-  - "RULE-SET,DomainSpotify,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"
-  - "RULE-SET,mihspotify,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"
-  - "PROCESS-NAME,com.instagram.android,\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"
-  - "RULE-SET,instagram,\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"
-  - "RULE-SET,Ai,\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"
-  - "RULE-SET,category-ai,\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"
-  - "RULE-SET,censor,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0633\u0627\u0646\u0633\u0648\u0631\u06CC \u{1F92C}"
-  - "RULE-SET,apps,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,iran,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,arvancloud,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,derakcloud,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,iranserver,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,parspack,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,irasn,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,ircidr,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,ir,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,category_ir,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "DOMAIN-SUFFIX,unimics.com,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"
-  - "RULE-SET,whatsapp,\u0648\u0627\u062A\u0633 \u0622\u067E \u{1F7E2}"
-  - "RULE-SET,steam,\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"
-  - "RULE-SET,SteamRegionCheck,\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"
-  - "RULE-SET,game,\u06AF\u06CC\u0645 \u{1F3AE}"
-  - "RULE-SET,GameDownload,\u06AF\u06CC\u0645 \u{1F3AE}"
-  - "RULE-SET,category-games,\u06AF\u06CC\u0645 \u{1F3AE}"
-  - "RULE-SET,Xbox,\u06AF\u06CC\u0645 \u{1F3AE}"
-  - "RULE-SET,discord,\u062F\u06CC\u0633\u06A9\u0648\u0631\u062F \u{1F5E3}\uFE0F"
-  - "RULE-SET,xiaomi_white_list,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-  - "RULE-SET,xiaomi_block_list,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"
-  - "RULE-SET,windows,\u0648\u06CC\u0646\u062F\u0648\u0632 \u{1F9CA}"
-  - "RULE-SET,cloudflare,\u06A9\u0644\u0648\u062F\u0641\u0644\u0631 \u2601\uFE0F"
-  - "RULE-SET,github,\u06AF\u06CC\u062A\u0647\u0627\u0628 \u{1F419}"
-  - "PROCESS-NAME,com.android.vending,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-  - "PROCESS-NAME,com.google.android.gms,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-  - "RULE-SET,google-play,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-  - "RULE-SET,google,\u06AF\u0648\u06AF\u0644 \u{1F30D}"
-  - "IP-CIDR,10.10.34.0/24,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
-  - "RULE-SET,local_ips,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-  - "RULE-SET,private,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"
-  - "MATCH,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"
+${RULES_BLOCK}
 `;
-  return yamlOutput.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  return fullYaml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 
 // src/parsers/xray.js
@@ -10254,6 +9401,10 @@ function streamQuery(stream = {}) {
     if (Array.isArray(h2.host) && h2.host[0]) q.set("host", h2.host[0]);
     else if (typeof h2.host === "string" && h2.host) q.set("host", h2.host);
     if (h2.path) q.set("path", h2.path);
+  } else if (network === "httpupgrade") {
+    const hu = stream.httpupgradeSettings || stream.httpSettings || {};
+    if (hu.host) q.set("host", hu.host);
+    if (hu.path) q.set("path", hu.path);
   } else if (network === "xhttp" || network === "splithttp") {
     const xhttp = stream.xhttpSettings || stream.splithttpSettings || {};
     if (xhttp.host) q.set("host", xhttp.host);
@@ -11085,30 +10236,43 @@ ${currentSlug ? `\u{1F4CC} \u0633\u0627\u0628 \u0641\u0639\u0644\u06CC \u0627\u0
 
 \u{1F3F7} <b>\u0634\u0646\u0627\u0633\u0647 \u0633\u0627\u0628:</b> <code>${sub.slug}</code>
 \u{1F4CA} <b>\u062A\u0639\u062F\u0627\u062F \u06A9\u0627\u0646\u0641\u06CC\u06AF\u200C\u0647\u0627:</b> <b>${count}</b> \u0639\u062F\u062F
-\u23F3 <b>\u0645\u062F\u062A \u0627\u0639\u062A\u0628\u0627\u0631:</b> <b>${remainingDays} \u0631\u0648\u0632</b> (\u062A\u0645\u062F\u06CC\u062F \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0627 \u0647\u0631 \u0627\u062A\u0635\u0627\u0644)
+\u23F3 <b>\u0645\u062F\u062A \u0627\u0639\u062A\u0628\u0627\u0631:</b> <b>${remainingDays > 365 ? "\u062F\u0627\u0626\u0645\u06CC \u267E" : `${remainingDays} \u0631\u0648\u0632`}</b> (\u062A\u0645\u062F\u06CC\u062F \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0627 \u0647\u0631 \u0627\u062A\u0635\u0627\u0644)
 
 \u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0647\u0648\u0634\u0645\u0646\u062F (\u062A\u0634\u062E\u06CC\u0635 \u062E\u0648\u062F\u06A9\u0627\u0631 \u0647\u0645\u0647 \u0628\u0631\u0646\u0627\u0645\u0647\u200C\u0647\u0627):</b>
 <pre><code>${subUrl}</code></pre>
 
-\u25AB\uFE0F <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u06A9\u0644\u0634 (Mihomo / Clash):</b>
+\u{1F431} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u06A9\u0644\u0634 (Mihomo / Clash.Meta):</b>
 <pre><code>${subUrl}?format=clash</code></pre>
-\u25AB\uFE0F <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u0633\u06CC\u0646\u06AF\u200C\u0628\u0627\u06A9\u0633 (Sing-box):</b>
+
+\u{1F4E6} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u0633\u06CC\u0646\u06AF\u200C\u0628\u0627\u06A9\u0633 (Sing-box):</b>
 <pre><code>${subUrl}?format=singbox</code></pre>
-\u25AB\uFE0F <b>\u0644\u06CC\u0646\u06A9 \u0645\u0633\u062A\u0642\u06CC\u0645 Xray / v2rayN:</b>
+
+\u26A1 <b>\u0644\u06CC\u0646\u06A9 \u0645\u0633\u062A\u0642\u06CC\u0645 Xray / v2rayN:</b>
 <pre><code>${subUrl}?format=xray</code></pre>
 
-\u{1F4A1} <i>\u0627\u06CC\u0646 \u0644\u06CC\u0646\u06A9 \u0631\u0627 \u062F\u0631 \u0646\u0631\u0645\u200C\u0627\u0641\u0632\u0627\u0631\u0647\u0627\u06CC \u062E\u0648\u062F \u0648\u0627\u0631\u062F \u06A9\u0631\u062F\u0647 \u06CC\u0627 \u062F\u0631 \u0645\u0631\u0648\u0631\u06AF\u0631 \u0628\u0627\u0632 \u06A9\u0646\u06CC\u062F.</i>`;
+\u{1F4A1} <i>\u0647\u0631 \u06A9\u062F\u0627\u0645 \u0627\u0632 \u06F4 \u0644\u06CC\u0646\u06A9 \u0628\u0627\u0644\u0627 \u0631\u0627 \u0645\u062A\u0646\u0627\u0633\u0628 \u0628\u0627 \u0646\u0631\u0645\u200C\u0627\u0641\u0632\u0627\u0631 \u062E\u0648\u062F \u06A9\u067E\u06CC \u06A9\u0631\u062F\u0647 \u06CC\u0627 \u0644\u06CC\u0646\u06A9 \u0647\u0648\u0634\u0645\u0646\u062F \u0631\u0627 \u0645\u0633\u062A\u0642\u06CC\u0645\u0627\u064B \u0648\u0627\u0631\u062F \u06A9\u0646\u06CC\u062F.</i>`;
   },
   subscriptionUpdated: (sub, baseUrl, actionName) => {
     const subUrl = `${baseUrl}/sub/${sub.slug}`;
     const count = sub.profiles ? sub.profiles.length : sub.stats?.total || 0;
+    const remainingDays = Math.ceil(Math.max(0, (sub.expiresAt || 0) - Date.now()) / (1e3 * 86400));
     return `\u2705 <b>\u0633\u0627\u0628\u200C\u0627\u0633\u06A9\u0631\u06CC\u067E\u0634\u0646 \xAB${sub.slug}\xBB \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A ${actionName} \u0634\u062F!</b>
 
 \u{1F4CA} \u062A\u0639\u062F\u0627\u062F \u06A9\u0627\u0646\u0641\u06CC\u06AF\u200C\u0647\u0627\u06CC \u0645\u0648\u062C\u0648\u062F: <b>${count}</b> \u0639\u062F\u062F
-\u23F3 \u0627\u0639\u062A\u0628\u0627\u0631: <b>\u06F7 \u0631\u0648\u0632 \u062F\u06CC\u06AF\u0631 \u062A\u0645\u062F\u06CC\u062F \u0634\u062F</b>
+\u23F3 \u0645\u062F\u062A \u0627\u0639\u062A\u0628\u0627\u0631: <b>${remainingDays > 365 ? "\u062F\u0627\u0626\u0645\u06CC \u267E" : `${remainingDays} \u0631\u0648\u0632 \u062F\u06CC\u06AF\u0631 \u062A\u0645\u062F\u06CC\u062F \u0634\u062F`}</b>
 
-\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0633\u0627\u0628 \u0634\u0645\u0627 (\u0628\u062F\u0648\u0646 \u062A\u063A\u06CC\u06CC\u0631):</b>
+\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0647\u0648\u0634\u0645\u0646\u062F (\u062A\u0634\u062E\u06CC\u0635 \u062E\u0648\u062F\u06A9\u0627\u0631 \u0647\u0645\u0647 \u0628\u0631\u0646\u0627\u0645\u0647\u200C\u0647\u0627):</b>
 <pre><code>${subUrl}</code></pre>
+
+\u{1F431} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u06A9\u0644\u0634 (Mihomo / Clash.Meta):</b>
+<pre><code>${subUrl}?format=clash</code></pre>
+
+\u{1F4E6} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u0633\u06CC\u0646\u06AF\u200C\u0628\u0627\u06A9\u0633 (Sing-box):</b>
+<pre><code>${subUrl}?format=singbox</code></pre>
+
+\u26A1 <b>\u0644\u06CC\u0646\u06A9 \u0645\u0633\u062A\u0642\u06CC\u0645 Xray / v2rayN:</b>
+<pre><code>${subUrl}?format=xray</code></pre>
+
 <i>\u06A9\u0627\u0646\u0641\u06CC\u06AF\u200C\u0647\u0627 \u062F\u0631 \u0628\u0631\u0646\u0627\u0645\u0647\u200C\u0647\u0627\u06CC \u06A9\u0644\u0627\u06CC\u0646\u062A \u0628\u0627 \u06CC\u06A9 \u0622\u067E\u062F\u06CC\u062A \u062F\u0631\u06CC\u0627\u0641\u062A \u0645\u06CC\u200C\u0634\u0648\u0646\u062F.</i>`;
   },
   subDirectDelivered: (sub, baseUrl, action, count, statsText) => {
@@ -11121,10 +10285,21 @@ ${currentSlug ? `\u{1F4CC} \u0633\u0627\u0628 \u0641\u0639\u0644\u06CC \u0627\u0
 \u{1F3F7} <b>\u0634\u0646\u0627\u0633\u0647 \u0633\u0627\u0628 \u0647\u062F\u0641:</b> <code>${sub.slug}</code>
 \u{1F504} <b>\u0648\u0636\u0639\u06CC\u062A \u0639\u0645\u0644\u06CC\u0627\u062A:</b> \u062A\u0639\u062F\u0627\u062F <b>${count}</b> \u06A9\u0627\u0646\u0641\u06CC\u06AF \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A <b>${actionLabel}</b>.
 \u{1F4CA} <b>\u0645\u062C\u0645\u0648\u0639 \u06A9\u0644 \u06A9\u0627\u0646\u0641\u06CC\u06AF\u200C\u0647\u0627\u06CC \u0641\u0639\u0627\u0644 \u0627\u06CC\u0646 \u0644\u06CC\u0646\u06A9:</b> <b>${totalCount}</b> \u0639\u062F\u062F
-\u23F3 <b>\u0645\u062F\u062A \u0627\u0639\u062A\u0628\u0627\u0631:</b> <b>${remainingDays} \u0631\u0648\u0632</b> (\u062A\u0645\u062F\u06CC\u062F \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0627 \u0647\u0631 \u0627\u062A\u0635\u0627\u0644)
+\u23F3 <b>\u0645\u062F\u062A \u0627\u0639\u062A\u0628\u0627\u0631:</b> <b>${remainingDays > 365 ? "\u062F\u0627\u0626\u0645\u06CC \u267E" : `${remainingDays} \u0631\u0648\u0632`}</b> (\u062A\u0645\u062F\u06CC\u062F \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0627 \u0647\u0631 \u0627\u062A\u0635\u0627\u0644)
 
-\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0647\u0648\u0634\u0645\u0646\u062F \u0627\u0634\u062A\u0631\u0627\u06A9 \u0634\u0645\u0627:</b>
-<code>${subUrl}</code>${statsText || ""}
+\u{1F517} <b>\u0644\u06CC\u0646\u06A9 \u0647\u0648\u0634\u0645\u0646\u062F (\u062A\u0634\u062E\u06CC\u0635 \u062E\u0648\u062F\u06A9\u0627\u0631 \u0647\u0645\u0647 \u0628\u0631\u0646\u0627\u0645\u0647\u200C\u0647\u0627):</b>
+<pre><code>${subUrl}</code></pre>
+
+\u{1F431} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u06A9\u0644\u0634 (Mihomo / Clash.Meta):</b>
+<pre><code>${subUrl}?format=clash</code></pre>
+
+\u{1F4E6} <b>\u0644\u06CC\u0646\u06A9 \u0627\u062E\u062A\u0635\u0627\u0635\u06CC \u0633\u06CC\u0646\u06AF\u200C\u0628\u0627\u06A9\u0633 (Sing-box):</b>
+<pre><code>${subUrl}?format=singbox</code></pre>
+
+\u26A1 <b>\u0644\u06CC\u0646\u06A9 \u0645\u0633\u062A\u0642\u06CC\u0645 Xray / v2rayN:</b>
+<pre><code>${subUrl}?format=xray</code></pre>${statsText ? `
+
+${statsText}` : ""}
 
 <i>\u{1F4CC} \u0627\u0632 \u0622\u0646\u062C\u0627 \u06A9\u0647 \u0642\u0627\u0644\u0628 \u062A\u062D\u0648\u06CC\u0644 \xAB\u0644\u06CC\u0646\u06A9 \u0622\u0646\u0644\u0627\u06CC\u0646\xBB \u0627\u0646\u062A\u062E\u0627\u0628 \u0634\u062F\u0647 \u0627\u0633\u062A\u060C \u0641\u0627\u06CC\u0644\u200C\u0647\u0627\u06CC \u06A9\u0627\u0646\u0641\u06CC\u06AF \u0628\u0647 \u0645\u0646\u0638\u0648\u0631 \u062E\u0644\u0648\u062A \u0645\u0627\u0646\u062F\u0646 \u0686\u062A \u0627\u0631\u0633\u0627\u0644 \u0646\u0634\u062F\u0646\u062F. \u06A9\u0644\u0627\u06CC\u0646\u062A \u0634\u0645\u0627 \u0628\u0627 \u06CC\u06A9 \u0628\u0647\u200C\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0633\u0627\u0628 \u06A9\u0627\u0646\u0641\u06CC\u06AF\u200C\u0647\u0627\u06CC \u062C\u062F\u06CC\u062F \u0631\u0627 \u062F\u0631\u06CC\u0627\u0641\u062A \u0645\u06CC\u200C\u06A9\u0646\u062F.</i>`;
   },
@@ -11766,6 +10941,89 @@ var SubscriptionManager = class {
 };
 
 // src/bot/handlers.js
+function parseNumericOrUnlimitedInput(rawText) {
+  if (!rawText || typeof rawText !== "string") return NaN;
+  let text = rawText.trim().toLowerCase();
+  const unlimitedKeywords = [
+    "\u0646\u0627\u0645\u062D\u062F\u0648\u062F",
+    "\u0646\u0627\u0645\u062D\u062F\u0648\u062F\u0647",
+    "\u0628\u06CC \u0646\u0647\u0627\u06CC\u062A",
+    "\u0628\u06CC\u0646\u0647\u0627\u06CC\u062A",
+    "\u0628\u06CC\u200C\u0646\u0647\u0627\u06CC\u062A",
+    "\u062F\u0627\u0626\u0645\u06CC",
+    "\u062F\u0627\u06CC\u0645\u06CC",
+    "\u0647\u0645\u06CC\u0634\u06AF\u06CC",
+    "\u0647\u0645\u06CC\u0634\u0647",
+    "\u0628\u062F\u0648\u0646 \u0645\u062D\u062F\u0648\u062F\u06CC\u062A",
+    "\u0628\u062F\u0648\u0646 \u0633\u0642\u0641",
+    "unlimited",
+    "infinite",
+    "forever"
+  ];
+  if (unlimitedKeywords.some((kw) => text.includes(kw))) {
+    return -1;
+  }
+  const wordMap = {
+    "\u0635\u0641\u0631": 0,
+    "\u06CC\u06A9": 1,
+    "\u06CC\u0647": 1,
+    "\u062F\u0648": 2,
+    "\u0633\u0647": 3,
+    "\u0686\u0647\u0627\u0631": 4,
+    "\u067E\u0646\u062C": 5,
+    "\u0634\u0634": 6,
+    "\u0634\u06CC\u0634": 6,
+    "\u0647\u0641\u062A": 7,
+    "\u0647\u0634\u062A": 8,
+    "\u0646\u0647": 9,
+    "\u062F\u0647": 10,
+    "\u06CC\u0627\u0632\u062F\u0647": 11,
+    "\u062F\u0648\u0627\u0632\u062F\u0647": 12,
+    "\u0633\u06CC\u0632\u062F\u0647": 13,
+    "\u0686\u0647\u0627\u0631\u062F\u0647": 14,
+    "\u067E\u0627\u0646\u0632\u062F\u0647": 15,
+    "\u067E\u0648\u0646\u0632\u062F\u0647": 15,
+    "\u0634\u0627\u0646\u0632\u062F\u0647": 16,
+    "\u0634\u0648\u0646\u0632\u062F\u0647": 16,
+    "\u0647\u0641\u062F\u0647": 17,
+    "\u0647\u062C\u062F\u0647": 18,
+    "\u0646\u0648\u0632\u062F\u0647": 19,
+    "\u0628\u06CC\u0633\u062A": 20,
+    "\u0628\u06CC\u0633\u062A \u0648 \u06CC\u06A9": 21,
+    "\u0628\u06CC\u0633\u062A \u0648 \u062F\u0648": 22,
+    "\u0628\u06CC\u0633\u062A \u0648 \u0633\u0647": 23,
+    "\u0628\u06CC\u0633\u062A \u0648 \u0686\u0647\u0627\u0631": 24,
+    "\u0628\u06CC\u0633\u062A \u0648 \u067E\u0646\u062C": 25,
+    "\u0633\u06CC": 30,
+    "\u0686\u0647\u0644": 40,
+    "\u067E\u0646\u062C\u0627\u0647": 50,
+    "\u0634\u0635\u062A": 60,
+    "\u0647\u0641\u062A\u0627\u062F": 70,
+    "\u0647\u0634\u062A\u0627\u062F": 80,
+    "\u0646\u0648\u062F": 90,
+    "\u0635\u062F": 100
+  };
+  if (wordMap[text] !== void 0) {
+    return wordMap[text];
+  }
+  const farsiDigits = ["\u06F0", "\u06F1", "\u06F2", "\u06F3", "\u06F4", "\u06F5", "\u06F6", "\u06F7", "\u06F8", "\u06F9"];
+  const arabicDigits = ["\u0660", "\u0661", "\u0662", "\u0663", "\u0664", "\u0665", "\u0666", "\u0667", "\u0668", "\u0669"];
+  for (let i2 = 0; i2 < 10; i2++) {
+    text = text.replaceAll(farsiDigits[i2], String(i2));
+    text = text.replaceAll(arabicDigits[i2], String(i2));
+  }
+  text = text.replace(/[\u2212\u2010\u2011\u2012\u2013\u2014\u2015\uFE63\uFF0D]/g, "-");
+  if (/^\d+\s*-$/.test(text)) {
+    text = "-" + text.replace("-", "").trim();
+  } else {
+    text = text.replace(/\s*-\s*/g, "-");
+  }
+  const match = text.match(/-?\d+/);
+  if (match) {
+    return parseInt(match[0], 10);
+  }
+  return NaN;
+}
 function extractPasswordCandidates(caption, entities = []) {
   const candidates = /* @__PURE__ */ new Set();
   if (!caption || typeof caption !== "string") return [];
@@ -12836,10 +12094,7 @@ async function handleUpdate(update, bot, sessionMgr, env, subMgr) {
     return;
   }
   if (session.awaitingMaxConfigsCount && text && !text.startsWith("/")) {
-    const farsiDigits = ["\u06F0", "\u06F1", "\u06F2", "\u06F3", "\u06F4", "\u06F5", "\u06F6", "\u06F7", "\u06F8", "\u06F9"];
-    let cleanText = text.trim();
-    for (let i2 = 0; i2 < 10; i2++) cleanText = cleanText.replaceAll(farsiDigits[i2], String(i2));
-    const num = parseInt(cleanText, 10);
+    const num = parseNumericOrUnlimitedInput(text);
     if (isNaN(num) || num < 1 || num > 1e4) {
       await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0635\u062D\u06CC\u062D \u0645\u0639\u062A\u0628\u0631 \u0628\u06CC\u0646 \u06F1 \u062A\u0627 \u06F1\u06F0,\u06F0\u06F0\u06F0 \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F:");
       return;
@@ -12854,13 +12109,10 @@ async function handleUpdate(update, bot, sessionMgr, env, subMgr) {
     return;
   }
   if (session.awaitingAdminInput && text && !text.startsWith("/")) {
-    const farsiDigits = ["\u06F0", "\u06F1", "\u06F2", "\u06F3", "\u06F4", "\u06F5", "\u06F6", "\u06F7", "\u06F8", "\u06F9"];
-    let cleanText = text.trim();
-    for (let i2 = 0; i2 < 10; i2++) cleanText = cleanText.replaceAll(farsiDigits[i2], String(i2));
-    const num = parseInt(cleanText, 10);
+    const num = parseNumericOrUnlimitedInput(text);
     if (session.awaitingAdminInput === "max_subs") {
       if (isNaN(num) || num < -1 || num > 1e3) {
-        await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0645\u0639\u062A\u0628\u0631 \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0645\u062B\u0644\u0627\u064B 3\u060C \u06CC\u0627 0 \u0628\u0631\u0627\u06CC \u063A\u06CC\u0631\u0641\u0639\u0627\u0644\u060C \u06CC\u0627 1- \u0628\u0631\u0627\u06CC \u0646\u0627\u0645\u062D\u062F\u0648\u062F):");
+        await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0645\u0639\u062A\u0628\u0631 \u06CC\u0627 \u0639\u0628\u0627\u0631\u062A \xAB\u0646\u0627\u0645\u062D\u062F\u0648\u062F\xBB \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0645\u062B\u0644\u0627\u064B \u06F3\u060C \u06CC\u0627 \u06F0 \u0628\u0631\u0627\u06CC \u063A\u06CC\u0631\u0641\u0639\u0627\u0644\u060C \u06CC\u0627 \u06F1- \u0648 \u0646\u0627\u0645\u062D\u062F\u0648\u062F):");
         return;
       }
       await sessionMgr.saveAdminLimits({ maxSubsPerUser: num });
@@ -12877,14 +12129,15 @@ async function handleUpdate(update, bot, sessionMgr, env, subMgr) {
     }
     if (session.awaitingAdminInput === "expiry_days") {
       if (isNaN(num) || num < -1 || num > 3650) {
-        await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0645\u0639\u062A\u0628\u0631 \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0645\u062B\u0644\u0627\u064B 7\u060C \u06CC\u0627 0 \u0648 1- \u0628\u0631\u0627\u06CC \u062F\u0627\u0626\u0645\u06CC \u0628\u062F\u0648\u0646 \u0627\u0646\u0642\u0636\u0627):");
+        await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0645\u0639\u062A\u0628\u0631 \u06CC\u0627 \u0639\u0628\u0627\u0631\u062A \xAB\u062F\u0627\u0626\u0645\u06CC / \u0646\u0627\u0645\u062D\u062F\u0648\u062F\xBB \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0645\u062B\u0644\u0627\u064B \u06F7\u060C \u06CC\u0627 \u06F0 \u0648 \u062F\u0627\u0626\u0645\u06CC \u0628\u0631\u0627\u06CC \u0628\u062F\u0648\u0646 \u0627\u0646\u0642\u0636\u0627):");
         return;
       }
-      await sessionMgr.saveAdminLimits({ subInactivityDays: num });
+      const savedDays = num <= 0 ? 0 : num;
+      await sessionMgr.saveAdminLimits({ subInactivityDays: savedDays });
       session.awaitingAdminInput = null;
       await sessionMgr.save(userId, session);
       const updatedLimits = await sessionMgr.getAdminLimits();
-      const statusText = num <= 0 ? "\u062F\u0627\u0626\u0645\u06CC (\u0628\u062F\u0648\u0646 \u0627\u0646\u0642\u0636\u0627) \u0634\u062F \u267E" : `\u0628\u0647 ${num} \u0631\u0648\u0632 \u062A\u0646\u0638\u06CC\u0645 \u0634\u062F \u2705`;
+      const statusText = savedDays === 0 ? "\u062F\u0627\u0626\u0645\u06CC (\u0628\u062F\u0648\u0646 \u0627\u0646\u0642\u0636\u0627) \u0634\u062F \u267E" : `\u0628\u0647 ${savedDays} \u0631\u0648\u0632 \u062A\u0646\u0638\u06CC\u0645 \u0634\u062F \u2705`;
       await bot.sendMessage(chatId, `\u2705 <b>\u0645\u062F\u062A \u0627\u0639\u062A\u0628\u0627\u0631 \u0633\u0627\u0628\u200C\u0647\u0627\u06CC \u063A\u06CC\u0631\u0641\u0639\u0627\u0644 ${statusText}.</b>
 
 ` + Messages.adminPanel(updatedLimits), {
@@ -12894,7 +12147,7 @@ async function handleUpdate(update, bot, sessionMgr, env, subMgr) {
     }
     if (session.awaitingAdminInput === "max_file_size") {
       if (isNaN(num) || num < -1 || num > 1e3) {
-        await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0645\u0639\u062A\u0628\u0631 \u0628\u0647 \u0645\u06AF\u0627\u0628\u0627\u06CC\u062A \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0645\u062B\u0644\u0627\u064B 6\u060C \u06CC\u0627 0 \u0648 1- \u0628\u0631\u0627\u06CC \u0646\u0627\u0645\u062D\u062F\u0648\u062F):");
+        await bot.sendMessage(chatId, "\u274C \u0644\u0637\u0641\u0627\u064B \u06CC\u06A9 \u0639\u062F\u062F \u0645\u0639\u062A\u0628\u0631 \u0628\u0647 \u0645\u06AF\u0627\u0628\u0627\u06CC\u062A \u06CC\u0627 \u0639\u0628\u0627\u0631\u062A \xAB\u0646\u0627\u0645\u062D\u062F\u0648\u062F\xBB \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F (\u0645\u062B\u0644\u0627\u064B \u06F6\u060C \u06CC\u0627 \u06F0 \u0648 \u0646\u0627\u0645\u062D\u062F\u0648\u062F):");
         return;
       }
       const savedMB = num <= 0 ? -1 : num;

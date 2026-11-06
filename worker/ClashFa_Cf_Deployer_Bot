@@ -1306,6 +1306,29 @@ async function deleteD1Database(token, accountId, databaseId) {
 }
 
 async function executeD1Statements(token, accountId, databaseId, sql) {
+  if (!sql || !sql.trim()) return { success: true, executed: 0, failed: 0, errors: [] };
+
+  // 1. Try single fast bulk query (Cloudflare D1 natively supports multi-statement batching in <6s)
+  try {
+    const res = await fetchWithTimeout(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ sql: sql })
+    }, 25000);
+    const data = await res.json();
+    if (data.success) {
+      const executed = Array.isArray(data.result) ? data.result.length : 1;
+      return { success: true, executed, failed: 0, errors: [] };
+    }
+    console.warn("D1 bulk query returned errors, falling back to statement-by-statement: ", data.errors?.[0]?.message);
+  } catch (err) {
+    console.warn("D1 bulk query failed with exception, falling back: ", err.message);
+  }
+
+  // 2. Fallback: Split by semicolon and execute statement by statement
   const statements = sql
     .split(";")
     .map(s => s.trim())
@@ -1321,7 +1344,7 @@ async function executeD1Statements(token, accountId, databaseId, sql) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ sql: stmt })
-      }, 15000);
+      }, 10000);
       const data = await res.json();
       if (!data.success) {
         report.failed++;

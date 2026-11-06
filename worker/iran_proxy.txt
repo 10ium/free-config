@@ -23,7 +23,14 @@ const PROXY_SOURCES = [
   { url: 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&timeout=10000&country=IR', type: 'text_simple', protocol: 'socks5' },
   { url: 'https://proxylist.geonode.com/api/proxy-list?country=IR&limit=100&page=1&sort_by=lastChecked&sort_type=desc', type: 'json_geonode' },
   { url: 'https://raw.githubusercontent.com/fate0/proxylist/master/proxy.list', type: 'ndjson_fate0' },
-  { url: 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt', type: 'text_clarketm' }
+  { url: 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt', type: 'text_clarketm' },
+
+  // ۵ منبع وب‌سایت تایید شده و فعال جدید
+  { url: 'https://proxyspace.pro/country/ir/', type: 'html_proxyspace' },
+  { url: 'https://proxycheck.app/free-proxies/ir', type: 'html_proxycheck' },
+  { url: 'https://freeproxyupdate.com/iran-ir', type: 'html_freeproxyupdate' },
+  { url: 'https://www.freeproxy.world/?country=IR', type: 'html_freeproxyworld' },
+  { url: 'https://proxy-spider.com/proxies/locations/ir-iran-islamic-republic-of', type: 'html_proxyspider' }
 ];
 
 export default {
@@ -162,6 +169,21 @@ function getFriendlySourceName(sourceUrl) {
     if (url.hostname.includes('geonode.com')) {
       return `GeoNode API (Live)`;
     }
+    if (url.hostname.includes('proxyspace.pro')) {
+      return 'ProxySpace (Web)';
+    }
+    if (url.hostname.includes('proxycheck.app')) {
+      return 'ProxyCheck (Web)';
+    }
+    if (url.hostname.includes('freeproxyupdate.com')) {
+      return 'FreeProxyUpdate (Web)';
+    }
+    if (url.hostname.includes('freeproxy.world')) {
+      return 'FreeProxyWorld (Web)';
+    }
+    if (url.hostname.includes('proxy-spider.com')) {
+      return 'ProxySpider (Web)';
+    }
     const parts = url.pathname.split('/').filter(p => p);
     return `${url.hostname}/${parts[parts.length - 1] || ''}`;
   } catch (e) {
@@ -183,6 +205,10 @@ function isValidIP(ip) {
   if (parts[0] === '127' || parts[0] === '10' || parts[0] === '0') return false;
   if (parts[0] === '192' && parts[1] === '168') return false;
   if (parts[0] === '172' && parseInt(parts[1], 10) >= 16 && parseInt(parts[1], 10) <= 31) return false;
+  // رد کردن آی‌پی‌های ماکت و داکیومنتی (RFC 5737)
+  if (parts[0] === '192' && parts[1] === '0' && parts[2] === '2') return false;
+  if (parts[0] === '198' && parts[1] === '51' && parts[2] === '100') return false;
+  if (parts[0] === '203' && parts[1] === '0' && parts[2] === '113') return false;
   return true;
 }
 
@@ -209,7 +235,7 @@ async function fetchAndProcessProxies() {
           try { return JSON.parse(corrected); }
           catch (e) { throw new Error('Invalid JSON stream'); }
         }
-        if (source.type === 'ndjson_fate0' || source.type.startsWith('text')) {
+        if (source.type === 'ndjson_fate0' || source.type.startsWith('text') || source.type.startsWith('html_')) {
           return response.text();
         }
         return response.json();
@@ -366,6 +392,36 @@ function parseProxies(data, source) {
             else if (p.http === '1') addProxy('http', p.ip, p.port);
           }
         });
+      }
+      break;
+
+    case 'html_proxyspace':
+      for (const m of (typeof data === 'string' ? data : '').matchAll(/\b(\d{1,3}(?:\.\d{1,3}){3}):(\d{2,5})\b/g)) {
+        addProxy('http', m[1], m[2]);
+      }
+      break;
+
+    case 'html_proxycheck':
+      for (const m of (typeof data === 'string' ? data : '').matchAll(/(\d{1,3}(?:\.\d{1,3}){3})[\s\S]*?(\d{2,5})[\s\S]*?(http|https|socks5|socks4)/gi)) {
+        addProxy(m[3], m[1], m[2]);
+      }
+      break;
+
+    case 'html_freeproxyupdate':
+      for (const m of (typeof data === 'string' ? data : '').matchAll(/<tr>\s*<td>\s*(\d{1,3}(?:\.\d{1,3}){3})\s*<\/td>\s*<td>\s*(\d{1,5})\s*<\/td>[\s\S]*?<td>\s*<a[^>]*>\s*(https|http|socks4|socks5)/gi)) {
+        addProxy(m[3], m[1], m[2]);
+      }
+      break;
+
+    case 'html_freeproxyworld':
+      for (const m of (typeof data === 'string' ? data : '').matchAll(/<td[^>]*>\s*(\d{1,3}(?:\.\d{1,3}){3})\s*<\/td>[\s\S]*?port=(\d{1,5})[\s\S]*?type=([a-zA-Z0-9]+)/gi)) {
+        addProxy(m[3], m[1], m[2]);
+      }
+      break;
+
+    case 'html_proxyspider':
+      for (const m of (typeof data === 'string' ? data : '').matchAll(/title="(\d{1,3}(?:\.\d{1,3}){3})"[\s\S]*?title="(\d{1,5})"/g)) {
+        addProxy('http', m[1], m[2]);
       }
       break;
   }

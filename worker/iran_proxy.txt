@@ -1,3 +1,5 @@
+import { connect } from 'cloudflare:sockets';
+
 /**
  * IRAN PROXY COLLECTOR & HUB - 2055 CYBER EDITION
  * Author: ClashFa Team / Leo-Dream
@@ -39,24 +41,25 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': '*'
         }
       });
     }
 
-    if (request.method !== 'GET') {
+    if (request.method !== 'GET' && request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
     const url = new URL(request.url);
     const { pathname, searchParams } = url;
     const protocolFilter = (searchParams.get('protocol') || '').toLowerCase().trim();
+    const isApiRoute = pathname.startsWith('/api/') || pathname.includes('/tested');
 
-    // 1. بررسی حافظه کش کلودفلر برای پاسخ‌دهی برق‌آسا
+    // 1. بررسی حافظه کش کلودفلر برای پاسخ‌دهی برق‌آسا (فقط برای مسیرهای عمومی و غیرتست)
     const cache = typeof caches !== 'undefined' ? caches.default : null;
     const cacheKey = new Request(url.toString(), request);
-    if (cache && !searchParams.has('nocache')) {
+    if (cache && !searchParams.has('nocache') && !isApiRoute) {
       const cachedResponse = await cache.match(cacheKey);
       if (cachedResponse) {
         return cachedResponse;
@@ -66,6 +69,102 @@ export default {
     try {
       // 2. واکشی و پالایش داده‌ها
       const { uniqueProxies, report } = await fetchAndProcessProxies();
+
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Cache-Control': isApiRoute ? 'no-cache, no-store' : `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`
+      };
+
+      // مسیر API: تست دسته‌ای پروکسی‌ها با سوکت TCP و اعتبارسنجی loc=IR
+      if (pathname === '/api/test-batch') {
+        const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10));
+        const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 30);
+        const batch = uniqueProxies.slice(offset, offset + limit);
+
+        const testPromises = batch.map(async (proxyStr) => {
+          const match = proxyStr.match(/^(socks5|socks4|https|http):\/\/([^:]+):(\d+)$/);
+          if (!match) return { proxy: proxyStr, ok: false, isIran: false, error: 'Invalid format' };
+          const [, proto, ip, port] = match;
+          const res = await testProxy(proto, ip, parseInt(port, 10), 2200);
+          return { proxy: proxyStr, proto, ip, port, ...res };
+        });
+
+        const results = await Promise.all(testPromises);
+        const aliveThisBatch = results.filter(r => r.ok && r.isIran).map(r => r.proxy);
+
+        // ادغام با لیست ذخیره‌شده در کش کلودفلر
+        let existingTested = await getStoredTestedProxies(cache);
+        const merged = [...new Set([...existingTested, ...aliveThisBatch])];
+        if (aliveThisBatch.length > 0) {
+          await saveStoredTestedProxies(cache, ctx, merged);
+        }
+
+        const nextOffset = offset + batch.length < uniqueProxies.length ? offset + batch.length : null;
+
+        return new Response(JSON.stringify({
+          success: true,
+          offset,
+          batchSize: batch.length,
+          totalAvailable: uniqueProxies.length,
+          nextOffset,
+          batchAliveCount: aliveThisBatch.length,
+          totalTestedAliveSoFar: merged.length,
+          aliveProxies: aliveThisBatch,
+          results
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' }
+        });
+      }
+
+      // مسیر API: ریست و پاکسازی حافظه تست
+      if (pathname === '/api/reset-tested') {
+        await resetStoredTestedProxies(cache, ctx);
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'حافظه پروکسی‌های تست‌شده با موفقیت پاکسازی و ریست شد.'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' }
+        });
+      }
+
+      // مسیر API: دریافت لیست تست‌شده‌ها به صورت JSON
+      if (pathname === '/api/tested-list') {
+        const tested = await getStoredTestedProxies(cache);
+        return new Response(JSON.stringify({ success: true, count: tested.length, proxies: tested }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' }
+        });
+      }
+
+      // خروجی اختصاصی ساب‌اسکریپشن ایکس‌ری برای پروکسی‌های تست‌شده سالم
+      if (pathname === '/xray/tested' || pathname === '/sub/tested') {
+        const tested = await getStoredTestedProxies(cache);
+        let output = '';
+        if (tested && tested.length > 0) {
+          output = tested.join('\n');
+        } else {
+          output = `# هنوز تست از طریق داشبورد وب انجام نشده است.\n# لطفاً داشبورد را باز کرده و دکمه تست خودکار را بزنید تا فقط پروکسی‌های تاییدشده قرار گیرند.\n` + uniqueProxies.slice(0, 20).join('\n');
+        }
+
+        return new Response(output, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'text/plain; charset=utf-8'
+          }
+        });
+      }
+
+      // خروجی کلش برای پروکسی‌های تست‌شده سالم
+      if (pathname === '/clash/tested') {
+        const tested = await getStoredTestedProxies(cache);
+        const listToFormat = (tested && tested.length > 0) ? tested : uniqueProxies.slice(0, 20);
+        return new Response(formatForClash(listToFormat), {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'text/yaml; charset=utf-8'
+          }
+        });
+      }
 
       // اعمال فیلتر بر اساس پارامتر آدرس (Query Params)
       let filteredProxies = uniqueProxies;
@@ -77,10 +176,6 @@ export default {
       }
 
       let response;
-      const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`
-      };
 
       switch (pathname) {
         case '/xray':
@@ -140,8 +235,8 @@ export default {
           return new Response('404 Not Found', { status: 404 });
       }
 
-      // ذخیره پاسخ در کش کلودفلر
-      if (cache && ctx && typeof ctx.waitUntil === 'function') {
+      // ذخیره پاسخ در کش کلودفلر (فقط برای مسیرهای غیر API)
+      if (cache && !isApiRoute && ctx && typeof ctx.waitUntil === 'function') {
         ctx.waitUntil(cache.put(cacheKey, response.clone()));
       }
 
@@ -152,6 +247,134 @@ export default {
     }
   }
 };
+
+async function getStoredTestedProxies(cache) {
+  if (!cache) return [];
+  try {
+    const key = new Request('https://iran-proxy-collector.internal/tested_proxies_list');
+    const resp = await cache.match(key);
+    if (resp) {
+      return await resp.json();
+    }
+  } catch (_) {}
+  return [];
+}
+
+async function saveStoredTestedProxies(cache, ctx, proxies) {
+  if (!cache) return;
+  try {
+    const key = new Request('https://iran-proxy-collector.internal/tested_proxies_list');
+    const resp = new Response(JSON.stringify(proxies), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400'
+      }
+    });
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(cache.put(key, resp));
+    } else {
+      await cache.put(key, resp);
+    }
+  } catch (_) {}
+}
+
+async function resetStoredTestedProxies(cache, ctx) {
+  if (!cache) return;
+  try {
+    const key = new Request('https://iran-proxy-collector.internal/tested_proxies_list');
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(cache.delete(key));
+    } else {
+      await cache.delete(key);
+    }
+  } catch (_) {}
+}
+
+async function testProxy(proto, ip, port, timeoutMs = 2200) {
+  let socket = null;
+  let timeoutId = null;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+  });
+
+  const testPromise = (async () => {
+    try {
+      socket = connect(`${ip}:${port}`);
+      const writer = socket.writable.getWriter();
+      const reader = socket.readable.getReader();
+
+      if (proto.startsWith('socks5')) {
+        await writer.write(new Uint8Array([0x05, 0x01, 0x00]));
+        const { value: hResp } = await reader.read();
+        if (!hResp || hResp[0] !== 0x05 || hResp[1] !== 0x00) {
+          throw new Error('SOCKS5 auth failed');
+        }
+        await writer.write(new Uint8Array([0x05, 0x01, 0x00, 0x01, 1, 1, 1, 1, 0, 80]));
+        const { value: cResp } = await reader.read();
+        if (!cResp || cResp[1] !== 0x00) {
+          throw new Error('SOCKS5 connect failed');
+        }
+        await writer.write(new TextEncoder().encode('GET /cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nConnection: close\r\n\r\n'));
+      } else if (proto.startsWith('socks4')) {
+        await writer.write(new Uint8Array([0x04, 0x01, 0, 80, 1, 1, 1, 1, 0]));
+        const { value: cResp } = await reader.read();
+        if (!cResp || cResp[1] !== 0x5a) {
+          throw new Error('SOCKS4 connect failed');
+        }
+        await writer.write(new TextEncoder().encode('GET /cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nConnection: close\r\n\r\n'));
+      } else if (proto === 'https') {
+        await writer.write(new TextEncoder().encode('CONNECT 1.1.1.1:80 HTTP/1.1\r\nHost: 1.1.1.1:80\r\n\r\n'));
+        const { value: cResp } = await reader.read();
+        const cStr = cResp ? new TextDecoder().decode(cResp) : '';
+        if (!cStr.includes('200')) {
+          throw new Error('CONNECT failed');
+        }
+        await writer.write(new TextEncoder().encode('GET /cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nConnection: close\r\n\r\n'));
+      } else {
+        const reqStr = `GET http://1.1.1.1/cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n`;
+        await writer.write(new TextEncoder().encode(reqStr));
+      }
+
+      const { value: bodyBytes } = await reader.read();
+      if (!bodyBytes) throw new Error('Empty response');
+      const text = new TextDecoder().decode(bodyBytes);
+
+      const is200 = text.includes('200 OK') || text.includes('loc=');
+      const isIran = text.includes('loc=IR');
+      const ipMatch = text.match(/ip=([0-9.]+)/);
+      const exitIp = ipMatch ? ipMatch[1] : null;
+
+      try { writer.releaseLock(); } catch (_) {}
+      try { reader.releaseLock(); } catch (_) {}
+      try { socket.close(); } catch (_) {}
+
+      return {
+        ok: is200 && isIran,
+        isIran,
+        exitIp,
+        hasTrace: text.includes('loc=')
+      };
+    } catch (err) {
+      if (socket) {
+        try { socket.close(); } catch (_) {}
+      }
+      return { ok: false, isIran: false, error: err.message };
+    }
+  })();
+
+  try {
+    const res = await Promise.race([testPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (socket) {
+      try { socket.close(); } catch (_) {}
+    }
+    return { ok: false, isIran: false, error: err.message };
+  }
+}
 
 function getFriendlySourceName(sourceUrl) {
   try {
@@ -470,6 +693,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
   const xrayLink = `${baseUrl}/xray`;
   const clashLink = `${baseUrl}/clash`;
   const jsonLink = `${baseUrl}/json`;
+  const testedXrayLink = `${baseUrl}/xray/tested`;
   const clashDeepLink = `clash://install-config?url=${encodeURIComponent(clashLink)}&name=${encodeURIComponent('Iran-Proxies')}`;
 
   const sourcesRows = report.جزئیات_منابع.map(s => {
@@ -701,6 +925,115 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
     .btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
     .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
 
+    /* Live Tester Panel Styles */
+    .tester-notice-box {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-right: 4px solid var(--accent-cyan);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+    .tester-notice-title {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.95rem;
+    }
+    .tester-notice-warning {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      color: #fbbf24;
+      font-size: 0.82rem;
+    }
+    .tester-actions-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .btn-auto-test {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    .btn-auto-test:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    }
+    .btn-auto-test.running {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      animation: pulse 1.5s infinite;
+    }
+    .btn-reset {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .btn-reset:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+    .progress-wrapper {
+      margin-bottom: 18px;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: rgba(3, 7, 18, 0.8);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--surface-border);
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #06b6d4, #10b981);
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+    .progress-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tester-summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .tester-mini-card {
+      background: rgba(3, 7, 18, 0.5);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .tester-mini-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .tester-mini-value {
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
     /* Interactive Filters & Terminal */
     .controls-bar {
       display: flex;
@@ -924,6 +1257,17 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
         justify-content: center;
       }
 
+      .tester-actions-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .tester-actions-row .btn {
+        width: 100%;
+      }
+      .tester-summary-cards {
+        grid-template-columns: 1fr 1fr;
+      }
+
       .controls-bar {
         flex-direction: column;
         align-items: stretch;
@@ -1059,6 +1403,15 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
           </div>
         </div>
 
+        <!-- Tested Xray Link -->
+        <div class="link-row" style="border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08);">
+          <span class="link-tag" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">⚡ تست‌شده سالم (Xray)</span>
+          <input type="text" class="link-input" id="testedXrayUrl" value="${testedXrayLink}" readonly>
+          <div class="link-btns-wrap">
+            <button class="btn btn-emerald" onclick="copyText('${testedXrayLink}')">کپی ساب‌اسکریپشن</button>
+          </div>
+        </div>
+
         <!-- JSON Link -->
         <div class="link-row">
           <span class="link-tag" style="background: rgba(168, 85, 247, 0.15); color: #34d399;">REST API (JSON)</span>
@@ -1068,6 +1421,83 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Live Health Check & Batch Tester Hub -->
+    <div class="glass-panel" id="testerPanel" style="border-color: rgba(6, 182, 212, 0.3);">
+      <div class="panel-header">
+        <h2 class="panel-title">🔬 آزمایشگاه و تست زنده سلامت پروکسی‌ها (Edge Socket Checker)</h2>
+        <span class="badge badge-success"><span class="pulse-dot"></span>تست مستقیم TCP با Cloudflare Sockets</span>
+      </div>
+
+      <!-- Explanatory Callout Notice -->
+      <div class="tester-notice-box">
+        <div class="tester-notice-title">
+          <span>ℹ️</span> نحوه کارکرد سیستم اعتبارسنجی زنده:
+        </div>
+        <p>سرور ابری کلودفلر مستقیماً از طریق سوکت خام TCP به تک‌تک پروکسی‌ها متصل شده و درخواست تایید هویت به سرویس ردیابی <code>1.1.1.1/cdn-cgi/trace</code> ارسال می‌کند. تنها در صورتی که پروکسی پاسخ استاندارد دهد و کد کشور خروجی آن دقیقاً <code>loc=IR</code> (ایران) باشد، به عنوان پروکسی سالم تایید و ذخیره می‌شود.</p>
+        <div class="tester-notice-warning">
+          ⚠️ <strong>نکته مهم:</strong> تایید سلامت در لبه شبکه ابری لزوماً به این معنی نیست که پروکسی روی اینترنت شما ۱۰۰٪ کار خواهد کرد؛ ممکن است اپراتور سیم‌کارت یا اینترنت خانگی شما پورت، پروتکل یا رنج آی‌پی آن پروکسی را محدود کرده باشد.
+        </div>
+      </div>
+
+      <!-- Control Buttons -->
+      <div class="tester-actions-row">
+        <!-- Default & Primary Action: Continuous Auto Runner -->
+        <button id="btnAutoTest" class="btn btn-auto-test" onclick="toggleAutoTest()">
+          ⚡ شروع تست خودکار هوشمند (پیوسته)
+        </button>
+        <!-- Secondary Action: Manual Single Batch -->
+        <button id="btnSingleBatch" class="btn btn-secondary" onclick="runSingleBatchTest()">
+          تست دستی یک دسته (۲۰ تایی)
+        </button>
+        <!-- Reset Action -->
+        <button id="btnResetTest" class="btn btn-reset" onclick="resetTestState()">
+          🗑️ ریست حافظه پروکسی‌ها
+        </button>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress-wrapper">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="progressText">وضعیت: آماده شروع تست</span>
+          <span id="progressPercent">۰٪</span>
+        </div>
+      </div>
+
+      <!-- Mini Stats Row -->
+      <div class="tester-summary-cards">
+        <div class="tester-mini-card">
+          <div class="tester-mini-label">کل پروکسی‌های مخزن</div>
+          <div class="tester-mini-value text-cyan">${total}</div>
+        </div>
+        <div class="tester-mini-card">
+          <div class="tester-mini-label">تست شده تا این لحظه</div>
+          <div class="tester-mini-value" id="statTestedCount" style="color: #60a5fa;">۰</div>
+        </div>
+        <div class="tester-mini-card">
+          <div class="tester-mini-label">سالم با آی‌پی ایران</div>
+          <div class="tester-mini-value" id="statAliveCount" style="color: #34d399;">۰</div>
+        </div>
+        <div class="tester-mini-card">
+          <div class="tester-mini-label">نرخ سلامت (Success)</div>
+          <div class="tester-mini-value" id="statSuccessRate" style="color: #c084fc;">۰٪</div>
+        </div>
+      </div>
+
+      <!-- Terminal Output for Tested Alive Proxies -->
+      <div class="controls-bar" style="margin-top: 14px; margin-bottom: 10px;">
+        <span class="text-xs text-muted" id="testedListCount">لیست پروکسی‌های تاییدشده سالم (۰ مورد)</span>
+        <div class="action-btns-group">
+          <button class="btn btn-secondary" onclick="copyTestedProxies()">کپی پروکسی‌های سالم</button>
+          <button class="btn btn-secondary" onclick="downloadTestedTXT()">دانلود TXT سالم‌ها</button>
+        </div>
+      </div>
+
+      <textarea id="testedTerminalBox" class="terminal-box" style="height: 160px; border-color: rgba(16, 185, 129, 0.2);" readonly placeholder="هنوز تستی انجام نشده است. روی دکمه «شروع تست خودکار هوشمند» کلیک کنید تا پروکسی‌های سالم شناسایی و در اینجا نمایش داده شوند..."></textarea>
     </div>
 
     <!-- Console Terminal & Filters -->
@@ -1200,8 +1630,167 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       a.click();
     }
 
-    // مقداردهی اولیه
+    // منطق سیستم تست زنده و عیب‌یابی دسته‌ای
+    let testOffset = 0;
+    let isAutoTesting = false;
+    let totalTestedCount = 0;
+    let aliveTestedProxies = [];
+    const BATCH_SIZE = 20;
+
+    async function loadInitialTestedList() {
+      try {
+        const resp = await fetch('/api/tested-list');
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.success && Array.isArray(data.proxies) && data.proxies.length > 0) {
+            aliveTestedProxies = data.proxies;
+            updateTestedUI();
+            document.getElementById('progressText').textContent = 'حافظه قبلی لود شد (' + aliveTestedProxies.length + ' پروکسی سالم)';
+          }
+        }
+      } catch (_) {}
+    }
+
+    function updateTestedUI() {
+      const box = document.getElementById('testedTerminalBox');
+      box.value = aliveTestedProxies.join('\n');
+      document.getElementById('statAliveCount').textContent = aliveTestedProxies.length;
+      document.getElementById('statTestedCount').textContent = totalTestedCount;
+      document.getElementById('testedListCount').textContent = 'لیست پروکسی‌های تاییدشده سالم (' + aliveTestedProxies.length + ' مورد)';
+
+      const percent = ALL_PROXIES.length > 0 ? Math.min(100, Math.round((totalTestedCount / ALL_PROXIES.length) * 100)) : 0;
+      document.getElementById('progressBarFill').style.width = percent + '%';
+      document.getElementById('progressPercent').textContent = percent + '٪';
+
+      const rate = totalTestedCount > 0 ? Math.round((aliveTestedProxies.length / totalTestedCount) * 100) : 0;
+      document.getElementById('statSuccessRate').textContent = rate + '٪';
+    }
+
+    async function runSingleBatchTest() {
+      if (testOffset >= ALL_PROXIES.length) {
+        showToast('ℹ️ تمام پروکسی‌های مخزن بررسی شده‌اند!');
+        document.getElementById('progressText').textContent = 'پایان تست: تمام پروکسی‌ها بررسی شدند.';
+        return false;
+      }
+
+      const btnBatch = document.getElementById('btnSingleBatch');
+      btnBatch.disabled = true;
+      btnBatch.textContent = 'در حال تست...';
+
+      const currentBatchStart = testOffset;
+      document.getElementById('progressText').textContent = 'در حال تست دسته ' + (Math.floor(testOffset / BATCH_SIZE) + 1) + ' (پروکسی‌های ' + (currentBatchStart + 1) + ' تا ' + Math.min(testOffset + BATCH_SIZE, ALL_PROXIES.length) + ')...';
+
+      try {
+        const resp = await fetch('/api/test-batch?offset=' + testOffset + '&limit=' + BATCH_SIZE);
+        const data = await resp.json();
+
+        if (data && data.success) {
+          totalTestedCount += data.batchSize;
+          if (Array.isArray(data.aliveProxies) && data.aliveProxies.length > 0) {
+            data.aliveProxies.forEach(p => {
+              if (!aliveTestedProxies.includes(p)) {
+                aliveTestedProxies.push(p);
+              }
+            });
+          }
+
+          if (data.nextOffset !== null && data.nextOffset !== undefined) {
+            testOffset = data.nextOffset;
+          } else {
+            testOffset = ALL_PROXIES.length;
+          }
+
+          updateTestedUI();
+          document.getElementById('progressText').textContent = 'دسته تکمیل شد. یافته جدید: ' + data.batchAliveCount + ' مورد سالم.';
+          btnBatch.disabled = false;
+          btnBatch.textContent = 'تست دستی یک دسته (۲۰ تایی)';
+          return testOffset < ALL_PROXIES.length;
+        } else {
+          throw new Error('خطا در پاسخ سرور');
+        }
+      } catch (err) {
+        document.getElementById('progressText').textContent = 'خطا در اجرای تست: ' + err.message;
+        btnBatch.disabled = false;
+        btnBatch.textContent = 'تست دستی یک دسته (۲۰ تایی)';
+        return false;
+      }
+    }
+
+    async function toggleAutoTest() {
+      const btn = document.getElementById('btnAutoTest');
+      if (isAutoTesting) {
+        isAutoTesting = false;
+        btn.classList.remove('running');
+        btn.textContent = '⚡ ادامه تست خودکار هوشمند (پیوسته)';
+        document.getElementById('progressText').textContent = 'تست خودکار متوقف شد.';
+        return;
+      }
+
+      isAutoTesting = true;
+      btn.classList.add('running');
+      btn.textContent = '⏸️ توقف تست خودکار';
+
+      while (isAutoTesting && testOffset < ALL_PROXIES.length) {
+        const hasMore = await runSingleBatchTest();
+        if (!hasMore || !isAutoTesting) break;
+        // وقفه ۳۰۰ میلی‌ثانیه‌ای بین دسته‌ها
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      isAutoTesting = false;
+      btn.classList.remove('running');
+      if (testOffset >= ALL_PROXIES.length) {
+        btn.textContent = '✅ تست کامل به پایان رسید';
+        document.getElementById('progressText').textContent = '🎉 تمام پروکسی‌ها با موفقیت آزمایش شدند.';
+        showToast('🎉 فرایند تست ۱۰۰٪ با موفقیت پایان یافت!');
+      } else {
+        btn.textContent = '⚡ ادامه تست خودکار هوشمند (پیوسته)';
+      }
+    }
+
+    async function resetTestState() {
+      if (!confirm('آیا از ریست کردن حافظه پروکسی‌های تست‌شده مطمئن هستید؟')) return;
+      try {
+        await fetch('/api/reset-tested');
+      } catch (_) {}
+      isAutoTesting = false;
+      testOffset = 0;
+      totalTestedCount = 0;
+      aliveTestedProxies = [];
+      const btn = document.getElementById('btnAutoTest');
+      btn.classList.remove('running');
+      btn.textContent = '⚡ شروع تست خودکار هوشمند (پیوسته)';
+      updateTestedUI();
+      document.getElementById('testedTerminalBox').value = '';
+      document.getElementById('progressText').textContent = 'حافظه پروکسی‌های تست‌شده ریست شد.';
+      showToast('🗑️ حافظه پروکسی‌های تست‌شده با موفقیت پاک شد!');
+    }
+
+    function copyTestedProxies() {
+      const val = document.getElementById('testedTerminalBox').value;
+      if (!val) {
+        showToast('⚠️ لیست پروکسی‌های سالم هنوز خالی است!');
+        return;
+      }
+      navigator.clipboard.writeText(val).then(() => showToast('✅ لیست پروکسی‌های سالم کپی شد!'));
+    }
+
+    function downloadTestedTXT() {
+      const val = document.getElementById('testedTerminalBox').value;
+      if (!val) {
+        showToast('⚠️ لیست پروکسی‌های سالم هنوز خالی است!');
+        return;
+      }
+      const blob = new Blob([val], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'iran_tested_alive_proxies.txt';
+      a.click();
+    }
+
+    // لود اولیه حافظه تست و مقداردهی ترمینال
     updateTerminal();
+    loadInitialTestedList();
   </script>
 </body>
 </html>`;

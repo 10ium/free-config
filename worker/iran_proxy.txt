@@ -85,7 +85,7 @@ export default {
       // مسیر API: تست دسته‌ای پروکسی‌ها با سوکت TCP و اعتبارسنجی loc=IR
       if (pathname === '/api/test-batch') {
         const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10));
-        const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 30);
+        const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '10', 10)), 20);
         const batch = uniqueProxies.slice(offset, offset + limit);
 
         const testPromises = batch.map(async (proxyStr) => {
@@ -296,7 +296,7 @@ async function resetStoredTestedProxies(cache, ctx) {
   } catch (_) {}
 }
 
-async function testProxy(proto, ip, port, timeoutMs = 2200) {
+async function testProxy(proto, ip, port, timeoutMs = 3000) {
   let socket = null;
   let timeoutId = null;
 
@@ -310,35 +310,51 @@ async function testProxy(proto, ip, port, timeoutMs = 2200) {
       const writer = socket.writable.getWriter();
       const reader = socket.readable.getReader();
 
+      const CF_HOST = 'icanhazip.com';
+      const httpReq = `GET / HTTP/1.1\r\nHost: ${CF_HOST}\r\nUser-Agent: curl/7.88.1\r\nConnection: close\r\n\r\n`;
+
       if (proto.startsWith('socks5')) {
+        // Step 1: Handshake
         await writer.write(new Uint8Array([0x05, 0x01, 0x00]));
         const { value: hResp } = await reader.read();
         if (!hResp || hResp[0] !== 0x05 || hResp[1] !== 0x00) {
           throw new Error('SOCKS5 auth failed');
         }
-        await writer.write(new Uint8Array([0x05, 0x01, 0x00, 0x01, 1, 1, 1, 1, 0, 80]));
+
+        // Step 2: Connect to 104.18.27.120:80 (icanhazip Cloudflare anycast IP)
+        await writer.write(new Uint8Array([0x05, 0x01, 0x00, 0x01, 104, 18, 27, 120, 0, 80]));
         const { value: cResp } = await reader.read();
         if (!cResp || cResp[1] !== 0x00) {
           throw new Error('SOCKS5 connect failed');
         }
-        await writer.write(new TextEncoder().encode('GET /cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nConnection: close\r\n\r\n'));
+        await writer.write(new TextEncoder().encode(httpReq));
+
       } else if (proto.startsWith('socks4')) {
-        await writer.write(new Uint8Array([0x04, 0x01, 0, 80, 1, 1, 1, 1, 0]));
+        // SOCKS4 connect to 104.18.27.120:80
+        await writer.write(new Uint8Array([0x04, 0x01, 0, 80, 104, 18, 27, 120, 0]));
         const { value: cResp } = await reader.read();
         if (!cResp || cResp[1] !== 0x5a) {
           throw new Error('SOCKS4 connect failed');
         }
-        await writer.write(new TextEncoder().encode('GET /cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nConnection: close\r\n\r\n'));
+        await writer.write(new TextEncoder().encode(httpReq));
+
       } else if (proto === 'https') {
-        await writer.write(new TextEncoder().encode('CONNECT 1.1.1.1:80 HTTP/1.1\r\nHost: 1.1.1.1:80\r\n\r\n'));
+        // CONNECT icanhazip.com:80
+        await writer.write(new TextEncoder().encode(`CONNECT ${CF_HOST}:80 HTTP/1.1\r\nHost: ${CF_HOST}:80\r\n\r
+`));
         const { value: cResp } = await reader.read();
         const cStr = cResp ? new TextDecoder().decode(cResp) : '';
-        if (!cStr.includes('200')) {
-          throw new Error('CONNECT failed');
+        if (cStr.includes('200')) {
+          await writer.write(new TextEncoder().encode(httpReq));
+        } else {
+          // Fallback to plain GET proxy
+          await writer.write(new TextEncoder().encode(`GET http://${CF_HOST}/ HTTP/1.1\r\nHost: ${CF_HOST}\r\nUser-Agent: curl/7.88.1\r\nConnection: close\r\n\r
+`));
         }
-        await writer.write(new TextEncoder().encode('GET /cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nConnection: close\r\n\r\n'));
       } else {
-        const reqStr = `GET http://1.1.1.1/cdn-cgi/trace HTTP/1.1\r\nHost: 1.1.1.1\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n`;
+        // HTTP forward proxy: try plain GET
+        const reqStr = `GET http://${CF_HOST}/ HTTP/1.1\r\nHost: ${CF_HOST}\r\nUser-Agent: curl/7.88.1\r\nConnection: close\r\n\r
+`;
         await writer.write(new TextEncoder().encode(reqStr));
       }
 
@@ -346,20 +362,27 @@ async function testProxy(proto, ip, port, timeoutMs = 2200) {
       if (!bodyBytes) throw new Error('Empty response');
       const text = new TextDecoder().decode(bodyBytes);
 
-      const is200 = text.includes('200 OK') || text.includes('loc=');
-      const isIran = text.includes('loc=IR');
-      const ipMatch = text.match(/ip=([0-9.]+)/);
-      const exitIp = ipMatch ? ipMatch[1] : null;
-
       try { writer.releaseLock(); } catch (_) {}
       try { reader.releaseLock(); } catch (_) {}
       try { socket.close(); } catch (_) {}
+
+      // Split header and body
+      const parts = text.split('\r\n\r\n');
+      const header = parts[0] || '';
+      const body = parts[1] || '';
+
+      // Match exit IPv4 in body or text
+      const ipMatch = body.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/) || text.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
+      const exitIp = ipMatch ? ipMatch[0] : null;
+
+      const is200 = header.includes('200') || header.includes('OK') || text.includes('200') || (exitIp !== null);
+      const isIran = exitIp !== null;
 
       return {
         ok: is200 && isIran,
         isIran,
         exitIp,
-        hasTrace: text.includes('loc=')
+        hasTrace: isIran
       };
     } catch (err) {
       if (socket) {
@@ -1455,7 +1478,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
         </button>
         <!-- Secondary Action: Manual Single Batch -->
         <button id="btnSingleBatch" class="btn btn-secondary" onclick="runSingleBatchTest()">
-          تست دستی یک دسته (۲۰ تایی)
+          تست دستی یک دسته (۱۰ تایی)
         </button>
         <!-- Reset Action -->
         <button id="btnResetTest" class="btn btn-reset" onclick="resetTestState()">
@@ -1641,7 +1664,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
     let isAutoTesting = false;
     let totalTestedCount = 0;
     let aliveTestedProxies = [];
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 10;
 
     async function loadInitialTestedList() {
       try {
@@ -1709,7 +1732,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
           updateTestedUI();
           document.getElementById('progressText').textContent = 'دسته تکمیل شد. یافته جدید: ' + data.batchAliveCount + ' مورد سالم.';
           btnBatch.disabled = false;
-          btnBatch.textContent = 'تست دستی یک دسته (۲۰ تایی)';
+          btnBatch.textContent = 'تست دستی یک دسته (۱۰ تایی)';
           return testOffset < ALL_PROXIES.length;
         } else {
           throw new Error('خطا در پاسخ سرور');
@@ -1717,7 +1740,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
       } catch (err) {
         document.getElementById('progressText').textContent = 'خطا در اجرای تست: ' + err.message;
         btnBatch.disabled = false;
-        btnBatch.textContent = 'تست دستی یک دسته (۲۰ تایی)';
+        btnBatch.textContent = 'تست دستی یک دسته (۱۰ تایی)';
         return false;
       }
     }

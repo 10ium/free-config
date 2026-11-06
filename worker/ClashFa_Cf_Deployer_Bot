@@ -325,8 +325,8 @@ const PRESETS = [
   },
   {
     "id": "telegram_shipper_bot",
-    "name": "Telegram Shipper Bot 💘",
-    "summary": "ربات پیشرفته مدیریت، تبادل، شیپینگ و انتشار خودکار محتوا در کانال‌ها و گروه‌های تلگرام با دیتابیس D1.",
+    "name": "Telegram Shipper Bot (جفت‌چین) 💘",
+    "summary": "ربات هوشمند انتخاب زوج و جفت‌چین اعضا در گروه‌های تلگرام با الگوریتم محاسبه سازگاری و دیتابیس D1.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/telegram_shipper_bot",
     "pathSuffix": "/set_webhook",
     "kvBindings": [],
@@ -344,22 +344,24 @@ const PRESETS = [
         "name": "D1_ID_DB",
         "required": true,
         "autoGenType": "d1_auto",
-        "description": "دیتابیس ابری D1 برای جداول مدیریت شیپر و شهرهای ایران (DB)"
+        "description": "دیتابیس ابری D1 برای ذخیره کاربران، گروه‌ها، زوج‌های روزانه و شهرهای ایران (DB)"
       }
     ],
     "features": [
-      "مدیریت کامل و زمان‌بندی ارسال پست‌ها در کانال‌ها و گروه‌های تلگرام",
-      "پایگاه داده مستقل ابری D1 به همراه جدول اطلاعات تمام شهرهای ایران",
-      "فعال‌سازی و ست شدن خودکار وبهوک با اندپوینت /set_webhook",
-      "سیستم ضد اسپم، آمارگیری پیشرفته و پنل مدیریت تلگرامی"
+      "الگوریتم هوشمند انتخاب زوج‌های روزانه در گروه بر اساس درصد سازگاری و شانس تصادفی",
+      "محاسبه فاصله مکانی میان اعضا با استفاده از مختصات دقیق بیش از ۱۴۶۰ شهر ایران در دیتابیس D1",
+      "امکان ساخت و ویرایش پروفایل شخصی در چت خصوصی ربات (سن، تاریخ تولد شمسی و معیارهای رفتاری)",
+      "قابلیت انصراف از جفت‌چین یا حضور مجدد با دستورات /noship و /shipme",
+      "امکان بلاک کردن افراد خاص برای جلوگیری از جفت شدن با آن‌ها (/myblocks) و سیستم ضد تکرار زوج‌های ۷ روز گذشته",
+      "فعال‌سازی و راه‌اندازی ۱۰۰٪ خودکار وب‌هوک و دستورات ربات بدون نیاز به سرور (با یک کلیک در مسیر /set_webhook)"
     ],
-    "useCase": "مدیریت اتوماتیک و انتشار پست‌ها در شبکه‌های تلگرامی با اتصال به دیتابیس D1.",
+    "useCase": "افزایش چشمگیر تعامل، صمیمیت و سرگرمی بین اعضای گروه‌های تلگرام با اجرای جفت‌چین و انتخاب زوج‌های روزانه.",
     "panelInfo": {
       "path": "/set_webhook",
       "defaultUser": "ربات تلگرام",
       "defaultPass": "توکن ربات"
     },
-    "description": "ربات شیپر تلگرام یک ورکر قدرتمند مبتنی بر دیتابیس ابری D1 است که فرآیند تبادلات و پست‌گذاری در کانال‌های تلگرامی را مدیریت می‌کند. این ربات با اجرای خودکار اسکریپت /set_webhook آماده به کار می‌شود.",
+    "description": "این ورکر یک ربات تفریحی و تعاملی برای گروه‌های تلگرامی است که اعضای گروه را به صورت روزانه با یکدیگر جفت (شیپ) می‌کند. ربات با استفاده از دیتابیس ابری D1، اطلاعات پروفایل اعضا (سن، هدف آشنایی، سبک شخصیتی و موقعیت جغرافیایی تمام شهرهای ایران) را نگهداری کرده و با محاسبه فاصله مکانی و معیارهای سازگاری، جفت‌های روز را معرفی می‌کند.",
     "category": "clashfa",
     "platform": "worker"
   },
@@ -3904,7 +3906,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
 `;
               await executeD1Statements(account.token, account.id, dbId, schemaSql);
             } else if (currentPreset && currentPreset.id === "telegram_shipper_bot") {
-              await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس D1 و ثبت دیتابیس شهرهای ایران برای ربات شیپر...", env);
+              await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس D1 و ثبت دیتابیس شهرهای ایران برای ربات جفت‌چین (شیپر)...", env);
               if (typeof SHIPPER_SCHEMA_SQL !== "undefined" && SHIPPER_SCHEMA_SQL) {
                 await executeD1Statements(account.token, account.id, dbId, SHIPPER_SCHEMA_SQL);
               }
@@ -3951,7 +3953,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
                 const schemaSql = `\nCREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, uuid TEXT NOT NULL UNIQUE, sub_token TEXT NOT NULL UNIQUE, trojan_pass TEXT NOT NULL DEFAULT '', trojan_hash TEXT NOT NULL DEFAULT '', quota_bytes INTEGER NOT NULL DEFAULT 0, used_bytes INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'active', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER);\nCREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);\nCREATE INDEX IF NOT EXISTS idx_users_token ON users(sub_token);\nCREATE INDEX IF NOT EXISTS idx_users_trojan ON users(trojan_hash);\nCREATE INDEX IF NOT EXISTS idx_users_expires ON users(expires_at);\nCREATE INDEX IF NOT EXISTS idx_users_status ON users(status);\nCREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, user_id INTEGER NOT NULL, up_bytes INTEGER NOT NULL DEFAULT 0, down_bytes INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, user_id);\nCREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);\n`;
                 await executeD1Statements(account.token, account.id, dbId, schemaSql);
               } else if (activePreset && activePreset.id === "telegram_shipper_bot") {
-                await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس D1 و ثبت دیتابیس شهرهای ایران برای ربات شیپر...", env);
+                await sendMessage(chatId, "⚙️ در حال ساخت خودکار جدول‌های دیتابیس D1 و ثبت دیتابیس شهرهای ایران برای ربات جفت‌چین (شیپر)...", env);
                 if (typeof SHIPPER_SCHEMA_SQL !== "undefined" && SHIPPER_SCHEMA_SQL) {
                   await executeD1Statements(account.token, account.id, dbId, SHIPPER_SCHEMA_SQL);
                 }
@@ -4096,7 +4098,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
         varsMsg += `🔸 مسیر پنل: <code>/${finalVars.SECRET || "SECRET"}</code>\n`;
         varsMsg += `🔸 سکرت اتصال (SECRET): <code>${escapeHTML(finalVars.SECRET || "")}</code>\n`;
       } else if (activePreset.id === "telegram_shipper_bot") {
-        varsMsg += "\n💘 <b>اطلاعات ربات شیپر تلگرام:</b>\n";
+        varsMsg += "\n💘 <b>اطلاعات ربات جفت‌چین (شیپر) تلگرام:</b>\n";
         varsMsg += "🔸 دیتابیس D1: بایندینگ <code>DB</code> متصل و جدول‌ها + دیتابیس شهرهای ایران ایجاد شدند.\n";
         varsMsg += "🔸 مسیر فعال‌سازی وبهوک: <code>/set_webhook</code>\n";
       }
@@ -4118,7 +4120,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
     // Special automated post-deploy webhook setup for Telegram bots
     let postDeployNotice = "";
     if (activePreset && activePreset.id === "telegram_shipper_bot") {
-      await sendMessage(chatId, "⏳ در حال فعال‌سازی خودکار وبهوک ربات شیپر (/set_webhook)...", env);
+      await sendMessage(chatId, "⏳ در حال فعال‌سازی خودکار وبهوک ربات جفت‌چین (شیپر) (/set_webhook)...", env);
       try {
         await new Promise(resolve => setTimeout(resolve, 3000));
         const setupUrl = `${rawBaseUrl}/set_webhook`;
@@ -4126,7 +4128,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_day ON usage(day);
         const setupOk = setupRes && setupRes.ok;
         postDeployNotice = `
 
-💘 <b>وضعیت راه‌اندازی ربات شیپر تلگرام:</b>
+💘 <b>وضعیت راه‌اندازی ربات جفت‌چین (شیپر) تلگرام:</b>
 ` +
           `🔹 فعال‌سازی وبهوک (/set_webhook): ${setupOk ? "✅ با موفقیت فعال شد" : '⚠️ در صورت لزوم باز کنید: <a href="' + setupUrl + '">لینک فعال‌سازی</a>'}
 ` +

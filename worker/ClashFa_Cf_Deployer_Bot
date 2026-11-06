@@ -325,7 +325,7 @@ const PRESETS = [
   },
   {
     "id": "telegram_shipper_bot",
-    "name": "Telegram Shipper Bot (جفت‌چین) 💘",
+    "name": "Telegram Shipper Bot 💘",
     "summary": "ربات هوشمند انتخاب زوج و جفت‌چین اعضا در گروه‌های تلگرام با الگوریتم محاسبه سازگاری و دیتابیس D1.",
     "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/telegram_shipper_bot",
     "pathSuffix": "/set_webhook",

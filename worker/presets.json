@@ -296,6 +296,46 @@
     "platform": "worker"
   },
   {
+    "id": "telegram_shipper_bot",
+    "name": "Telegram Shipper Bot 💘",
+    "summary": "ربات پیشرفته مدیریت، تبادل، شیپینگ و انتشار خودکار محتوا در کانال‌ها و گروه‌های تلگرام با دیتابیس D1.",
+    "url": "https://raw.githubusercontent.com/10ium/free-config/refs/heads/main/worker/telegram_shipper_bot",
+    "pathSuffix": "/set_webhook",
+    "kvBindings": [],
+    "d1Bindings": [
+      "DB"
+    ],
+    "vars": [
+      {
+        "name": "BOT_TOKEN",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "description": "توکن ربات تلگرام دریافتی از BotFather"
+      },
+      {
+        "name": "D1_ID_DB",
+        "required": true,
+        "autoGenType": "d1_auto",
+        "description": "دیتابیس ابری D1 برای جداول مدیریت شیپر و شهرهای ایران (DB)"
+      }
+    ],
+    "features": [
+      "مدیریت کامل و زمان‌بندی ارسال پست‌ها در کانال‌ها و گروه‌های تلگرام",
+      "پایگاه داده مستقل ابری D1 به همراه جدول اطلاعات تمام شهرهای ایران",
+      "فعال‌سازی و ست شدن خودکار وبهوک با اندپوینت /set_webhook",
+      "سیستم ضد اسپم، آمارگیری پیشرفته و پنل مدیریت تلگرامی"
+    ],
+    "useCase": "مدیریت اتوماتیک و انتشار پست‌ها در شبکه‌های تلگرامی با اتصال به دیتابیس D1.",
+    "panelInfo": {
+      "path": "/set_webhook",
+      "defaultUser": "ربات تلگرام",
+      "defaultPass": "توکن ربات"
+    },
+    "description": "ربات شیپر تلگرام یک ورکر قدرتمند مبتنی بر دیتابیس ابری D1 است که فرآیند تبادلات و پست‌گذاری در کانال‌های تلگرامی را مدیریت می‌کند. این ربات با اجرای خودکار اسکریپت /set_webhook آماده به کار می‌شود.",
+    "category": "clashfa",
+    "platform": "worker"
+  },
+  {
     "id": "edgetunnel",
     "name": "EdgeTunnel (cmliu) 🚇",
     "summary": "اسکریپت تونل ترافیک روی شبکه کلادفلر همراه با صفحه وب نمایش کانفیگ‌ها و کدهای QR.",
@@ -685,6 +725,86 @@
     },
     "description": "اپکس یک پنل وب با طراحی جدید و واکنش‌گرا است که امکان تعریف حساب‌ها و پایش ترافیک را از طریق مسیر /apex/panel در اختیارتان می‌گذارد.",
     "category": "config",
+    "platform": "worker"
+  },
+  {
+    "id": "proxygosha",
+    "name": "ProxyGosha (amirmarandi) ✈️",
+    "summary": "پروکسی اختصاصی تلگرام نسل جدید WEB Proxy بر بستر ورکر کلادفلر بدون نیاز به سرور مجازی.",
+    "url": "https://raw.githubusercontent.com/amirmarandidev/ProxyGosha/main/worker.js",
+    "pathSuffix": "/{ADMIN_KEY}",
+    "kvBindings": [],
+    "d1Bindings": [],
+    "vars": [
+      {
+        "name": "ADMIN_KEY",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "length": 24,
+        "description": "رمز عبور ورود به پنل مدیریت پروکسی (حداقل ۱۶ کاراکتر)"
+      },
+      {
+        "name": "SECRET",
+        "required": false,
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "سکرت هگز ۳۲ کاراکتری اختیاری پورت ۴۴۳ جهت ثبات دائمی لینک‌ها"
+      },
+      {
+        "name": "EXTRA_HOSTS",
+        "required": false,
+        "autoGenType": "static",
+        "defaultValue": "",
+        "description": "دامنه‌های کمکی متصل به ورکر جهت تولید لینک‌های بیشتر (اختیاری)"
+      }
+    ],
+    "features": [
+      "پشتیبانی از پروتکل جدید WEB Proxy تلگرام با ترافیک وب HTTPS عادی",
+      "پنل اختصاصی وب برای مشاهده و کپی لینک‌های اتصال و مشخصات سرور",
+      "پشتیبانی از چندین پورت مختلف با سکرت‌های مجزا جهت دور زدن اختلالات",
+      "دارای صفحه فروشگاه استتاری (Fake Shop) برای جلوگیری از شناسایی"
+    ],
+    "useCase": "استفاده از تلگرام بدون فیلترشکن با پروتکل WEB Proxy روی بستر پایدار کلادفلر.",
+    "panelInfo": {
+      "path": "/{ADMIN_KEY}",
+      "defaultUser": "-",
+      "defaultPass": "متغیر ADMIN_KEY"
+    },
+    "description": "پروکسی‌گوشا از پروتکل رسمی جدید WEB Proxy تلگرام استفاده می‌کند. ترافیک آن شبیه ترافیک معمولی وب است و در نتیجه ثبات فوق‌العاده‌ای دارد. با باز کردن آدرس پنل می‌توانید لینک‌های اتصال سریع را در تلگرام ادد کنید.",
+    "category": "tgproxy",
+    "platform": "worker"
+  },
+  {
+    "id": "seydi_webproxy",
+    "name": "Telegram WebProxy (Seydi) 🛰️",
+    "summary": "سرور سبک WEB Proxy تلگرام سازگار کامل با پلن رایگان ورکر بدون وابستگی به دیتابیس.",
+    "url": "https://raw.githubusercontent.com/mrjavadseydi/telegram-webproxy-worker/main/worker.js",
+    "pathSuffix": "/{SECRET}",
+    "kvBindings": [],
+    "d1Bindings": [],
+    "vars": [
+      {
+        "name": "SECRET",
+        "required": true,
+        "autoGenType": "alphanumeric",
+        "length": 32,
+        "description": "رمز عبور یا سکرت ۳۲ کاراکتری اتصال پروکسی تلگرام"
+      }
+    ],
+    "features": [
+      "پیاده‌سازی سبک پروتکل v1 رسمی tproxy-server تلگرام در لبه کلادفلر",
+      "پنل وب اختصاصی در مسیر /{SECRET} برای کپی لینک‌های آماده t.me/webproxy",
+      "اتصال مستقیم و پرسرعت به مراکز داده (DC) رسمی تلگرام",
+      "سازگار با سکرت‌های ساده یا هگز ۳۲ رقمی با امنیت رمزنگاری SHA-256"
+    ],
+    "useCase": "اتصال سریع و مستقیم اپلیکیشن تلگرام به پروکسی WEB اختصاصی شما.",
+    "panelInfo": {
+      "path": "/{SECRET}",
+      "defaultUser": "-",
+      "defaultPass": "متغیر SECRET"
+    },
+    "description": "این ورکر سبک به طور اختصاصی برای میزبانی پروکسی وب تلگرام طراحی شده است. پس از استقرار، صفحه مشخصات و لینک آماده t.me در مسیر رمز شما نمایش داده می‌شود.",
+    "category": "tgproxy",
     "platform": "worker"
   },
   {

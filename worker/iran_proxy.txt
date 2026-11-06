@@ -56,6 +56,12 @@ export default {
     const protocolFilter = (searchParams.get('protocol') || '').toLowerCase().trim();
     const isApiRoute = pathname.startsWith('/api/') || pathname.includes('/tested');
 
+    if (pathname === '/favicon.ico') {
+      return new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚡</text></svg>', {
+        headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }
+      });
+    }
+
     // 1. بررسی حافظه کش کلودفلر برای پاسخ‌دهی برق‌آسا (فقط برای مسیرهای عمومی و غیرتست)
     const cache = typeof caches !== 'undefined' ? caches.default : null;
     const cacheKey = new Request(url.toString(), request);
@@ -1653,7 +1659,7 @@ function render2055Dashboard(report, proxies, baseUrl, colo, country) {
 
     function updateTestedUI() {
       const box = document.getElementById('testedTerminalBox');
-      box.value = aliveTestedProxies.join('\n');
+      box.value = aliveTestedProxies.join('\\n');
       document.getElementById('statAliveCount').textContent = aliveTestedProxies.length;
       document.getElementById('statTestedCount').textContent = totalTestedCount;
       document.getElementById('testedListCount').textContent = 'لیست پروکسی‌های تاییدشده سالم (' + aliveTestedProxies.length + ' مورد)';

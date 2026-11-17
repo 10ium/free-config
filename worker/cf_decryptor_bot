@@ -6328,7 +6328,17 @@ function parseMihomoYaml(rawText, fileName = "Mihomo") {
       if (indent > proxiesIndent) {
         if (currentProxy && currentSubKey) {
           if (!Array.isArray(currentProxy[currentSubKey])) currentProxy[currentSubKey] = [];
-          currentProxy[currentSubKey].push(parseYamlValue(matchItem[2].trim()));
+          const subRest = matchItem[2].trim();
+          if (subRest.includes(":")) {
+            const colonIdx = subRest.indexOf(":");
+            const subK = subRest.slice(0, colonIdx).trim();
+            const subV = subRest.slice(colonIdx + 1).trim();
+            const subObj = {};
+            subObj[subK] = parseYamlValue(subV);
+            currentProxy[currentSubKey].push(subObj);
+          } else {
+            currentProxy[currentSubKey].push(parseYamlValue(subRest));
+          }
         }
         continue;
       }
@@ -6364,8 +6374,12 @@ function parseMihomoYaml(rawText, fileName = "Mihomo") {
         const key = matchProp[2];
         const val = matchProp[3].trim();
         if (indent > 4 && currentSubKey) {
-          if (!currentProxy[currentSubKey]) currentProxy[currentSubKey] = {};
-          currentProxy[currentSubKey][key] = parseYamlValue(val);
+          if (Array.isArray(currentProxy[currentSubKey]) && currentProxy[currentSubKey].length > 0 && typeof currentProxy[currentSubKey][currentProxy[currentSubKey].length - 1] === "object") {
+            currentProxy[currentSubKey][currentProxy[currentSubKey].length - 1][key] = parseYamlValue(val);
+          } else {
+            if (!currentProxy[currentSubKey] || typeof currentProxy[currentSubKey] !== "object") currentProxy[currentSubKey] = {};
+            currentProxy[currentSubKey][key] = parseYamlValue(val);
+          }
         } else {
           if (!val) {
             currentSubKey = key;
@@ -6399,11 +6413,13 @@ function parseMihomoYaml(rawText, fileName = "Mihomo") {
     const grpc = p["grpc-opts"] || {};
     const h2 = p["h2-opts"] || {};
     const network = p.network || (p["ws-opts"] ? "ws" : p["grpc-opts"] ? "grpc" : "tcp");
+    const firstPeer = Array.isArray(p.peers) && p.peers.length > 0 && typeof p.peers[0] === "object" ? p.peers[0] : {};
+    const awg = p["amnezia-wg-option"] || p["amnezia-option"] || p.amnezia || {};
     return {
-      name: p.name || `${typ.toUpperCase()}-${p.server}`,
+      name: p.name || `${typ.toUpperCase()}-${p.server || firstPeer.server || "Server"}`,
       protocol: typ === "ss" ? "shadowsocks" : typ,
-      server: p.server || "127.0.0.1",
-      serverPort: p.port || 443,
+      server: p.server || firstPeer.server || "127.0.0.1",
+      serverPort: p.port || firstPeer.port || 443,
       uuid: p.uuid || p.password || "",
       password: p.password || p.uuid || "",
       flow: p.flow || "",
@@ -6416,17 +6432,32 @@ function parseMihomoYaml(rawText, fileName = "Mihomo") {
       reality: Boolean(reality["public-key"]),
       sni: p.servername || p.sni || "",
       fingerprint: p["client-fingerprint"] || "chrome",
-      publicKey: reality["public-key"] || p["public-key"] || p.publicKey || "",
+      publicKey: reality["public-key"] || p["public-key"] || p.publicKey || firstPeer["public-key"] || firstPeer.publicKey || "",
       shortId: reality["short-id"] || "",
       // Shadowsocks
       method: p.cipher || "",
-      // Wireguard / Masque
+      // Wireguard / Masque / AmneziaWG
       privateKey: p["private-key"] || p.privateKey || "",
+      secretKey: p["private-key"] || p.privateKey || "",
       localAddress: p.ip || "",
       ip: p.ip || "",
       udp: p.udp !== void 0 ? Boolean(p.udp) : true,
       remoteDnsResolve: p["remote-dns-resolve"] !== void 0 ? Boolean(p["remote-dns-resolve"]) : true,
       dns: p.dns || [],
+      allowedIPs: firstPeer["allowed-ips"] || p["allowed-ips"] || "0.0.0.0/0",
+      persistentKeepalive: firstPeer["persistent-keepalive"] || p["persistent-keepalive"] || p.keepalive,
+      reserved: p.reserved || firstPeer.reserved,
+      amneziaOptions: Object.keys(awg).length > 0 ? awg : void 0,
+      jc: awg.jc ?? p.jc,
+      jmin: awg.jmin ?? p.jmin,
+      jmax: awg.jmax ?? p.jmax,
+      s1: awg.s1 ?? p.s1,
+      s2: awg.s2 ?? p.s2,
+      h1: awg.h1 ?? p.h1,
+      h2: awg.h2 ?? p.h2,
+      h3: awg.h3 ?? p.h3,
+      h4: awg.h4 ?? p.h4,
+      i1: awg.i1 ?? p.i1,
       // Hysteria2
       auth: p.auth || p.password || "",
       obfs: p.obfs || ""
@@ -8273,6 +8304,39 @@ async function parseSubscription(input, options = {}) {
           throw new Error(`\u062E\u0637\u0627 \u062F\u0631 \u062F\u0627\u0646\u0644\u0648\u062F \u0644\u06CC\u0646\u06A9 \u0627\u0634\u062A\u0631\u0627\u06A9: ${err2.message}`);
         }
       }
+    }
+  }
+  if (content.startsWith("{") && (content.includes('"private_key"') || content.includes('"endpoint_h2_v4"') || content.includes('"endpoint_pub_key"'))) {
+    try {
+      const uJson = JSON.parse(content);
+      if (uJson.private_key && (uJson.endpoint_h2_v4 || uJson.endpoint_v4 || uJson.endpoint_pub_key)) {
+        let rawPub = uJson.endpoint_pub_key || "";
+        rawPub = rawPub.replace(/-----BEGIN [A-Z ]+-----/g, "").replace(/-----END [A-Z ]+-----/g, "").replace(/[\r\n\s]/g, "");
+        const srv = uJson.endpoint_h2_v4 || uJson.endpoint_v4 || "162.159.199.71";
+        const masqueProfile = {
+          name: options.fileName ? options.fileName.replace(/\.(json|conf|txt|text|yam|yaml|yml)$/i, "") : "MASQUE H2 WARP",
+          type: "masque",
+          protocol: "masque",
+          server: srv,
+          serverPort: 4443,
+          network: uJson.endpoint_h2_v4 ? "h2" : "h3",
+          sni: "consumer-masque.cloudflareclient.com",
+          privateKey: uJson.private_key,
+          publicKey: rawPub,
+          ip: uJson.ipv4 || "172.16.0.2",
+          localAddress: uJson.ipv4 || "172.16.0.2",
+          ipv6: uJson.ipv6 || "",
+          udp: true,
+          remoteDnsResolve: true,
+          dns: ["1.1.1.1", "1.0.0.1"]
+        };
+        return {
+          type: "usque",
+          name: options.fileName || "Usque-MASQUE",
+          profiles: [masqueProfile]
+        };
+      }
+    } catch {
     }
   }
   if (content.startsWith("{") && (content.includes('"proxies"') || content.includes('"proxy-providers"'))) {
@@ -11473,7 +11537,7 @@ async function processFileDecryption(fileBytes, fileName, password = "", options
       profiles,
       rawText: text
     };
-  } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+  } else if (name.endsWith(".yaml") || name.endsWith(".yml") || name.endsWith(".yam")) {
     const text = Buffer.from(fileBytes).toString("utf8");
     result = await parseMihomoYamlAsync(text, fileName);
   } else if (name.endsWith(".json")) {

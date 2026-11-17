@@ -7385,6 +7385,19 @@ function validateAndSanitizeProxy(rawP) {
       }
       if (sanitized.amneziaOptions || sanitized.awg || sanitized["amnezia-wg-option"]) {
         sanitized.amneziaOptions = sanitized.amneziaOptions || sanitized.awg || sanitized["amnezia-wg-option"];
+      } else if (sanitized.jc !== void 0 || sanitized.jmin !== void 0 || sanitized.jmax !== void 0) {
+        sanitized.amneziaOptions = {
+          jc: sanitized.jc,
+          jmin: sanitized.jmin,
+          jmax: sanitized.jmax,
+          s1: sanitized.s1,
+          s2: sanitized.s2,
+          h1: sanitized.h1,
+          h2: sanitized.h2,
+          h3: sanitized.h3,
+          h4: sanitized.h4,
+          i1: sanitized.i1
+        };
       }
       break;
     }

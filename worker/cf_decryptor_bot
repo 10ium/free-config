@@ -7761,7 +7761,9 @@ function parseUriConfig(uri) {
       const q = parsedUrl.searchParams;
       const rawHash = parsedUrl.hash ? decodeURIComponent(parsedUrl.hash.replace(/^#/, "")) : "";
       const name = cleanProxyName(rawHash, proto);
-      const security = q.get("security") || "none";
+      let security = q.get("security") || "none";
+      const flowVal = q.get("flow") || "";
+      if (flowVal && security === "none") security = "tls";
       return {
         name,
         protocol: proto,
@@ -7769,7 +7771,7 @@ function parseUriConfig(uri) {
         serverPort: port,
         uuid: uuidOrPass,
         password: uuidOrPass,
-        flow: q.get("flow") || "",
+        flow: flowVal,
         encryption: q.get("encryption") || "none",
         network: q.get("type") || "tcp",
         path: q.get("path") || "",
@@ -8056,10 +8058,41 @@ function parseUriConfig(uri) {
       let method = "aes-128-gcm";
       let password = "";
       try {
-        const userPass = auth.includes(":") ? auth : base64DecodeSafe(auth).toString("utf8");
+        let userPass = auth;
+        if (!auth.includes(":")) {
+          userPass = base64DecodeSafe(auth).toString("utf8");
+        }
         const sep = userPass.indexOf(":");
-        method = userPass.slice(0, sep);
-        password = userPass.slice(sep + 1);
+        if (sep !== -1) {
+          method = userPass.slice(0, sep);
+          password = userPass.slice(sep + 1);
+          try {
+            const decMethod = base64DecodeSafe(method).toString("utf8");
+            if (decMethod && /^[a-zA-Z0-9_-]+$/.test(decMethod) && (decMethod.includes("2022-") || decMethod.includes("aes-") || decMethod.includes("chacha20") || decMethod.includes("rc4"))) {
+              method = decMethod;
+            }
+          } catch {
+          }
+          try {
+            const curBuf = Buffer.from(password, "base64");
+            const decPass = base64DecodeSafe(password).toString("utf8");
+            if (decPass) {
+              const testBuf = Buffer.from(decPass, "base64");
+              if (testBuf.length === 16 || testBuf.length === 32) {
+                if (curBuf.length !== 16 && curBuf.length !== 32) {
+                  password = decPass;
+                } else if (method.includes("2022-") && curBuf.length > 32) {
+                  password = decPass;
+                }
+              } else if (auth.includes(":") && !method.includes("2022-") && /^[ -~]+$/.test(decPass) && decPass.length > 0) {
+                password = decPass;
+              }
+            }
+          } catch {
+          }
+        } else {
+          password = userPass;
+        }
       } catch {
         password = auth;
       }
@@ -8424,7 +8457,7 @@ function buildSingboxOutbound(p, index) {
     let pass = String(p.password || p.secret || "");
     if (!pass) return null;
     if (cipher.includes("2022-")) {
-      const targetLen = cipher.includes("256") ? 32 : 16;
+      const targetLen = cipher.includes("256") || cipher.includes("chacha20") ? 32 : 16;
       let buf;
       try {
         buf = Buffer.from(pass, "base64");
@@ -9151,7 +9184,7 @@ function formatProxyYaml(p) {
     let pass = String(p.password || p.secret || "");
     if (!pass) return null;
     if (cipher.includes("2022-")) {
-      const targetLen = cipher.includes("256") ? 32 : 16;
+      const targetLen = cipher.includes("256") || cipher.includes("chacha20") ? 32 : 16;
       let buf;
       try {
         buf = Buffer.from(pass, "base64");
@@ -14554,7 +14587,6 @@ var index_default = {
         }
       }
       const commonHeaders = {
-        "subscription-userinfo": `upload=0; download=0; total=107374182400; expire=${Math.floor((sub.expiresAt || Date.now() + 6048e5) / 1e3)}`,
         "profile-update-interval": "24",
         "cache-control": "no-cache, no-store, must-revalidate"
       };

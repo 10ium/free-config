@@ -241,8 +241,16 @@ async function answerCallback(token, callbackQueryId, text = '', showAlert = fal
   });
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function userMention(userId, firstName, username) {
-  const cleanName = (firstName || 'عضو گروه').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const cleanName = escapeHtml(firstName || 'عضو گروه');
   if (username) {
     const cleanUser = username.replace(/^@/, '');
     return `<a href="https://t.me/${cleanUser}"><b>${cleanName}</b></a>`;
@@ -251,6 +259,80 @@ function userMention(userId, firstName, username) {
     return `<a href="tg://user?id=${userId}"><b>${cleanName}</b></a>`;
   }
   return `<b>${cleanName}</b>`;
+}
+
+const SYSTEM_TELEGRAM_USER_IDS = new Set([777000, 1087968824, 136817688]);
+
+function isSystemOrAnonymousSender(fromUser, msg = null) {
+  if (!fromUser) return true;
+  if (fromUser.is_bot) return true;
+  if (SYSTEM_TELEGRAM_USER_IDS.has(fromUser.id)) return true;
+  if (msg?.sender_chat && !fromUser.id) return true;
+  return false;
+}
+
+function parseBotCommand(text) {
+  if (!text) return '';
+  const cleaned = text.replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '').trim();
+  if (!cleaned.startsWith('/')) return '';
+  let cmd = cleaned.split(/[\s@]+/)[0].toLowerCase();
+  if (cmd === '/no_ship' || cmd === '/no-ship') cmd = '/noship';
+  if (cmd === '/ship_me' || cmd === '/ship-me') cmd = '/shipme';
+  if (cmd === '/block_ship' || cmd === '/block-ship') cmd = '/blockship';
+  return cmd;
+}
+
+async function setGlobalOptOutStatus(db, user, optOut) {
+  const val = optOut ? 1 : 0;
+  await db.prepare(`
+    INSERT INTO user_profiles (user_id, first_name, username, is_global_opted_out, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id) DO UPDATE SET
+      first_name = COALESCE(NULLIF(excluded.first_name, ''), user_profiles.first_name),
+      username = COALESCE(excluded.username, user_profiles.username),
+      is_global_opted_out = excluded.is_global_opted_out,
+      updated_at = CURRENT_TIMESTAMP;
+  `).bind(user.id, user.first_name || '', user.username || null, val).run();
+
+  await db.prepare(`UPDATE group_members SET is_opted_out = ? WHERE user_id = ?`).bind(val, user.id).run();
+}
+
+function doesGenderMatchTarget(identity, targetGenders) {
+  if (!targetGenders || targetGenders.length === 0 || targetGenders.includes('هنوز مطمئن نیستم')) {
+    return true;
+  }
+  const map = {
+    'مرد': ['مردان'],
+    'زن': ['زنان'],
+    'زن ترنس': ['زنان ترنس'],
+    'مرد ترنس': ['مردان ترنس'],
+    'نان‌باینری (غیردوگانه) | Non-Binary': ['افراد نان‌باینری', 'سایر هویت‌ها'],
+    'جندرفلوید (سیال جنسیتی) | Genderfluid': ['سایر هویت‌ها', 'افراد نان‌باینری'],
+    'کوییر (فرا جنسیتی) | Genderqueer': ['سایر هویت‌ها', 'افراد نان‌باینری'],
+    'اِی‌جندر (بدون جنسیت) | Agender': ['سایر هویت‌ها', 'افراد نان‌باینری'],
+    'در حال کشف': ['سایر هویت‌ها'],
+    'ترجیح می‌دهم نگویم': ['سایر هویت‌ها']
+  };
+  const allowedTargets = map[identity];
+  if (!allowedTargets) {
+    return targetGenders.includes('سایر هویت‌ها');
+  }
+  return targetGenders.some(t => allowedTargets.includes(t));
+}
+
+async function verifyMemberActiveInGroup(token, chatId, userId, db) {
+  try {
+    const res = await tgCall(token, 'getChatMember', { chat_id: chatId, user_id: userId });
+    const status = res?.result?.status;
+    if (status === 'left' || status === 'kicked') {
+      knownGroupMembers.delete(`${chatId}_${userId}`);
+      await db.prepare(`DELETE FROM group_members WHERE chat_id = ? AND user_id = ?`).bind(chatId, userId).run();
+      return false;
+    }
+  } catch (e) {
+    // Ignore transient network errors and retain member
+  }
+  return true;
 }
 
 // تعاریف گزینه‌ها
@@ -390,7 +472,7 @@ export default {
         const whUrl = `${url.origin}`;
         const setRes = await tgCall(BOT_TOKEN, 'setWebhook', {
           url: whUrl,
-          allowed_updates: ['message', 'callback_query', 'message_reaction', 'message_reaction_count']
+          allowed_updates: ['message', 'edited_message', 'callback_query', 'message_reaction', 'message_reaction_count']
         });
 
         // ثبت دستورات منوی تلگرام برای پیوی (Private Chats)
@@ -456,10 +538,17 @@ export default {
 };
 
 async function handleUpdate(update, token, db) {
-  const fromUser = update.message?.from || update.callback_query?.from || update.message_reaction?.user;
-  if (!update.message_reaction && !update.message_reaction_count && fromUser?.id) {
-    // جلوگیری از اسپم (حداکثر ۴ درخواست در ۲ ثانیه) - استثنا کردن ری‌اکشن‌ها
-    if (isRateLimited(`spam_u_${fromUser.id}`, 500)) {
+  const incomingMsg = update.message || (update.edited_message ? { ...update.edited_message, _isEdited: true } : null);
+  const fromUser = incomingMsg?.from || update.callback_query?.from || update.message_reaction?.user;
+  const msgText = (incomingMsg?.text || incomingMsg?.caption || '').trim();
+  const parsedCmd = parseBotCommand(msgText);
+  const isOptCmd = parsedCmd === '/noship' || parsedCmd === '/shipme' || parsedCmd === '/blockship';
+  const isServiceEvent = Boolean(incomingMsg?.left_chat_member || incomingMsg?.new_chat_members);
+  const isNormalGroupChatter = incomingMsg && (incomingMsg.chat?.type === 'group' || incomingMsg.chat?.type === 'supergroup') && !parsedCmd && !isServiceEvent;
+
+  // جلوگیری از اسپم (برای دستورات خروج/بلاک، چت عادی و پیام‌های ورود/خروج اعمال نمی‌شود)
+  if (!update.message_reaction && !update.message_reaction_count && !isServiceEvent && fromUser?.id) {
+    if (!isNormalGroupChatter && !isOptCmd && isRateLimited(`spam_u_${fromUser.id}`, 500)) {
       return;
     }
 
@@ -467,8 +556,8 @@ async function handleUpdate(update, token, db) {
     const banSetting = await db.prepare(`SELECT value FROM bot_settings WHERE key = 'banned_users'`).first();
     const bannedList = safeJsonArray(banSetting?.value);
     if (bannedList.includes(fromUser.id)) {
-      if (update.message?.chat?.type === 'private') {
-        await sendMessage(token, update.message.chat.id, `⛔ <b>دسترسی شما به این ربات توسط مدیریت کل مسدود شده است.</b>`);
+      if (incomingMsg?.chat?.type === 'private') {
+        await sendMessage(token, incomingMsg.chat.id, `⛔ <b>دسترسی شما به این ربات توسط مدیریت کل مسدود شده است.</b>`);
       }
       return;
     }
@@ -489,8 +578,8 @@ async function handleUpdate(update, token, db) {
     return;
   }
 
-  if (update.message) {
-    await handleMessage(update.message, token, db);
+  if (incomingMsg) {
+    await handleMessage(incomingMsg, token, db);
     return;
   }
 }
@@ -501,9 +590,44 @@ async function handleMessage(msg, token, db) {
   const isPrivate = msg.chat.type === 'private';
   const fromUser = msg.from;
   const threadId = msg.message_thread_id;
-  const text = (msg.text || '').trim();
+  const text = (msg.text || msg.caption || '').trim();
+  const cmd = parseBotCommand(text);
 
-  if (!fromUser || fromUser.is_bot) return;
+  // مدیریت پیام‌های ویرایش‌شده: فقط دستورات حیاتی خروج/بلاک/ورود پردازش می‌شوند تا تاریخچه چت تغییر نکند
+  if (msg._isEdited) {
+    if (cmd !== '/noship' && cmd !== '/shipme' && cmd !== '/blockship') return;
+  }
+
+  // ۲. حذف آنی کاربر در صورت لفت دادن یا اخراج و ثبت ورود حتی اگر اکشن توسط ادمین ناشناس یا ربات مدیریتی انجام شده باشد
+  if (isGroup && msg.left_chat_member) {
+    knownGroupMembers.delete(`${chatId}_${msg.left_chat_member.id}`);
+    await db.prepare(`DELETE FROM group_members WHERE chat_id = ? AND user_id = ?`).bind(chatId, msg.left_chat_member.id).run();
+    return;
+  }
+
+  if (isGroup && msg.new_chat_members && Array.isArray(msg.new_chat_members)) {
+    for (const newM of msg.new_chat_members) {
+      if (!newM.is_bot && !SYSTEM_TELEGRAM_USER_IDS.has(newM.id)) {
+        knownGroupMembers.add(`${chatId}_${newM.id}`);
+        await db.prepare(`
+          INSERT INTO group_members (chat_id, user_id, first_name, username, last_active)
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(chat_id, user_id) DO UPDATE SET first_name = excluded.first_name, username = excluded.username, last_active = CURRENT_TIMESTAMP;
+        `).bind(chatId, newM.id, newM.first_name || '', newM.username || null).run();
+      }
+    }
+    return;
+  }
+
+  // اخطار شفاف به ادمین ناشناس یا پیام با هویت کانال هنگام اجرای /noship، /shipme یا /blockship
+  if (isGroup && (fromUser?.id === 1087968824 || msg.sender_chat)) {
+    if (cmd === '/noship' || cmd === '/shipme' || cmd === '/blockship') {
+      await sendMessage(token, chatId, `⚠️ <b>هویت شما به صورت ادمین ناشناس یا کانال مخفی است!</b>\nتلگرام اجازه نمی‌دهد ربات آیدی واقعی شما را از پیام ناشناس تشخیص دهد.\n\n💡 برای اعمال دستور روی حساب خودتان، دستور <code>${cmd}</code> را مستقیماً در <b>پیوی ربات</b> بفرستید یا موقتاً حالت ناشناس را بردارید.`, { message_thread_id: threadId });
+    }
+    return;
+  }
+
+  if (isSystemOrAnonymousSender(fromUser, msg)) return;
 
   if (isGroup) {
     const memberKey = `${chatId}_${fromUser.id}`;
@@ -516,28 +640,6 @@ async function handleMessage(msg, token, db) {
         VALUES (?, ?, ?, ?)
         ON CONFLICT(chat_id) DO UPDATE SET title = excluded.title, username = excluded.username, is_forum = excluded.is_forum;
       `).bind(chatId, msg.chat.title || '', msg.chat.username || null, !!msg.is_topic_message ? 1 : 0).run();
-    }
-
-    // ۲. حذف آنی کاربر در صورت لفت دادن یا اخراج از گروه
-    if (msg.left_chat_member) {
-      knownGroupMembers.delete(`${chatId}_${msg.left_chat_member.id}`);
-      await db.prepare(`DELETE FROM group_members WHERE chat_id = ? AND user_id = ?`).bind(chatId, msg.left_chat_member.id).run();
-      return; // پیام سیستمی خروج پردازش بیشتری نیاز ندارد
-    }
-
-    // ۳. ثبت اعضای جدیدی که تازه وارد گروه شده‌اند (سرویس جوین)
-    if (msg.new_chat_members && Array.isArray(msg.new_chat_members)) {
-      for (const newM of msg.new_chat_members) {
-        if (!newM.is_bot) {
-          knownGroupMembers.add(`${chatId}_${newM.id}`);
-          await db.prepare(`
-            INSERT INTO group_members (chat_id, user_id, first_name, username, last_active)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(chat_id, user_id) DO UPDATE SET first_name = excluded.first_name, username = excluded.username, last_active = CURRENT_TIMESTAMP;
-          `).bind(chatId, newM.id, newM.first_name || '', newM.username || null).run();
-        }
-      }
-      return; // پیام سیستمی ورود نیاز به پردازش چت ندارد
     }
 
     // ۴. ثبت فوق‌سریع چت‌کننده‌ها با معماری Zero-Overhead (اگر کاربر قبلاً در لیست بود، در کسری از میلی‌ثانیه رد می‌شود)
@@ -565,44 +667,29 @@ async function handleMessage(msg, token, db) {
 
     // ۶. امنیت و حریم خصوصی ۱۰۰٪ (نخوردن به محدودیت ورکر و عدم ذخیره متن چت)
     // اگر پیام دستور ربات نباشد، هیچ متنی خوانده یا ذخیره نمی‌شود و فوراً خارج می‌شویم!
-    if (!text.startsWith('/')) {
+    if (!cmd) {
       return;
     }
   }
 
-  if (isGroup && text.startsWith('/')) {
-    const cmd = text.split('@')[0].split(' ')[0].toLowerCase();
-
-    const isForceArg = text.toLowerCase().includes('force') || text.includes('تازه');
+  if (isGroup && cmd) {
+    const cleanBody = text.replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '').trim();
+    const isForceArg = cleanBody.toLowerCase().includes('force') || cleanBody.includes('تازه');
     if (cmd === '/shipping' || cmd === '/ship' || cmd === '/couple' || cmd === '/forceship') {
       const isForce = (cmd === '/forceship' || isForceArg);
       await handleShippingCommand(chatId, threadId, fromUser, token, db, false, isForce);
       return;
     }
 
-
-
     if (cmd === '/noship') {
-      const p = await db.prepare(`SELECT user_id FROM user_profiles WHERE user_id = ?`).bind(fromUser.id).first();
-      if (!p) {
-        await db.prepare(`INSERT INTO user_profiles (user_id, first_name, username, is_global_opted_out) VALUES (?, ?, ?, 1)`).bind(fromUser.id, fromUser.first_name || '', fromUser.username || null).run();
-      } else {
-        await db.prepare(`UPDATE user_profiles SET is_global_opted_out = 1 WHERE user_id = ?`).bind(fromUser.id).run();
-      }
-      await db.prepare(`UPDATE group_members SET is_opted_out = 1 WHERE user_id = ?`).bind(fromUser.id).run();
-      await sendMessage(token, chatId, `❌ <b>${fromUser.first_name}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها خاموش شد.`, { message_thread_id: threadId });
+      await setGlobalOptOutStatus(db, fromUser, true);
+      await sendMessage(token, chatId, `❌ <b>${escapeHtml(fromUser.first_name)}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها خاموش شد.`, { message_thread_id: threadId });
       return;
     }
 
     if (cmd === '/shipme') {
-      const p = await db.prepare(`SELECT user_id FROM user_profiles WHERE user_id = ?`).bind(fromUser.id).first();
-      if (!p) {
-        await db.prepare(`INSERT INTO user_profiles (user_id, first_name, username, is_global_opted_out) VALUES (?, ?, ?, 0)`).bind(fromUser.id, fromUser.first_name || '', fromUser.username || null).run();
-      } else {
-        await db.prepare(`UPDATE user_profiles SET is_global_opted_out = 0 WHERE user_id = ?`).bind(fromUser.id).run();
-      }
-      await db.prepare(`UPDATE group_members SET is_opted_out = 0 WHERE user_id = ?`).bind(fromUser.id).run();
-      await sendMessage(token, chatId, `✅ <b>${fromUser.first_name}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها مجدداً فعال شد!`, { message_thread_id: threadId });
+      await setGlobalOptOutStatus(db, fromUser, false);
+      await sendMessage(token, chatId, `✅ <b>${escapeHtml(fromUser.first_name)}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها مجدداً فعال شد!`, { message_thread_id: threadId });
       return;
     }
 
@@ -670,19 +757,13 @@ async function handleMessage(msg, token, db) {
       return;
     }
 
-    if (text.startsWith('/noship')) {
-      const p = await db.prepare(`SELECT user_id FROM user_profiles WHERE user_id = ?`).bind(fromUser.id).first();
-      if (!p) {
-        await db.prepare(`INSERT INTO user_profiles (user_id, first_name, username, is_global_opted_out) VALUES (?, ?, ?, 1)`).bind(fromUser.id, fromUser.first_name || '', fromUser.username || null).run();
-      } else {
-        await db.prepare(`UPDATE user_profiles SET is_global_opted_out = 1 WHERE user_id = ?`).bind(fromUser.id).run();
-      }
-      await db.prepare(`UPDATE group_members SET is_opted_out = 1 WHERE user_id = ?`).bind(fromUser.id).run();
-      await sendMessage(token, chatId, `⛔ <b>${fromUser.first_name}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها خاموش شد.`);
+    if (cmd === '/noship') {
+      await setGlobalOptOutStatus(db, fromUser, true);
+      await sendMessage(token, chatId, `⛔ <b>${escapeHtml(fromUser.first_name)}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها خاموش شد.`);
       return;
     }
 
-    if (text.startsWith('/setowner')) {
+    if (cmd === '/setowner') {
       const ownerSetting = await db.prepare(`SELECT value FROM bot_settings WHERE key = 'owner_id'`).first();
       let ownerId = parseInt(ownerSetting?.value || '0', 10);
       const parts = text.split(' ');
@@ -698,15 +779,9 @@ async function handleMessage(msg, token, db) {
       }
     }
 
-    if (text.startsWith('/shipme')) {
-      const p = await db.prepare(`SELECT user_id FROM user_profiles WHERE user_id = ?`).bind(fromUser.id).first();
-      if (!p) {
-        await db.prepare(`INSERT INTO user_profiles (user_id, first_name, username, is_global_opted_out) VALUES (?, ?, ?, 0)`).bind(fromUser.id, fromUser.first_name || '', fromUser.username || null).run();
-      } else {
-        await db.prepare(`UPDATE user_profiles SET is_global_opted_out = 0 WHERE user_id = ?`).bind(fromUser.id).run();
-      }
-      await db.prepare(`UPDATE group_members SET is_opted_out = 0 WHERE user_id = ?`).bind(fromUser.id).run();
-      await sendMessage(token, chatId, `✅ <b>${fromUser.first_name}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها مجدداً فعال شد!`);
+    if (cmd === '/shipme') {
+      await setGlobalOptOutStatus(db, fromUser, false);
+      await sendMessage(token, chatId, `✅ <b>${escapeHtml(fromUser.first_name)}</b> عزیز، حضور شما در گردونه شیپینگ در تمام گروه‌ها مجدداً فعال شد!`);
       return;
     }
 
@@ -787,6 +862,47 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
   `).bind(chatId, threadId || 0, tehran.dateStr).first();
 
   if (!isReroll && !effectiveForce && existing) {
+    const existingIds = [existing.user1_id, existing.user2_id];
+    if (existing.user3_id) existingIds.push(existing.user3_id);
+
+    const banCheck = await db.prepare(`SELECT value FROM bot_settings WHERE key = 'banned_users'`).first();
+    const banSetExisting = new Set(safeJsonArray(banCheck?.value));
+
+    let invalidatedByStatus = existingIds.some(id => banSetExisting.has(id));
+    if (!invalidatedByStatus) {
+      for (const uid of existingIds) {
+        const upCheck = await db.prepare(`SELECT is_global_opted_out FROM user_profiles WHERE user_id = ?`).bind(uid).first();
+        const gmCheck = await db.prepare(`SELECT is_opted_out FROM group_members WHERE chat_id = ? AND user_id = ?`).bind(chatId, uid).first();
+        if (upCheck?.is_global_opted_out || gmCheck?.is_opted_out || !gmCheck) {
+          invalidatedByStatus = true;
+          break;
+        }
+      }
+    }
+    if (!invalidatedByStatus) {
+      const blkRows = await db.prepare(`SELECT user_id, blocked_user_id FROM user_ship_blocks`).all();
+      const blkSet = new Set((blkRows.results || []).map(b => `${b.user_id}_${b.blocked_user_id}`));
+      for (let i = 0; i < existingIds.length; i++) {
+        for (let j = i + 1; j < existingIds.length; j++) {
+          if (blkSet.has(`${existingIds[i]}_${existingIds[j]}`) || blkSet.has(`${existingIds[j]}_${existingIds[i]}`)) {
+            invalidatedByStatus = true;
+            break;
+          }
+        }
+        if (invalidatedByStatus) break;
+      }
+    }
+
+    if (invalidatedByStatus) {
+      await sendMessage(
+        token,
+        chatId,
+        `🔒 <b>زوج منتخب قبلی امروز دیگر نمایش داده نمی‌شود</b> (یکی از طرفین با <code>/noship</code> از گردونه خارج شده، گروه را ترک کرده یا پیوند مسدود شده است).\n\n⏳ <i>انتخاب زوج بعدی: ${tehran.remainingStr} دیگر</i>`,
+        { message_thread_id: threadId }
+      );
+      return;
+    }
+
     const u1 = await db.prepare(`SELECT first_name, username FROM group_members WHERE user_id = ? AND chat_id = ? LIMIT 1`).bind(existing.user1_id, chatId).first();
     const u2 = await db.prepare(`SELECT first_name, username FROM group_members WHERE user_id = ? AND chat_id = ? LIMIT 1`).bind(existing.user2_id, chatId).first();
     const m1 = userMention(existing.user1_id, u1?.first_name || 'کاربر اول', u1?.username);
@@ -818,12 +934,12 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
   const bannedList = safeJsonArray(banSetting?.value);
   const bannedSet = new Set(bannedList);
 
-  // اضافه کردن خودکار مدیران گروه به لیست اعضا
+  // اضافه کردن خودکار مدیران غیرناشناس گروه به لیست اعضا
   try {
     const adminRes = await tgCall(token, 'getChatAdministrators', { chat_id: chatId });
     if (adminRes?.result && Array.isArray(adminRes.result)) {
       for (const adm of adminRes.result) {
-        if (adm.user && !adm.user.is_bot) {
+        if (adm.user && !adm.user.is_bot && !adm.is_anonymous && !SYSTEM_TELEGRAM_USER_IDS.has(adm.user.id)) {
           await db.prepare(`
             INSERT INTO group_members (chat_id, user_id, first_name, username, last_active)
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -867,7 +983,7 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
     ORDER BY gm.last_active DESC LIMIT 100
   `).bind(chatId).all();
 
-  const candidateList = (members.results || []).filter(u => !bannedSet.has(u.user_id));
+  let candidateList = (members.results || []).filter(u => !bannedSet.has(u.user_id) && !SYSTEM_TELEGRAM_USER_IDS.has(u.user_id));
   if (candidateList.length < 2) {
     await sendMessage(token, chatId, `🏹 برای شیپینگ به حداقل ۲ نفر عضو فعال در گروه نیاز است!`, { message_thread_id: threadId });
     return;
@@ -880,10 +996,11 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
     return blockSet.has(`${idA}_${idB}`) || blockSet.has(`${idB}_${idA}`);
   }
 
-  // بررسی برای شیپ چندنفره / ترایاد (Polyamory) در صورت وجود حداقل ۳ نفر با تمایل به روابط چندگانه
+  // بررسی برای شیپ چندنفره / ترایاد (Polyamory) با تضمین اعتبار ۳ جفت و حضور فیزیکی اعضا در گروه
   const polyCandidates = candidateList.filter(u => (u.relationship_structure || '').includes('چندعشقی') || (u.relationship_structure || '').includes('Polyamory'));
   let bestTriad = null;
   if (polyCandidates.length >= 3) {
+    const triadOptions = [];
     for (let i = 0; i < polyCandidates.length; i++) {
       for (let j = i + 1; j < polyCandidates.length; j++) {
         for (let k = j + 1; k < polyCandidates.length; k++) {
@@ -894,11 +1011,28 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
           const s12 = computePairScore(p1, p2).score;
           const s13 = computePairScore(p1, p3).score;
           const s23 = computePairScore(p2, p3).score;
-          const avgScore = Math.round((s12 + s13 + s23) / 3);
-          if (!bestTriad || avgScore > bestTriad.score) {
-            bestTriad = { u1: p1, u2: p2, u3: p3, score: avgScore, reason: 'روابط چندگانه توافقی (Polyamory)' };
-          }
+          if (s12 === 0 || s13 === 0 || s23 === 0) continue;
+          const num12 = s12 ?? 50;
+          const num13 = s13 ?? 50;
+          const num23 = s23 ?? 50;
+          const avgScore = Math.round((num12 + num13 + num23) / 3);
+          triadOptions.push({ u1: p1, u2: p2, u3: p3, score: avgScore, reason: 'روابط چندگانه توافقی (Polyamory)' });
         }
+      }
+    }
+    triadOptions.sort((a, b) => b.score - a.score);
+    const verifiedCache = new Map();
+    const checkActiveCached = async (uid) => {
+      if (verifiedCache.has(uid)) return verifiedCache.get(uid);
+      const ok = await verifyMemberActiveInGroup(token, chatId, uid, db);
+      verifiedCache.set(uid, ok);
+      if (!ok) candidateList = candidateList.filter(c => c.user_id !== uid);
+      return ok;
+    };
+    for (const tri of triadOptions) {
+      if (await checkActiveCached(tri.u1.user_id) && await checkActiveCached(tri.u2.user_id) && await checkActiveCached(tri.u3.user_id)) {
+        bestTriad = tri;
+        break;
       }
     }
   }
@@ -944,7 +1078,7 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
   }
 
   // تشکیل تمام جفت‌های مجاز و مسدودنشده
-  const validPairs = [];
+  let validPairs = [];
   for (let i = 0; i < candidateList.length; i++) {
     for (let j = i + 1; j < candidateList.length; j++) {
       const u1 = candidateList[i];
@@ -974,29 +1108,51 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
     return;
   }
 
-  // قانون جریمه ۷ روزه با قابلیت چشم‌پوشی هوشمند (Fallback):
-  // اگر جفت جدیدی وجود داشته باشد فقط از بین آنها انتخاب می‌شود، ولی اگر همه در ۷ روز اخیر جفت شده بودند یا تعداد کم بود، کل جفت‌ها شرکت داده می‌شوند
-  const freshPairs = validPairs.filter(p => !p.isRecent);
-  const candidatePool = freshPairs.length > 0 ? freshPairs : validPairs;
-
+  // انتخاب زوج با تایید عضویت واقعی در گروه (پاکسازی خودکار افرادی که بی‌سروصدا لفت داده‌اند)
   let bestPair = null;
-  const scoredPairs = candidatePool.filter(p => p.score !== null && p.score > 0);
+  const activeStatusCache = new Map();
+  const checkMember = async (uid) => {
+    if (activeStatusCache.has(uid)) return activeStatusCache.get(uid);
+    const ok = await verifyMemberActiveInGroup(token, chatId, uid, db);
+    activeStatusCache.set(uid, ok);
+    return ok;
+  };
 
-  if (scoredPairs.length > 0) {
-    // انتخاب وزن‌دار چرخه رولت (Roulette Wheel) با احتمال متناسب با توان ۲ امتیاز (Score^2)
-    const weights = scoredPairs.map(p => Math.max(1, Math.pow(p.score, 2)));
-    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-    let r = Math.random() * totalWeight;
-    for (let k = 0; k < scoredPairs.length; k++) {
-      r -= weights[k];
-      if (r <= 0 || k === scoredPairs.length - 1) {
-        bestPair = scoredPairs[k];
-        break;
+  while (validPairs.length > 0) {
+    const freshPairs = validPairs.filter(p => !p.isRecent);
+    const candidatePool = freshPairs.length > 0 ? freshPairs : validPairs;
+    const scoredPairs = candidatePool.filter(p => p.score !== null && p.score > 0);
+
+    let picked = null;
+    if (scoredPairs.length > 0) {
+      const weights = scoredPairs.map(p => Math.max(1, Math.pow(p.score, 2)));
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+      let r = Math.random() * totalWeight;
+      for (let k = 0; k < scoredPairs.length; k++) {
+        r -= weights[k];
+        if (r <= 0 || k === scoredPairs.length - 1) {
+          picked = scoredPairs[k];
+          break;
+        }
       }
+    } else {
+      picked = candidatePool[Math.floor(Math.random() * candidatePool.length)];
     }
-  } else {
-    // اگر هیچ‌کدام پروفایل امتیازدار نداشتند، انتخاب کاملاً تصادفی و منصفانه
-    bestPair = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+
+    const ok1 = await checkMember(picked.u1.user_id);
+    const ok2 = await checkMember(picked.u2.user_id);
+    if (ok1 && ok2) {
+      bestPair = picked;
+      break;
+    }
+
+    if (!ok1) validPairs = validPairs.filter(p => p.u1.user_id !== picked.u1.user_id && p.u2.user_id !== picked.u1.user_id);
+    if (!ok2) validPairs = validPairs.filter(p => p.u1.user_id !== picked.u2.user_id && p.u2.user_id !== picked.u2.user_id);
+  }
+
+  if (!bestPair) {
+    await sendMessage(token, chatId, `🏹 برای شیپینگ به حداقل ۲ نفر عضو فعال حاضر در گروه نیاز است!`, { message_thread_id: threadId });
+    return;
   }
 
   const m1 = userMention(bestPair.u1.user_id, bestPair.u1.first_name, bestPair.u1.username);
@@ -1020,44 +1176,36 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
 function computePairScore(u1, u2) {
   const reasons = [];
 
-  // ۱. فیلتر اخلاقی رده سنی قانونی (حفاظت و تفکیک سن)
-  const shamsi = getShamsiDetails();
-  const age1 = u1.birth_year ? (shamsi.year - u1.birth_year) : null;
-  const age2 = u2.birth_year ? (shamsi.year - u2.birth_year) : null;
+  // ۱. فیلتر اخلاقی رده سنی قانونی (محاسبه دقیق با ماه و روز + تفکیک قطعی افراد زیر ۱۸ سال)
+  const age1 = u1.birth_year ? calculateExactAge(u1.birth_year, u1.birth_month, u1.birth_day) : null;
+  const age2 = u2.birth_year ? calculateExactAge(u2.birth_year, u2.birth_month, u2.birth_day) : null;
 
-  if (age1 !== null && age2 !== null) {
-    const isAdult1 = age1 >= 18;
-    const isAdult2 = age2 >= 18;
-    if (isAdult1 !== isAdult2) {
-      return { score: 0, reason: 'عدم تطابق رده سنی' };
-    }
+  const isMinor1 = age1 !== null && age1 < 18;
+  const isMinor2 = age2 !== null && age2 < 18;
+  if (isMinor1 !== isMinor2 || ((isMinor1 || isMinor2) && (age1 === null || age2 === null))) {
+    return { score: 0, reason: 'عدم تطابق رده سنی' };
   }
 
-  // ۲. فیلتر گرایش و جنسیت‌های هدف متقابل
+  // ۲. فیلتر گرایش و جنسیت‌های هدف متقابل با تطبیق دقیق هویت‌ها
   if (u1.gender_identity && u2.gender_identity) {
-    let tg1 = [];
-    let tg2 = [];
-    try { tg1 = JSON.parse(u1.target_genders || '[]'); } catch { tg1 = []; }
-    try { tg2 = JSON.parse(u2.target_genders || '[]'); } catch { tg2 = []; }
+    const tg1 = safeJsonArray(u1.target_genders);
+    const tg2 = safeJsonArray(u2.target_genders);
 
-    const open1 = tg1.length === 0 || tg1.includes('هنوز مطمئن نیستم');
-    const open2 = tg2.length === 0 || tg2.includes('هنوز مطمئن نیستم');
-
-    const match1 = open1 || tg1.some(g => u2.gender_identity.includes(g) || g.includes(u2.gender_identity));
-    const match2 = open2 || tg2.some(g => u1.gender_identity.includes(g) || g.includes(u1.gender_identity));
+    const match1 = doesGenderMatchTarget(u2.gender_identity, tg1);
+    const match2 = doesGenderMatchTarget(u1.gender_identity, tg2);
 
     if (!match1 || !match2) {
       return { score: 0, reason: 'عدم تطابق جنسیت هدف' };
     }
   }
 
-  // ۳. فیلتر تعهد و تک‌همسری
+  // ۳. فیلتر تعهد و تک‌همسری (متأهل یا در رابطه متعهد فقط با توافق دوطرفه باز مجاز است)
   const isCommitted1 = (u1.relationship_status === 'متأهل' || u1.relationship_status === 'در رابطه عاطفی');
   const isCommitted2 = (u2.relationship_status === 'متأهل' || u2.relationship_status === 'در رابطه عاطفی');
-  const isOpen1 = (u1.relationship_status === 'در رابطه باز' || (u1.relationship_structure || '').includes('باز') || (u1.relationship_structure || '').includes('چندعشقی'));
-  const isOpen2 = (u2.relationship_status === 'در رابطه باز' || (u2.relationship_structure || '').includes('باز') || (u2.relationship_structure || '').includes('چندعشقی'));
+  const isOpen1 = (u1.relationship_status === 'در رابطه باز' || /باز|چندعشقی|غیرانحصاری|چندگانه/.test(u1.relationship_structure || ''));
+  const isOpen2 = (u2.relationship_status === 'در رابطه باز' || /باز|چندعشقی|غیرانحصاری|چندگانه/.test(u2.relationship_structure || ''));
 
-  if ((isCommitted1 && !isOpen1 && !isOpen2) || (isCommitted2 && !isOpen2 && !isOpen1)) {
+  if ((isCommitted1 && (!isOpen1 || !isOpen2)) || (isCommitted2 && (!isOpen2 || !isOpen1))) {
     return { score: 0, reason: 'عدم تطابق تعهد رابطه' };
   }
 
@@ -1211,9 +1359,9 @@ async function handleReaction(reactionUpdate, token, db) {
   const userId = fromUser?.id;
   if (!userId) return;
 
-  // اگر ری‌اکشن در گروه باشد، کاربر را به عنوان عضو فعال ثبت می‌کنیم
+  // اگر ری‌اکشن در گروه باشد، کاربر واقعی را به عنوان عضو فعال ثبت می‌کنیم
   const isGroup = reactionUpdate.chat?.type === 'group' || reactionUpdate.chat?.type === 'supergroup';
-  if (isGroup && fromUser && !fromUser.is_bot) {
+  if (isGroup && fromUser && !isSystemOrAnonymousSender(fromUser)) {
     const memberKey = `${chatId}_${userId}`;
     if (!knownGroupMembers.has(memberKey)) {
       knownGroupMembers.add(memberKey);
@@ -1234,21 +1382,27 @@ async function handleReaction(reactionUpdate, token, db) {
 
   const isMember = (userId === couple.user1_id || userId === couple.user2_id || (couple.user3_id && userId === couple.user3_id));
   if (isMember && isNegative) {
+    let blockChanges = 0;
     if (couple.user3_id) {
       const triadIds = [couple.user1_id, couple.user2_id, couple.user3_id];
       for (const otherId of triadIds) {
         if (otherId !== userId) {
-          await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?), (?, ?)`).bind(userId, otherId, otherId, userId).run();
+          const res = await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(userId, otherId).run();
+          blockChanges += (res?.meta?.changes ?? res?.changes ?? 0);
         }
       }
     } else {
-      await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?), (?, ?)`).bind(couple.user1_id, couple.user2_id, couple.user2_id, couple.user1_id).run();
+      const otherId = (userId === couple.user1_id) ? couple.user2_id : couple.user1_id;
+      const res = await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(userId, otherId).run();
+      blockChanges += (res?.meta?.changes ?? res?.changes ?? 0);
     }
 
     if (couple.reroll_count === 0) {
       await db.prepare(`UPDATE daily_couples SET reroll_count = 1 WHERE id = ?`).bind(couple.id).run();
       await sendMessage(token, chatId, `💔 <b>یکی از طرفین این پیوند را نپذیرفت!</b>\nاین اعضا برای یکدیگر در لیست مسدودی قرار گرفتند و شانس دوم فعال شد... 🎲`, { reply_to_message_id: couple.message_id });
       await handleShippingCommand(chatId, couple.topic_id, { id: userId }, token, db, true);
+    } else if (blockChanges > 0) {
+      await sendMessage(token, chatId, `🚫 <b>پیوند نپذیرفته شد</b> و این فرد برای همیشه در لیست مسدودی شیپ شما قرار گرفت.`, { reply_to_message_id: couple.message_id });
     }
     return;
   }
@@ -1496,28 +1650,52 @@ async function handleGroupBlockShip(chatId, threadId, msg, token, db) {
   let targetId = null;
   let targetName = 'کاربر';
 
-  if (msg.reply_to_message?.from && !msg.reply_to_message.from.is_bot) {
+  if (msg.reply_to_message?.from && !isSystemOrAnonymousSender(msg.reply_to_message.from)) {
     targetId = msg.reply_to_message.from.id;
     targetName = msg.reply_to_message.from.first_name || 'کاربر';
-  } else {
-    const parts = msg.text.trim().split(' ');
+  } else if (msg.reply_to_message?.from?.is_bot && msg.reply_to_message?.message_id) {
+    // اگر روی پیام معرفی زوج امروز از خود ربات ریپلای زده شده باشد، پارتنرِ همان شیپ را بلاک می‌کنیم
+    const shipMsg = await db.prepare(`SELECT user1_id, user2_id, user3_id FROM daily_couples WHERE chat_id = ? AND message_id = ?`).bind(chatId, msg.reply_to_message.message_id).first();
+    if (shipMsg && [shipMsg.user1_id, shipMsg.user2_id, shipMsg.user3_id].includes(fromId)) {
+      const otherIds = [shipMsg.user1_id, shipMsg.user2_id, shipMsg.user3_id].filter(id => id && id !== fromId);
+      for (const oid of otherIds) {
+        await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(fromId, oid).run();
+      }
+      await sendMessage(token, chatId, `🚫 پارتنر این شیپ برای همیشه در لیست مسدودی شما قرار گرفت.`, { message_thread_id: threadId });
+      return;
+    }
+  }
+
+  if (!targetId) {
+    const parts = (msg.text || msg.caption || '').replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '').trim().split(/\s+/);
     if (parts.length > 1) {
-      const arg = parts[1].replace('@', '');
-      const userRow = await db.prepare(`SELECT user_id, first_name FROM group_members WHERE username = ? LIMIT 1`).bind(arg).first();
-      if (userRow) {
-        targetId = userRow.user_id;
-        targetName = userRow.first_name;
+      const arg = parts[1].trim();
+      if (/^\d{5,15}$/.test(arg)) {
+        targetId = parseInt(arg, 10);
+        const mem = await db.prepare(`SELECT first_name FROM group_members WHERE user_id = ? LIMIT 1`).bind(targetId).first();
+        targetName = mem?.first_name || `کاربر ${targetId}`;
+      } else {
+        const cleanUname = arg.replace(/^@/, '');
+        if (cleanUname) {
+          const memLocal = await db.prepare(`SELECT user_id, first_name FROM group_members WHERE chat_id = ? AND username = ? COLLATE NOCASE LIMIT 1`).bind(chatId, cleanUname).first();
+          const memAny = memLocal || await db.prepare(`SELECT user_id, first_name FROM group_members WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(cleanUname).first();
+          const prof = memAny || await db.prepare(`SELECT user_id, first_name FROM user_profiles WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(cleanUname).first();
+          if (prof) {
+            targetId = prof.user_id;
+            targetName = prof.first_name || `@${cleanUname}`;
+          }
+        }
       }
     }
   }
 
   if (!targetId || targetId === fromId) {
-    await sendMessage(token, chatId, `⚠️ لطفاً روی پیام فرد مورد نظر ریپلای بزنید و دستور <code>/blockship</code> را ارسال کنید.`, { message_thread_id: threadId });
+    await sendMessage(token, chatId, `⚠️ لطفاً روی پیام فرد مورد نظر ریپلای بزنید یا آیدی/یوزرنیم او را بعد از دستور بنویسید (مثلاً <code>/blockship @username</code>).`, { message_thread_id: threadId });
     return;
   }
 
-  await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?), (?, ?)`).bind(fromId, targetId, targetId, fromId).run();
-  await sendMessage(token, chatId, `🚫 <b>${targetName}</b> با موفقیت در لیست بلاک شیپینگ دوطرفه شما قرار گرفت.`, { message_thread_id: threadId });
+  await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(fromId, targetId).run();
+  await sendMessage(token, chatId, `🚫 <b>${escapeHtml(targetName)}</b> با موفقیت در لیست مسدودی شیپینگ شما قرار گرفت.`, { message_thread_id: threadId });
 }
 
 // منوی چندزمانه تاریخچه گروه
@@ -1748,14 +1926,14 @@ async function handleCallbackQuery(cb, token, db) {
 
   if (data.startsWith('unblock_ship_')) {
     const targetId = parseInt(data.replace('unblock_ship_', ''), 10);
-    await db.prepare(`DELETE FROM user_ship_blocks WHERE (user_id = ? AND blocked_user_id = ?) OR (user_id = ? AND blocked_user_id = ?)`).bind(user.id, targetId, targetId, user.id).run();
+    await db.prepare(`DELETE FROM user_ship_blocks WHERE user_id = ? AND blocked_user_id = ?`).bind(user.id, targetId).run();
     await answerCallback(token, cb.id, '✅ کاربر از لیست مسدودی شما خارج شد.', true);
     await showBlockShipMenu(chatId, user, token, db, messageId);
     return;
   }
 
   if (data === 'clear_all_blocks') {
-    await db.prepare(`DELETE FROM user_ship_blocks WHERE user_id = ? OR blocked_user_id = ?`).bind(user.id, user.id).run();
+    await db.prepare(`DELETE FROM user_ship_blocks WHERE user_id = ?`).bind(user.id).run();
     await answerCallback(token, cb.id, '🗑️ تمام افراد از لیست مسدودی شما حذف شدند.', true);
     await showBlockShipMenu(chatId, user, token, db, messageId);
     return;
@@ -1846,11 +2024,11 @@ async function handleCallbackQuery(cb, token, db) {
     return;
   }
 
-  // تغییر وضعیت سراسری حضور در شیپینگ
+  // تغییر وضعیت سراسری حضور در شیپینگ (همگام‌سازی کامل با تمام گروه‌ها)
   if (data === 'toggle_global_optout') {
     const curProfile = await db.prepare(`SELECT is_global_opted_out FROM user_profiles WHERE user_id = ?`).bind(user.id).first();
     const newStatus = curProfile?.is_global_opted_out ? 0 : 1;
-    await db.prepare(`UPDATE user_profiles SET is_global_opted_out = ? WHERE user_id = ?`).bind(newStatus, user.id).run();
+    await setGlobalOptOutStatus(db, user, newStatus === 1);
     await answerCallback(token, cb.id, newStatus ? 'حضور شما در تمام شیپینگ‌ها خاموش شد ⛔' : 'حضور شما در تمام شیپینگ‌ها فعال شد ✅');
     await showUserProfileMenu(chatId, user, token, db);
     return;
@@ -2223,33 +2401,52 @@ async function renderDirectShipMenu(chatId, messageId, user, token, db) {
 
 async function handleDirectMatchRequest(chatId, user, token, db) {
   const myProfile = await db.prepare(`SELECT * FROM user_profiles WHERE user_id = ?`).bind(user.id).first();
+  if (myProfile?.is_global_opted_out) {
+    await sendMessage(token, chatId, `⛔ <b>حضور شما در شیپینگ با <code>/noship</code> خاموش است!</b>\nبرای استفاده از شیپ مستقیم، ابتدا دستور <code>/shipme</code> را بفرستید یا در منوی پروفایل حضور خود را فعال کنید.`);
+    return;
+  }
   if (!myProfile || !myProfile.birth_year || !myProfile.city) {
     await sendMessage(token, chatId, `⚠️ لطفاً ابتدا در منوی پروفایل، حداقل <b>سال تولد</b> و <b>شهر</b> خود را تکمیل کنید تا کیوپید بتواند بهترین پارتنر را برای شما پیدا کند.`);
     return;
+  }
+
+  const banSetting = await db.prepare(`SELECT value FROM bot_settings WHERE key = 'banned_users'`).first();
+  const bannedSet = new Set(safeJsonArray(banSetting?.value));
+  if (bannedSet.has(user.id)) return;
+
+  const blocks = await db.prepare(`SELECT user_id, blocked_user_id FROM user_ship_blocks WHERE user_id = ? OR blocked_user_id = ?`).bind(user.id, user.id).all();
+  const blockedPartnerSet = new Set();
+  for (const b of (blocks.results || [])) {
+    blockedPartnerSet.add(b.user_id === user.id ? b.blocked_user_id : b.user_id);
   }
 
   const candidates = await db.prepare(`
     SELECT dp.*, up.*
     FROM direct_ship_pool dp
     JOIN user_profiles up ON dp.user_id = up.user_id
-    WHERE dp.is_active = 1 AND dp.user_id != ?
-    LIMIT 50
+    WHERE dp.is_active = 1 AND dp.user_id != ? AND (up.is_global_opted_out IS NULL OR up.is_global_opted_out = 0)
+    LIMIT 100
   `).bind(user.id).all();
 
-  const list = candidates.results || [];
-  if (list.length === 0) {
-    await sendMessage(token, chatId, `🏹 <b>در حال حاضر پارتنر سازگار آزادی در صف شیپ مستقیم نیست!</b>\nسیستم فعال است و به محض ورود پارتنری متناسب با معیارهای شما، کیوپید پیامی برای هر دوی شما در پیوی ارسال خواهد کرد. ✨`);
-    return;
+  const rawList = (candidates.results || []).filter(c => !bannedSet.has(c.user_id) && !blockedPartnerSet.has(c.user_id));
+
+  let best = null;
+  let maxScore = -1;
+  let bestDisplayScore = null;
+  for (const c of rawList) {
+    const s = computePairScore(myProfile, c);
+    if (s.score === 0) continue;
+    const rankScore = (s.score === null || s.score === undefined) ? 1 : s.score;
+    if (rankScore > maxScore) {
+      maxScore = rankScore;
+      best = c;
+      bestDisplayScore = s.score;
+    }
   }
 
-  let best = list[0];
-  let maxScore = -1;
-  for (const c of list) {
-    const s = computePairScore(myProfile, c);
-    if (s.score > maxScore) {
-      maxScore = s.score;
-      best = c;
-    }
+  if (!best) {
+    await sendMessage(token, chatId, `🏹 <b>در حال حاضر پارتنر سازگار آزادی در صف شیپ مستقیم نیست!</b>\nسیستم فعال است و به محض ورود پارتنری متناسب با معیارهای شما، کیوپید پیامی برای هر دوی شما در پیوی ارسال خواهد کرد. ✨`);
+    return;
   }
 
   const myDirect = await db.prepare(`SELECT * FROM direct_ship_pool WHERE user_id = ?`).bind(user.id).first();
@@ -2258,13 +2455,14 @@ async function handleDirectMatchRequest(chatId, user, token, db) {
   const partnerContact = partnerDirect.share_username && best.username ? `@${best.username}` : 'مخفی به انتخاب کاربر';
   const myContact = myDirect?.share_username && user.username ? `@${user.username}` : 'مخفی به انتخاب کاربر';
 
-  const groupInfo = partnerDirect.shared_group_link ? `\n🔗 <b>لینک گروه پیشنهادی پارتنر:</b> ${partnerDirect.shared_group_link}` : '';
+  const groupInfo = partnerDirect.shared_group_link ? `\n🔗 <b>لینک گروه پیشنهادی پارتنر:</b> ${escapeHtml(partnerDirect.shared_group_link)}` : '';
+  const scoreRowForDirect = (bestDisplayScore !== null && bestDisplayScore > 0) ? `\n📊 <b>درصد تفاهم:</b> ${bestDisplayScore}٪` : '';
 
-  const msgForMe = `💘 <b>پارتنر منتخب کیوپید در شیپ مستقیم پیوی!</b>\n\n👤 <b>نام پارتنر:</b> ${best.first_name || 'کاربر'}\n📍 <b>محل سکونت:</b> ${best.province} - ${best.city}\n🎂 <b>سن تقریبی:</b> ${getShamsiDetails().year - (best.birth_year || 1380)} ساله\n📊 <b>درصد تفاهم:</b> ${maxScore}٪\n💬 <b>ارتباط:</b> ${partnerContact}${groupInfo}\n\n<i>امیدواریم گفتگوی فوق‌العاده‌ای داشته باشید! ✨</i>`;
+  const msgForMe = `💘 <b>پارتنر منتخب کیوپید در شیپ مستقیم پیوی!</b>\n\n👤 <b>نام پارتنر:</b> ${escapeHtml(best.first_name || 'کاربر')}\n📍 <b>محل سکونت:</b> ${escapeHtml(best.province || '')} - ${escapeHtml(best.city || '')}\n🎂 <b>سن تقریبی:</b> ${getShamsiDetails().year - (best.birth_year || 1380)} ساله${scoreRowForDirect}\n💬 <b>ارتباط:</b> ${escapeHtml(partnerContact)}${groupInfo}\n\n<i>امیدواریم گفتگوی فوق‌العاده‌ای داشته باشید! ✨</i>`;
   await sendMessage(token, chatId, msgForMe);
 
-  const myGroupInfo = myDirect?.shared_group_link ? `\n🔗 <b>لینک گروه پیشنهادی پارتنر:</b> ${myDirect.shared_group_link}` : '';
-  const msgForPartner = `💘 <b>پارتنر منتخب کیوپید در شیپ مستقیم پیوی!</b>\n\n👤 <b>نام پارتنر:</b> ${user.first_name || 'کاربر'}\n📍 <b>محل سکونت:</b> ${myProfile.province} - ${myProfile.city}\n🎂 <b>سن تقریبی:</b> ${getShamsiDetails().year - myProfile.birth_year} ساله\n📊 <b>درصد تفاهم:</b> ${maxScore}٪\n💬 <b>ارتباط:</b> ${myContact}${myGroupInfo}\n\n<i>امیدواریم گفتگوی فوق‌العاده‌ای داشته باشید! ✨</i>`;
+  const myGroupInfo = myDirect?.shared_group_link ? `\n🔗 <b>لینک گروه پیشنهادی پارتنر:</b> ${escapeHtml(myDirect.shared_group_link)}` : '';
+  const msgForPartner = `💘 <b>پارتنر منتخب کیوپید در شیپ مستقیم پیوی!</b>\n\n👤 <b>نام پارتنر:</b> ${escapeHtml(user.first_name || 'کاربر')}\n📍 <b>محل سکونت:</b> ${escapeHtml(myProfile.province || '')} - ${escapeHtml(myProfile.city || '')}\n🎂 <b>سن تقریبی:</b> ${getShamsiDetails().year - myProfile.birth_year} ساله${scoreRowForDirect}\n💬 <b>ارتباط:</b> ${escapeHtml(myContact)}${myGroupInfo}\n\n<i>امیدواریم گفتگوی فوق‌العاده‌ای داشته باشید! ✨</i>`;
   await sendMessage(token, best.user_id, msgForPartner);
 }
 
@@ -2334,10 +2532,10 @@ async function handlePrivateTextInput(chatId, user, text, msg, token, db) {
       return;
     }
 
-    await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?), (?, ?)`).bind(user.id, targetId, targetId, user.id).run();
+    await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(user.id, targetId).run();
     await db.prepare(`UPDATE user_profiles SET onboarding_step = 'done' WHERE user_id = ?`).bind(user.id).run();
 
-    await sendMessage(token, chatId, `✅ <b>کاربر ${targetName} با موفقیت در لیست سیاه شیپینگ شما قرار گرفت!</b>\nاز این پس کیوپید در هیچ گروهی شما دو نفر را با یکدیگر شیپ نخواهد کرد. 🚫`);
+    await sendMessage(token, chatId, `✅ <b>کاربر ${escapeHtml(targetName)} با موفقیت در لیست سیاه شیپینگ شما قرار گرفت!</b>\nاز این پس کیوپید در هیچ گروهی شما دو نفر را با یکدیگر شیپ نخواهد کرد. 🚫`);
     await showBlockShipMenu(chatId, user, token, db);
     return;
   }
@@ -2513,6 +2711,9 @@ async function showGroupDirectory(chatId, token, db) {
 
 async function showUserStatus(chatId, userId, token, db) {
   const tehran = getTehranDate();
+  const prof = await db.prepare(`SELECT is_global_opted_out FROM user_profiles WHERE user_id = ?`).bind(userId).first();
+  const isOptedOut = Boolean(prof?.is_global_opted_out);
+
   const list = await db.prepare(`
     SELECT dc.*, g.title as group_title, g.username as group_username
     FROM daily_couples dc
@@ -2522,7 +2723,11 @@ async function showUserStatus(chatId, userId, token, db) {
 
   const ships = list.results || [];
   if (ships.length === 0) {
-    await sendMessage(token, chatId, `🏹 شما امروز هنوز در هیچ گروهی به عنوان زوج روز انتخاب نشده‌اید.\n<i>تا ساعت ۱۲ شب منتظر شلیک تیر کیوپید باشید! 💘</i>`);
+    if (isOptedOut) {
+      await sendMessage(token, chatId, `⛔ <b>وضعیت فعلی شما: حضور در گردونه شیپینگ خاموش است</b> (<code>/noship</code>).\nتا زمانی که حضور خود را فعال نکنید در هیچ گروهی شیپ نخواهید شد.\n\n<i>برای فعال‌سازی مجدد، <code>/shipme</code> را ارسال کنید یا از دکمه پروفایل استفاده نمایید.</i>`);
+    } else {
+      await sendMessage(token, chatId, `🏹 شما امروز هنوز در هیچ گروهی به عنوان زوج روز انتخاب نشده‌اید.\n<i>تا ساعت ۱۲ شب منتظر شلیک تیر کیوپید باشید! 💘</i>`);
+    }
     return;
   }
 
@@ -2604,7 +2809,7 @@ async function handleAdminPanel(chatId, userId, text, token, db) {
   if (subCmd === 'unbanuser' && parts[2]) {
     const targetUserId = parseInt(parts[2], 10);
     const banSetting = await db.prepare(`SELECT value FROM bot_settings WHERE key = 'banned_users'`).first();
-    const bannedList = safeJsonArray(banSetting?.value);
+    let bannedList = safeJsonArray(banSetting?.value);
     bannedList = bannedList.filter(id => id !== targetUserId);
     await db.prepare(`INSERT INTO bot_settings (key, value) VALUES ('banned_users', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind(JSON.stringify(bannedList)).run();
     await sendMessage(token, chatId, `✅ کاربر <code>${targetUserId}</code> از لیست سیاه خارج شد.`);

@@ -6270,6 +6270,242 @@ function decryptEhi(rawBuffer) {
   throw new Error("\u{1F512} \u0627\u06CC\u0646 \u0641\u0627\u06CC\u0644 HTTP Injector \u062F\u0627\u0631\u0627\u06CC \u0642\u0641\u0644 \u0633\u0627\u0632\u0646\u062F\u0647 \u06CC\u0627 \u0633\u0627\u062E\u062A\u0627\u0631 \u0631\u0645\u0632\u06AF\u0630\u0627\u0631\u06CC \u0633\u0641\u0627\u0631\u0634\u06CC \u0627\u0633\u062A \u0648 \u0627\u0645\u06A9\u0627\u0646 \u0628\u0627\u0632\u06AF\u0634\u0627\u06CC\u06CC \u0622\u0646 \u0648\u062C\u0648\u062F \u0646\u062F\u0627\u0631\u062F.");
 }
 
+// src/core/remote_fetch.js
+async function decodeCompressedBytes(bytes, contentEncoding) {
+  const enc = String(contentEncoding || "").toLowerCase().trim();
+  if (!enc || enc === "identity") return bytes;
+  const format = enc.includes("gzip") ? "gzip" : enc.includes("deflate") ? "deflate" : null;
+  if (!format || typeof DecompressionStream === "undefined") return bytes;
+  try {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(format));
+    const buf = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buf);
+  } catch {
+    return bytes;
+  }
+}
+async function fetchViaCloudflareSocket(targetUrl, requestHeaders = {}, maxRedirects = 3, timeoutMs = 12e3) {
+  const { connect } = await import("cloudflare:sockets");
+  const u = new URL(targetUrl);
+  const hostname = u.hostname.replace(/^\[|\]$/g, "");
+  const useTls = u.protocol === "https:";
+  const port = parseInt(u.port, 10) || (useTls ? 443 : 80);
+  const socket = connect(
+    { hostname, port },
+    { secureTransport: useTls ? "on" : "off", allowHalfOpen: false }
+  );
+  const pathAndQuery = (u.pathname || "/") + (u.search || "");
+  const reqStr = [
+    `GET ${pathAndQuery} HTTP/1.1`,
+    `Host: ${u.host}`,
+    `User-Agent: ${requestHeaders["User-Agent"] || "v2rayNG/1.9.34"}`,
+    `Accept: */*`,
+    `Accept-Encoding: identity`,
+    `Cache-Control: no-cache, no-store, must-revalidate`,
+    `Pragma: no-cache`,
+    `Connection: close`,
+    ``,
+    ``
+  ].join("\r\n");
+  const writer = socket.writable.getWriter();
+  await writer.write(new TextEncoder().encode(reqStr));
+  writer.releaseLock();
+  const reader = socket.readable.getReader();
+  const chunks = [];
+  let totalLen = 0;
+  const deadline = Date.now() + timeoutMs;
+  try {
+    while (true) {
+      const rem = deadline - Date.now();
+      if (rem <= 0) throw new Error("Socket read timeout");
+      let timerId = null;
+      const timeoutPromise = new Promise((_, reject) => {
+        timerId = setTimeout(() => reject(new Error("Socket read timeout")), rem);
+      });
+      const result = await Promise.race([reader.read(), timeoutPromise]).finally(() => {
+        if (timerId !== null) clearTimeout(timerId);
+      });
+      if (result.done) break;
+      if (result.value && result.value.byteLength > 0) {
+        chunks.push(result.value);
+        totalLen += result.value.byteLength;
+        if (totalLen > 12 * 1024 * 1024) break;
+      }
+    }
+  } finally {
+    try {
+      await socket.close();
+    } catch {
+    }
+  }
+  const fullBytes = new Uint8Array(totalLen);
+  let offset = 0;
+  for (const c of chunks) {
+    fullBytes.set(c, offset);
+    offset += c.byteLength;
+  }
+  let headerEnd = -1;
+  for (let i2 = 0; i2 <= fullBytes.length - 4; i2++) {
+    if (fullBytes[i2] === 13 && fullBytes[i2 + 1] === 10 && fullBytes[i2 + 2] === 13 && fullBytes[i2 + 3] === 10) {
+      headerEnd = i2;
+      break;
+    }
+  }
+  if (headerEnd === -1) throw new Error("Invalid HTTP response over socket");
+  const headerText = new TextDecoder("latin1").decode(fullBytes.subarray(0, headerEnd));
+  let bodyBytes = fullBytes.subarray(headerEnd + 4);
+  const headerLines = headerText.split("\r\n");
+  const statusMatch = headerLines[0].match(/HTTP\/\d(?:\.\d)?\s+(\d{3})/);
+  const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
+  const respHeaders = {};
+  for (let i2 = 1; i2 < headerLines.length; i2++) {
+    const colon = headerLines[i2].indexOf(":");
+    if (colon > 0) {
+      const k = headerLines[i2].slice(0, colon).trim().toLowerCase();
+      const v = headerLines[i2].slice(colon + 1).trim();
+      respHeaders[k] = v;
+    }
+  }
+  if ([301, 302, 303, 307, 308].includes(status) && respHeaders.location && maxRedirects > 0) {
+    const nextUrl = new URL(respHeaders.location, u).toString();
+    return fetchViaCloudflareSocket(nextUrl, requestHeaders, maxRedirects - 1, timeoutMs);
+  }
+  if ((respHeaders["transfer-encoding"] || "").toLowerCase().includes("chunked")) {
+    const decodedParts = [];
+    let decodedLen = 0;
+    let pos = 0;
+    while (pos < bodyBytes.length) {
+      let lineEnd = -1;
+      for (let j = pos; j < bodyBytes.length - 1; j++) {
+        if (bodyBytes[j] === 13 && bodyBytes[j + 1] === 10) {
+          lineEnd = j;
+          break;
+        }
+      }
+      if (lineEnd === -1) break;
+      const sizeHex = new TextDecoder("latin1").decode(bodyBytes.subarray(pos, lineEnd)).split(";")[0].trim();
+      const chunkSize = parseInt(sizeHex, 16);
+      pos = lineEnd + 2;
+      if (isNaN(chunkSize) || chunkSize <= 0) break;
+      const endPos = Math.min(pos + chunkSize, bodyBytes.length);
+      const part = bodyBytes.subarray(pos, endPos);
+      decodedParts.push(part);
+      decodedLen += part.byteLength;
+      pos = endPos + 2;
+    }
+    const merged = new Uint8Array(decodedLen);
+    let mOff = 0;
+    for (const part of decodedParts) {
+      merged.set(part, mOff);
+      mOff += part.byteLength;
+    }
+    bodyBytes = merged;
+  }
+  bodyBytes = await decodeCompressedBytes(bodyBytes, respHeaders["content-encoding"]);
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: respHeaders,
+    text: async () => new TextDecoder("utf-8").decode(bodyBytes)
+  };
+}
+function resolveUserAgentList(targetUrl, mode = "sub") {
+  const urlStr = String(targetUrl || "");
+  const hintsClash = mode === "clash" || /(?:[?&](?:target|client|flag|type)=clash\b|\/clash\.ya?ml$)/i.test(urlStr);
+  if (hintsClash) {
+    return ["clash-verge/v2.2.3", "ClashMetaForAndroid/2.11.5.Meta", "v2rayNG/1.9.34"];
+  }
+  return ["v2rayNG/1.9.34", "clash-verge/v2.2.3", "ClashMetaForAndroid/2.11.5.Meta", "sing-box/1.14.2"];
+}
+function isRetryableStatus(status) {
+  return !status || [400, 401, 403, 406, 418, 429, 502, 503, 504].includes(status) || status >= 520;
+}
+function isChallengeHtml(text) {
+  if (!text) return false;
+  return text.includes("cf-browser-verification") || text.includes("Just a moment...") || text.includes("Attention Required! | Cloudflare");
+}
+async function fetchSubscriptionWithFallback(targetUrl, options = {}) {
+  const {
+    fetchFn = fetch,
+    mode = "sub",
+    timeoutMs = 6e3
+  } = options;
+  const baseHeaders = {
+    "Accept": "*/*",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache"
+  };
+  let isIpHost = false;
+  try {
+    const parsedHost = new URL(targetUrl).hostname.replace(/^\[|\]$/g, "");
+    isIpHost = /^(\d{1,3}\.){3}\d{1,3}$/.test(parsedHost) || parsedHost.includes(":");
+  } catch {
+  }
+  const makeFetchOpts = (ua) => {
+    const opts = {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { ...baseHeaders, "User-Agent": ua }
+    };
+    if (fetchFn === fetch && typeof caches !== "undefined") {
+      opts.cf = { cacheTtl: 0, cacheEverything: false };
+    }
+    return opts;
+  };
+  const tryFetchWithUa = async (ua) => {
+    try {
+      const res = await fetchFn(targetUrl, makeFetchOpts(ua));
+      const text = res && res.ok ? await res.text() : "";
+      return { res, text, err: null };
+    } catch (err2) {
+      return { res: null, text: "", err: err2 };
+    }
+  };
+  const trySocketWithUa = async (ua) => {
+    if (fetchFn !== fetch) return { res: null, text: "", err: null };
+    try {
+      const res = await fetchViaCloudflareSocket(targetUrl, { ...baseHeaders, "User-Agent": ua });
+      const text = res && res.ok ? await res.text() : "";
+      return { res, text, err: null };
+    } catch (err2) {
+      return { res: null, text: "", err: err2 };
+    }
+  };
+  const uaList = resolveUserAgentList(targetUrl, mode);
+  const primaryUa = uaList[0];
+  let best = await tryFetchWithUa(primaryUa);
+  let lastSocketErr = "";
+  if (!best.res || !best.res.ok && (isIpHost || best.res.status === 403 || best.res.status >= 520) || isChallengeHtml(best.text)) {
+    const sockAttempt = await trySocketWithUa(primaryUa);
+    if (sockAttempt.err) lastSocketErr = sockAttempt.err.message || String(sockAttempt.err);
+    if (sockAttempt.res && (sockAttempt.res.ok || !best.res)) {
+      best = sockAttempt;
+    }
+  }
+  if (!best.res || !best.res.ok && isRetryableStatus(best.res.status) || isChallengeHtml(best.text)) {
+    for (const altUa of uaList.slice(1)) {
+      const altAttempt = await tryFetchWithUa(altUa);
+      if (altAttempt.res && altAttempt.res.ok && !isChallengeHtml(altAttempt.text)) {
+        best = altAttempt;
+        break;
+      }
+      if (!altAttempt.res || isIpHost || altAttempt.res.status === 403 || altAttempt.res.status >= 520) {
+        const altSock = await trySocketWithUa(altUa);
+        if (altSock.err) lastSocketErr = altSock.err.message || String(altSock.err);
+        if (altSock.res && altSock.res.ok && !isChallengeHtml(altSock.text)) {
+          best = altSock;
+          break;
+        }
+      }
+    }
+  }
+  return {
+    res: best.res,
+    text: best.text,
+    err: best.err,
+    socketErr: lastSocketErr
+  };
+}
+
 // src/parsers/mihomo_parser.js
 function parseYamlValue(str) {
   if (str == null) return "";
@@ -6412,7 +6648,10 @@ function parseMihomoYaml(rawText, fileName = "Mihomo") {
     const ws = p["ws-opts"] || {};
     const grpc = p["grpc-opts"] || {};
     const h2 = p["h2-opts"] || {};
-    const network = p.network || (p["ws-opts"] ? "ws" : p["grpc-opts"] ? "grpc" : "tcp");
+    const xhttp = p["xhttp-opts"] || {};
+    const network = p.network || (p["xhttp-opts"] ? "xhttp" : p["ws-opts"] ? "ws" : p["grpc-opts"] ? "grpc" : "tcp");
+    const netLower = String(network).toLowerCase();
+    const isXhttpNet = netLower === "xhttp" || netLower === "splithttp";
     const firstPeer = Array.isArray(p.peers) && p.peers.length > 0 && typeof p.peers[0] === "object" ? p.peers[0] : {};
     const awg = p["amnezia-wg-option"] || p["amnezia-option"] || p.amnezia || {};
     return {
@@ -6424,16 +6663,22 @@ function parseMihomoYaml(rawText, fileName = "Mihomo") {
       password: p.password || p.uuid || "",
       flow: p.flow || "",
       network,
-      path: ws.path || h2.path || "",
-      host: ws.headers?.Host || (Array.isArray(h2.host) ? h2.host[0] : h2.host) || p.servername || "",
+      path: ws.path || xhttp.path || h2.path || "",
+      host: isXhttpNet ? xhttp.host || "" : ws.headers?.Host || (Array.isArray(h2.host) ? h2.host[0] : h2.host) || p.servername || "",
       serviceName: grpc["grpc-service-name"] || "",
+      mode: xhttp.mode || void 0,
+      xPaddingBytes: xhttp["x-padding-bytes"] || xhttp.xPaddingBytes || void 0,
+      extra: xhttp.extra || void 0,
       security: reality["public-key"] ? "reality" : p.tls ? "tls" : "none",
       tls: Boolean(p.tls),
       reality: Boolean(reality["public-key"]),
       sni: p.servername || p.sni || "",
       fingerprint: p["client-fingerprint"] || "chrome",
+      alpn: p.alpn || void 0,
+      insecure: p["skip-cert-verify"] || p.skipCertVerify ? true : void 0,
       publicKey: reality["public-key"] || p["public-key"] || p.publicKey || firstPeer["public-key"] || firstPeer.publicKey || "",
       shortId: reality["short-id"] || "",
+      supportX25519mlkem768: Boolean(reality["support-x25519mlkem768"]) || void 0,
       // Shadowsocks
       method: p.cipher || "",
       // Wireguard / Masque / AmneziaWG
@@ -6506,15 +6751,13 @@ async function parseMihomoYamlAsync(rawText, fileName = "Mihomo", fetchFn = fetc
   if (parsed.providerUrls && parsed.providerUrls.length > 0) {
     const promises = parsed.providerUrls.slice(0, 15).map(async (url) => {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8e3);
-        const res = await fetchFn(url, {
-          headers: { "User-Agent": "ClashMeta/v1.18.0 Mihomo/1.18.0 sing-box/1.9.0" },
-          signal: controller.signal
+        const fetched = await fetchSubscriptionWithFallback(url, {
+          fetchFn,
+          mode: "clash",
+          timeoutMs: 8e3
         });
-        clearTimeout(timeoutId);
-        if (!res.ok) return;
-        const subYaml = await res.text();
+        if (!fetched.res || !fetched.res.ok) return;
+        const subYaml = fetched.text || "";
         let subParsed = null;
         try {
           subParsed = parseMihomoYaml(subYaml, url);
@@ -7808,6 +8051,23 @@ function parseUriConfig(uri) {
       let security = q.get("security") || "none";
       const flowVal = q.get("flow") || "";
       if (flowVal && security === "none") security = "tls";
+      const netVal = q.get("type") || "tcp";
+      const isXhttpNet = netVal === "xhttp" || netVal === "splithttp";
+      let extraObj = null;
+      const rawExtraStr = q.get("extra") || "";
+      if (rawExtraStr) {
+        try {
+          extraObj = JSON.parse(rawExtraStr);
+        } catch {
+        }
+      }
+      const resolvedHost = q.has("host") ? q.get("host") || "" : isXhttpNet ? "" : q.get("sni") || "";
+      const resolvedMode = q.get("mode") || extraObj?.mode || "";
+      const resolvedXPad = q.get("x_padding_bytes") || q.get("xPaddingBytes") || extraObj?.xPaddingBytes || extraObj?.x_padding_bytes || "";
+      const mlkemRaw = q.get("support-x25519mlkem768") ?? q.get("support_x25519mlkem768") ?? "";
+      const supportMlkem = mlkemRaw === "true" || mlkemRaw === "1";
+      const parsedAlpn = q.get("alpn") ? q.get("alpn").split(",").map((s) => s.trim()).filter(Boolean) : void 0;
+      const isInsecure = q.get("allowInsecure") === "1" || q.get("allowInsecure") === "true" || q.get("insecure") === "1" || q.get("insecure") === "true";
       return {
         name,
         protocol: proto,
@@ -7817,10 +8077,16 @@ function parseUriConfig(uri) {
         password: uuidOrPass,
         flow: flowVal,
         encryption: q.get("encryption") || "none",
-        network: q.get("type") || "tcp",
+        network: netVal,
         path: q.get("path") || "",
-        host: q.get("host") || q.get("sni") || "",
+        host: resolvedHost,
         serviceName: q.get("serviceName") || q.get("service") || "",
+        authority: q.get("authority") || "",
+        mode: resolvedMode || void 0,
+        xPaddingBytes: resolvedXPad || void 0,
+        extra: extraObj || void 0,
+        supportX25519mlkem768: supportMlkem || void 0,
+        insecure: isInsecure || void 0,
         security,
         tls: security === "tls" || security === "reality",
         reality: security === "reality",
@@ -7829,7 +8095,7 @@ function parseUriConfig(uri) {
         publicKey: q.get("pbk") || "",
         shortId: q.get("sid") || "",
         spiderX: q.get("spx") || "",
-        alpn: q.get("alpn") ? q.get("alpn").split(",") : void 0
+        alpn: parsedAlpn && parsedAlpn.length ? parsedAlpn : void 0
       };
     }
     if (low.startsWith("vmess://")) {
@@ -7837,6 +8103,20 @@ function parseUriConfig(uri) {
       const jsonStr = base64DecodeSafe(b64).toString("utf8");
       const v = JSON.parse(jsonStr);
       const name = cleanProxyName(v.ps, "vmess");
+      let vExtra = null;
+      if (v.extra) {
+        if (typeof v.extra === "object") vExtra = v.extra;
+        else {
+          try {
+            vExtra = JSON.parse(String(v.extra));
+          } catch {
+          }
+        }
+      }
+      const vAlpn = Array.isArray(v.alpn) ? v.alpn.map((s) => String(s).trim()).filter(Boolean) : v.alpn ? String(v.alpn).split(",").map((s) => s.trim()).filter(Boolean) : void 0;
+      const vMode = v.mode || vExtra?.mode || "";
+      const vXPad = v.x_padding_bytes || v.xPaddingBytes || vExtra?.xPaddingBytes || vExtra?.x_padding_bytes || "";
+      const vInsecure = v.allowInsecure === true || v.allowInsecure === "1" || v.allowInsecure === "true" || v.insecure === true || v.insecure === "1";
       return {
         name,
         protocol: "vmess",
@@ -7848,10 +8128,15 @@ function parseUriConfig(uri) {
         security: v.scy || "auto",
         network: v.net || "tcp",
         path: v.path || "",
-        host: v.host || "",
+        host: v.host !== void 0 ? String(v.host) : "",
         tls: v.tls === "tls" || v.tls === true,
         sni: v.sni || v.host || v.add,
         fingerprint: v.fp || "chrome",
+        alpn: vAlpn && vAlpn.length ? vAlpn : void 0,
+        mode: vMode || void 0,
+        xPaddingBytes: vXPad || void 0,
+        extra: vExtra || void 0,
+        insecure: vInsecure || void 0,
         serviceName: v.path || ""
       };
     }
@@ -8289,32 +8574,39 @@ async function parseSubscription(input, options = {}) {
       candidateUrl = normalizeSubscriptionUrl(candidateUrl);
     }
     const hasExplicitRawConfigs = /^(?:vless|vmess|trojan|ss|ssr|hysteria2|hy2|wireguard|tuic):\/\//m.test(content);
+    const fetchFn = options.fetchFn || fetch;
     if (candidateUrl && (!hasExplicitRawConfigs || candidateUrl.includes("drive.google.com") || candidateUrl.includes("raw.githubusercontent") || candidateUrl.includes("/sub") || candidateUrl.includes("#sub") || candidateUrl.includes("token="))) {
       try {
-        const res = await fetch(candidateUrl, {
-          signal: AbortSignal.timeout(3e3),
-          headers: {
-            "User-Agent": "ClashMeta/v1.19.0 Mihomo/1.19.0 sing-box/1.14.0 v2rayNG/1.8.5"
-          }
+        const fetched = await fetchSubscriptionWithFallback(candidateUrl, {
+          fetchFn,
+          mode: "sub",
+          timeoutMs: 6e3
         });
-        if (res.ok) {
-          const fetchedText = (await res.text()).trim();
+        if (fetched.res && fetched.res.ok) {
+          const fetchedText = (fetched.text || "").trim();
           if (fetchedText.length > 20 && !fetchedText.includes("<!DOCTYPE html>") && !fetchedText.includes("<html")) {
             content = fetchedText;
           } else if (fetchedText.includes("drive.google.com") && fetchedText.includes("confirm=")) {
             const confirmMatch = fetchedText.match(/confirm=([0-9A-Za-z_]+)/);
             if (confirmMatch) {
               const confirmUrl = candidateUrl + "&confirm=" + confirmMatch[1];
-              const cRes = await fetch(confirmUrl, { signal: AbortSignal.timeout(3e3) });
-              if (cRes.ok) content = (await cRes.text()).trim();
+              const cRes = await fetchSubscriptionWithFallback(confirmUrl, {
+                fetchFn,
+                mode: "sub",
+                timeoutMs: 6e3
+              });
+              if (cRes.res && cRes.res.ok) content = (cRes.text || "").trim();
             }
           } else if (urlMatches.length === 1 && !hasExplicitRawConfigs) {
             content = fetchedText;
           }
+        } else if (!fetched.res && fetched.err && urlMatches.length === 1 && !hasExplicitRawConfigs) {
+          const detail = fetched.socketErr ? `${fetched.err.message} | \u0633\u0648\u06A9\u062A: ${fetched.socketErr}` : fetched.err.message;
+          throw new Error(`\u062E\u0637\u0627 \u062F\u0631 \u062F\u0627\u0646\u0644\u0648\u062F \u0644\u06CC\u0646\u06A9 \u0627\u0634\u062A\u0631\u0627\u06A9: ${detail}`);
         }
       } catch (err2) {
         if (urlMatches.length === 1 && !hasExplicitRawConfigs) {
-          throw new Error(`\u062E\u0637\u0627 \u062F\u0631 \u062F\u0627\u0646\u0644\u0648\u062F \u0644\u06CC\u0646\u06A9 \u0627\u0634\u062A\u0631\u0627\u06A9: ${err2.message}`);
+          throw new Error(err2.message.startsWith("\u062E\u0637\u0627 \u062F\u0631 \u062F\u0627\u0646\u0644\u0648\u062F \u0644\u06CC\u0646\u06A9 \u0627\u0634\u062A\u0631\u0627\u06A9:") ? err2.message : `\u062E\u0637\u0627 \u062F\u0631 \u062F\u0627\u0646\u0644\u0648\u062F \u0644\u06CC\u0646\u06A9 \u0627\u0634\u062A\u0631\u0627\u06A9: ${err2.message}`);
         }
       }
     }
@@ -8356,26 +8648,37 @@ async function parseSubscription(input, options = {}) {
     try {
       const jsonObj = JSON.parse(content);
       if (Array.isArray(jsonObj.proxies) && jsonObj.proxies.length > 0) {
-        const proxies = jsonObj.proxies.map((p) => ({
-          name: p.name || `${(p.type || "proxy").toUpperCase()}-${p.server}`,
-          protocol: String(p.type || "vless").toLowerCase(),
-          server: p.server,
-          serverPort: p.port,
-          uuid: p.uuid || p.password,
-          password: p.password || p.uuid,
-          cipher: p.cipher,
-          flow: p.flow,
-          network: p.network || "tcp",
-          tls: Boolean(p.tls),
-          reality: Boolean(p["reality-opts"]),
-          publicKey: p["reality-opts"]?.["public-key"] || "",
-          shortId: p["reality-opts"]?.["short-id"] || "",
-          sni: p.servername || p.sni || "",
-          fingerprint: p["client-fingerprint"] || "chrome",
-          path: p["ws-opts"]?.path || p["grpc-opts"]?.["grpc-service-name"] || "",
-          host: p["ws-opts"]?.headers?.Host || "",
-          raw: p
-        }));
+        const proxies = jsonObj.proxies.map((p) => {
+          const xhttpOpts = p["xhttp-opts"] || {};
+          const netLow = String(p.network || "tcp").toLowerCase();
+          const isXhttpNet = netLow === "xhttp" || netLow === "splithttp";
+          return {
+            name: p.name || `${(p.type || "proxy").toUpperCase()}-${p.server}`,
+            protocol: String(p.type || "vless").toLowerCase(),
+            server: p.server,
+            serverPort: p.port,
+            uuid: p.uuid || p.password,
+            password: p.password || p.uuid,
+            cipher: p.cipher,
+            flow: p.flow,
+            network: p.network || "tcp",
+            tls: Boolean(p.tls),
+            reality: Boolean(p["reality-opts"]),
+            publicKey: p["reality-opts"]?.["public-key"] || "",
+            shortId: p["reality-opts"]?.["short-id"] || "",
+            supportX25519mlkem768: Boolean(p["reality-opts"]?.["support-x25519mlkem768"]) || void 0,
+            sni: p.servername || p.sni || "",
+            fingerprint: p["client-fingerprint"] || "chrome",
+            alpn: p.alpn || void 0,
+            insecure: p["skip-cert-verify"] || p.skipCertVerify ? true : void 0,
+            path: xhttpOpts.path || p["ws-opts"]?.path || p["grpc-opts"]?.["grpc-service-name"] || "",
+            host: isXhttpNet ? xhttpOpts.host || "" : p["ws-opts"]?.headers?.Host || "",
+            mode: xhttpOpts.mode || void 0,
+            xPaddingBytes: xhttpOpts["x-padding-bytes"] || xhttpOpts.xPaddingBytes || void 0,
+            extra: xhttpOpts.extra || void 0,
+            raw: p
+          };
+        });
         return {
           type: "mihomo_json",
           name: options.fileName || "Clash-JSON",
@@ -8386,7 +8689,7 @@ async function parseSubscription(input, options = {}) {
     }
   }
   if (/^(proxies|proxy-providers)\s*:/m.test(content) || content.includes("proxy-providers:") && (content.includes("interval:") || content.includes("http") || content.includes("type:")) || content.includes("port:") && content.includes("rules:") || /^\s*-\s*(name|server|type)\s*:/m.test(content)) {
-    return await parseMihomoYamlAsync(content, options.fileName || "Subscription-Clash");
+    return await parseMihomoYamlAsync(content, options.fileName || "Subscription-Clash", options.fetchFn || fetch);
   }
   if (content.startsWith("{") && content.includes('"outbounds"')) {
     try {
@@ -8405,8 +8708,12 @@ async function parseSubscription(input, options = {}) {
           const stream = o.streamSettings || {};
           const ws = stream.wsSettings || {};
           const grpc = stream.grpcSettings || {};
+          const xhttp = stream.xhttpSettings || stream.splithttpSettings || {};
+          const net = String(stream.network || "tcp").toLowerCase();
+          const isXhttpNet = net === "xhttp" || net === "splithttp";
           const tls = stream.security === "tls" || stream.security === "reality";
           const reality = stream.realitySettings || {};
+          const tlsSettings = stream.tlsSettings || {};
           xrayProfiles.push({
             name: o.tag || `${proto.toUpperCase()}-${s.address || "Server"}-${i2 + 1}`,
             protocol: proto,
@@ -8420,13 +8727,20 @@ async function parseSubscription(input, options = {}) {
             security: stream.security || (tls ? "tls" : "none"),
             tls,
             reality: stream.security === "reality",
-            sni: reality.serverName || stream.tlsSettings?.serverName || ws.headers?.Host || "",
-            fingerprint: reality.fingerprint || stream.tlsSettings?.fingerprint || "chrome",
+            sni: reality.serverName || tlsSettings.serverName || ws.headers?.Host || "",
+            fingerprint: reality.fingerprint || tlsSettings.fingerprint || "chrome",
+            alpn: tlsSettings.alpn || void 0,
+            insecure: tlsSettings.allowInsecure || void 0,
             publicKey: reality.publicKey || "",
             shortId: reality.shortId || "",
-            path: ws.path || "",
-            host: ws.headers?.Host || "",
-            serviceName: grpc.serviceName || ""
+            supportX25519mlkem768: Boolean(reality.supportX25519mlkem768) || void 0,
+            path: isXhttpNet ? xhttp.path || "" : ws.path || "",
+            host: isXhttpNet ? xhttp.host || "" : ws.headers?.Host || "",
+            mode: xhttp.mode || void 0,
+            xPaddingBytes: xhttp.xPaddingBytes || xhttp.x_padding_bytes || xhttp.extra?.xPaddingBytes || void 0,
+            extra: xhttp.extra || void 0,
+            serviceName: grpc.serviceName || "",
+            authority: grpc.authority || ""
           });
         }
         if (xrayProfiles.length > 0) {
@@ -8884,8 +9198,7 @@ function buildSingboxConfig(rawProfiles, options = {}) {
         interface_name: "tun0",
         address: ["172.19.0.1/30"],
         auto_route: true,
-        strict_route: true,
-        stack: "mixed"
+        strict_route: true
       }
     ],
     outbounds: [
@@ -9066,6 +9379,41 @@ function buildSingboxConfig(rawProfiles, options = {}) {
 }
 
 // src/parsers/mihomo_builder.js
+function appendAlpnLines(lines, alpn) {
+  if (!alpn) return;
+  const alpnArr = Array.isArray(alpn) ? alpn.map((a) => String(a).trim()).filter(Boolean) : String(alpn).split(",").map((a) => a.trim()).filter(Boolean);
+  if (alpnArr.length > 0) {
+    lines.push(`    alpn:`);
+    alpnArr.forEach((a) => lines.push(`      - ${a}`));
+  }
+}
+function appendXhttpOptsLines(lines, p) {
+  let xPath = p.path || "/";
+  xPath = xPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+  lines.push(`    xhttp-opts:`);
+  lines.push(`      path: "${xPath}"`);
+  if (p.host && String(p.host).trim()) {
+    lines.push(`      host: "${String(p.host).trim()}"`);
+  }
+  lines.push(`      mode: "${p.mode || "auto"}"`);
+  const xPad = p.xPaddingBytes || p["x-padding-bytes"] || p.x_padding_bytes || p.extra?.xPaddingBytes || p.extra?.x_padding_bytes;
+  if (xPad && String(xPad).trim()) {
+    lines.push(`      x-padding-bytes: "${String(xPad).trim()}"`);
+  }
+}
+function appendWsOptsLines(lines, p, isHttpUpgrade = false, includeHostHeader = true) {
+  let wsPath = p.path || "/";
+  wsPath = wsPath.replace(/%(?![\da-fA-F]{2})/g, "%25");
+  lines.push(`    ws-opts:`);
+  lines.push(`      path: "${wsPath}"`);
+  if (includeHostHeader && p.host && String(p.host).trim()) {
+    lines.push(`      headers:`);
+    lines.push(`        Host: ${String(p.host).trim()}`);
+  }
+  if (isHttpUpgrade) {
+    lines.push(`      v2ray-http-upgrade: true`);
+  }
+}
 function formatProxyYaml(p) {
   if (!p || !p.server) return null;
   let proto = String(p.protocol || p.type || "vless").toLowerCase();
@@ -9126,41 +9474,29 @@ function formatProxyYaml(p) {
     }
     if (tls && sni) lines.push(`    servername: "${sni}"`);
     if (p.fingerprint && String(p.fingerprint).trim()) lines.push(`    client-fingerprint: ${p.fingerprint}`);
-    if (p.reality || p.security === "reality") {
+    const isReality = Boolean(p.reality || p.security === "reality");
+    if (tls && !isReality) {
+      if (p.skipCertVerify || p.insecure) lines.push(`    skip-cert-verify: true`);
+      appendAlpnLines(lines, p.alpn);
+    }
+    if (isReality) {
       const cleanPk = String(p.publicKey || "").trim().replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       if (cleanPk) {
         lines.push(`    reality-opts:`);
         lines.push(`      public-key: "${cleanPk}"`);
         if (p.shortId && String(p.shortId).trim()) lines.push(`      short-id: "${String(p.shortId).trim()}"`);
         if (p.spiderX || p["spider-x"]) lines.push(`      spider-x: "${String(p.spiderX || p["spider-x"]).trim()}"`);
+        if (p.supportX25519mlkem768 || p["support-x25519mlkem768"] || p["reality-opts"]?.["support-x25519mlkem768"]) {
+          lines.push(`      support-x25519mlkem768: true`);
+        }
       }
     }
     if (isXhttp) {
-      let xPath = p.path || "/";
-      xPath = xPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    xhttp-opts:`);
-      lines.push(`      path: "${xPath}"`);
-      if (p.host || sni) lines.push(`      host: "${p.host || sni}"`);
-      lines.push(`      mode: "${p.mode || "auto"}"`);
+      appendXhttpOptsLines(lines, p);
     } else if (isHttpUpgrade) {
-      let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    ws-opts:`);
-      lines.push(`      path: "${wsPath}"`);
-      if (p.host && String(p.host).trim()) {
-        lines.push(`      headers:`);
-        lines.push(`        Host: ${String(p.host).trim()}`);
-      }
-      lines.push(`      v2ray-http-upgrade: true`);
+      appendWsOptsLines(lines, p, true, true);
     } else if (net === "ws") {
-      let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    ws-opts:`);
-      lines.push(`      path: "${wsPath}"`);
-      if (p.host && String(p.host).trim()) {
-        lines.push(`      headers:`);
-        lines.push(`        Host: ${String(p.host).trim()}`);
-      }
+      appendWsOptsLines(lines, p, false, true);
     } else if (net === "grpc" && p.serviceName && String(p.serviceName).trim()) {
       lines.push(`    grpc-opts:`);
       lines.push(`      grpc-service-name: "${String(p.serviceName).trim()}"`);
@@ -9187,35 +9523,19 @@ function formatProxyYaml(p) {
     } else {
       lines.push(`    network: ${net === "ws" ? "ws" : net === "grpc" ? "grpc" : "tcp"}`);
     }
-    lines.push(`    tls: ${tls || p.security === "tls" ? "true" : "false"}`);
+    const vmessTls = Boolean(tls || p.security === "tls");
+    lines.push(`    tls: ${vmessTls ? "true" : "false"}`);
     lines.push(`    udp: true`);
-    if (tls && sni) lines.push(`    servername: "${sni}"`);
+    if (vmessTls && sni) lines.push(`    servername: "${sni}"`);
+    if (vmessTls && (p.skipCertVerify || p.insecure)) lines.push(`    skip-cert-verify: true`);
+    if (vmessTls && p.fingerprint && String(p.fingerprint).trim()) lines.push(`    client-fingerprint: ${p.fingerprint}`);
+    if (vmessTls) appendAlpnLines(lines, p.alpn);
     if (isXhttp) {
-      let xPath = p.path || "/";
-      xPath = xPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    xhttp-opts:`);
-      lines.push(`      path: "${xPath}"`);
-      if (p.host || sni) lines.push(`      host: "${p.host || sni}"`);
-      lines.push(`      mode: "${p.mode || "auto"}"`);
+      appendXhttpOptsLines(lines, p);
     } else if (isHttpUpgrade) {
-      let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    ws-opts:`);
-      lines.push(`      path: "${wsPath}"`);
-      if (p.host && String(p.host).trim()) {
-        lines.push(`      headers:`);
-        lines.push(`        Host: ${String(p.host).trim()}`);
-      }
-      lines.push(`      v2ray-http-upgrade: true`);
+      appendWsOptsLines(lines, p, true, true);
     } else if (net === "ws") {
-      let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    ws-opts:`);
-      lines.push(`      path: "${wsPath}"`);
-      if (p.host && String(p.host).trim()) {
-        lines.push(`      headers:`);
-        lines.push(`        Host: ${String(p.host).trim()}`);
-      }
+      appendWsOptsLines(lines, p, false, true);
     } else if (net === "grpc" && p.serviceName && String(p.serviceName).trim()) {
       lines.push(`    grpc-opts:`);
       lines.push(`      grpc-service-name: "${String(p.serviceName).trim()}"`);
@@ -9236,24 +9556,17 @@ function formatProxyYaml(p) {
     lines.push(`    udp: true`);
     if (sni) lines.push(`    sni: "${sni}"`);
     if (p.skipCertVerify || p.insecure) lines.push(`    skip-cert-verify: true`);
+    if (p.fingerprint && String(p.fingerprint).trim()) lines.push(`    client-fingerprint: ${p.fingerprint}`);
+    if (!(p.reality || p.security === "reality")) appendAlpnLines(lines, p.alpn);
     if (isXhttp) {
-      let xPath = p.path || "/";
-      xPath = xPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    xhttp-opts:`);
-      lines.push(`      path: "${xPath}"`);
-      if (p.host || sni) lines.push(`      host: "${p.host || sni}"`);
-      lines.push(`      mode: "${p.mode || "auto"}"`);
+      appendXhttpOptsLines(lines, p);
     } else if (isHttpUpgrade) {
-      let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    ws-opts:`);
-      lines.push(`      path: "${wsPath}"`);
-      lines.push(`      v2ray-http-upgrade: true`);
+      appendWsOptsLines(lines, p, true, true);
     } else if (net === "ws") {
-      let wsPath = p.path || "/";
-      wsPath = wsPath.replace(/%(?![\\da-fA-F]{2})/g, "%25");
-      lines.push(`    ws-opts:`);
-      lines.push(`      path: "${wsPath}"`);
+      appendWsOptsLines(lines, p, false, true);
+    } else if (net === "grpc" && p.serviceName && String(p.serviceName).trim()) {
+      lines.push(`    grpc-opts:`);
+      lines.push(`      grpc-service-name: "${String(p.serviceName).trim()}"`);
     }
   } else if (proto === "shadowsocks" || proto === "ss") {
     let cipher = p.method || p.cipher || "aes-128-gcm";
@@ -9492,7 +9805,7 @@ function formatProxyYaml(p) {
   }
   return lines.join("\n");
 }
-var HEADER_BLOCK = 'unified-delay: true\ntcp-concurrent: true\nfind-process-mode: strict\nprofile:\n  store-selected: true\n  store-fake-ip: true\nport: 7892\nsocks-port: 7891\nmixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: warning\nexternal-controller: "0.0.0.0:9090"\nsecret: ""\nipv6: true\ndns:\n  enable: true\n  listen: 0.0.0.0:53\n  ipv6: false\n  prefer-h3: false\n  cache-algorithm: arc\n  use-hosts: true\n  use-system-hosts: true\n  respect-rules: false\n\n  enhanced-mode: fake-ip\n  fake-ip-range: 198.18.0.1/16\n  fake-ip-filter-mode: blacklist\n\n  fake-ip-filter:\n    - "geosite:private"\n    - "+.lan"\n    - "+.localdomain"\n    - "+.invalid"\n    - "+.localhost"\n    - "+.test"\n    - "+.local"\n    - "+.home.arpa"\n    - "+.arpa"\n    - "+.ir"\n\n    - "time.*.com"\n    - "time.*.gov"\n    - "time.*.apple.com"\n    - "ntp.*.com"\n    - "+.pool.ntp.org"\n    - "+.ntp.org"\n    - "time.asis.io"\n    - "time.windows.com"\n    - "time.apple.com"\n\n    - "connectivitycheck.gstatic.com"\n    - "connectivitycheck.android.com"\n    - "clients3.google.com"\n    - "captive.apple.com"\n    - "+.msftconnecttest.com"\n    - "+.msftncsi.com"\n\n    - "router.asus.com"\n    - "tplinkwifi.net"\n    - "tplinkrepeater.net"\n    - "tplinkap.net"\n    - "routerlogin.net"\n    - "routerlogin.com"\n    - "melogin.cn"\n    - "falogin.cn"\n    - "tendawifi.com"\n    - "leike.cc"\n    - "miwifi.com"\n    - "goforward.link"\n    - "+.plex.direct"\n\n  nameserver-policy:\n    "geosite:private": system\n    "+.arpa": system\n    "+.lan": system\n    "+.local": system\n    "+.home.arpa": system\n\n    "router.asus.com": system\n    "tplinkwifi.net": system\n    "tplinkrepeater.net": system\n    "tplinkap.net": system\n    "routerlogin.net": system\n    "routerlogin.com": system\n    "melogin.cn": system\n    "falogin.cn": system\n    "tendawifi.com": system\n    "leike.cc": system\n    "miwifi.com": system\n    "goforward.link": system\n\n  default-nameserver:\n    - tcp://1.1.1.1\n    - tcp://8.8.8.8\n    - 1.1.1.1\n    - 8.8.8.8\n    - 9.9.9.9\n    - tcp://1.0.0.1\n    - tcp://8.8.4.4\n    - tcp://9.9.9.9\n    - tcp://149.112.112.112\n    - tcp://208.67.222.222\n    - tcp://208.67.220.220\n\n  nameserver:\n    - "https://freedns.controld.com/p2#\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n\n  fallback:\n    - "https://dns.adguard-dns.com/dns-query#\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n\n  fallback-lazy-query: true\n\n  fallback-filter:\n    geoip: false\n    ipcidr:\n      - 10.10.34.34/32\n      - 10.10.34.35/32\n      - 10.10.34.36/32\n      - 127.0.0.1/32\n      - 240.0.0.0/4\n\n  proxy-server-nameserver:\n    - tcp://1.1.1.1\n    - tcp://8.8.8.8\n    - tcp://9.9.9.9\n    - 1.1.1.1\n    - 8.8.8.8\n    - 9.9.9.9\n    - tcp://1.0.0.1\n    - tcp://8.8.4.4\n    - tcp://149.112.112.112\n    - tcp://208.67.222.222\n    - tcp://208.67.220.220\n\n\n  direct-nameserver:\n    - 78.157.42.100\n    - 78.157.42.101\n    - tcp://78.157.42.100\n    - tcp://78.157.42.101\n\n  direct-nameserver-follow-policy: true\n\nsniffer:\n  enable: true\n  force-dns-mapping: false\n  parse-pure-ip: false\n  override-destination: true\n\n  sniff:\n    HTTP:\n      ports:\n        - 80\n        - 8080-8880\n      override-destination: true\n\n    TLS:\n      ports:\n        - 443\n        - 8443\n\n    QUIC:\n      ports:\n        - 443\n        - 8443\n\ntun:\n  enable: true\n  stack: mips\n\n  dns-mode: hijack\n\n  dns-hijack:\n    - any:53\n    - tcp://any:53\n\n  auto-route: true\n  auto-detect-interface: true\n  strict-route: true\n\n  route-exclude-address:\n    - 10.0.0.0/8\n    - 172.16.0.0/12\n    - 192.168.0.0/16\n    - 127.0.0.0/8\n    - 169.254.0.0/16\n    - "::1/128"\n    - "fc00::/7"\n    - "fe80::/10"\n\nrule-providers:\n  DownloadManagers:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml"\n    interval: 86400\n    path: "./ruleset/DownloadManagers.yaml"\n  Download:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml"\n    interval: 86400\n    path: "./ruleset/Download.yaml"\n  stremio:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml"\n    interval: 86400\n    path: "./ruleset/stremio.yaml"\n  BanProgramAD:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml"\n    interval: 86400\n    path: "./ruleset/BanProgramAD.yaml"\n  BanAD:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml"\n    interval: 86400\n    path: "./ruleset/BanAD.yaml"\n  PrivateTracker:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml"\n    interval: 86400\n    path: "./ruleset/PrivateTracker.yaml"\n  category_public_tracker:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml"\n    interval: 86400\n    path: "./ruleset/category_public_tracker.yaml"\n  malware:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml"\n    interval: 86400\n    path: "./ruleset/malware.yaml"\n  phishing:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml"\n    interval: 86400\n    path: "./ruleset/phishing.yaml"\n  cryptominers:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml"\n    interval: 86400\n    path: "./ruleset/cryptominers.yaml"\n  warninglist:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml"\n    interval: 86400\n    path: "./ruleset/warninglist.yaml"\n  Ponzi:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml"\n    interval: 86400\n    path: "./ruleset/Ponzi.yaml"\n  LiteAds:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml"\n    interval: 86400\n    path: "./ruleset/LiteAds.yaml"\n  iran_ads:\n    type: http\n    behavior: domain\n    url: "https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"\n    interval: 86400\n    path: "./ruleset/iran_ads.yaml"\n  PersianBlocker:\n    type: http\n    behavior: domain\n    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"\n    interval: 86400\n    path: "./ruleset/PersianBlocker.yaml"\n  ads:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.yaml"\n    interval: 86400\n    path: "./ruleset/ads.yaml"\n  BanEasyList:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml"\n    interval: 86400\n    path: "./ruleset/BanEasyList.yaml"\n  twitch:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml"\n    interval: 86400\n    path: "./ruleset/twitch.yaml"\n  telegram:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml"\n    interval: 86400\n    path: "./ruleset/telegram.yaml"\n  YouTube:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml"\n    interval: 86400\n    path: "./ruleset/YouTube.yaml"\n  youtube:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml"\n    interval: 86400\n    path: "./ruleset/youtube.yaml"\n  YouTubeMusic:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml"\n    interval: 86400\n    path: "./ruleset/YouTubeMusic.yaml"\n  Chotwitter:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"\n    interval: 86400\n    path: "./ruleset/Chotwitter.yaml"\n  mihTwitter:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"\n    interval: 86400\n    path: "./ruleset/mihTwitter.yaml"\n  Domtwitter:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml"\n    interval: 86400\n    path: "./ruleset/Domtwitter.yaml"\n  DomainSpotify:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml"\n    interval: 86400\n    path: "./ruleset/DomainSpotify.yaml"\n  mihspotify:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml"\n    interval: 86400\n    path: "./ruleset/mihSpotify.yaml"\n  instagram:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml"\n    interval: 86400\n    path: "./ruleset/instagram.yaml"\n  Ai:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/Ai.yaml"\n    interval: 86400\n    path: "./ruleset/Ai.yaml"\n  category-ai:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml"\n    interval: 86400\n    path: "./ruleset/category-ai.yaml"\n  censor:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml"\n    interval: 86400\n    path: "./ruleset/censor.yaml"\n  apps:\n    type: http\n    format: yaml\n    behavior: classical\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"\n    interval: 86400\n    path: "./ruleset/apps.yaml"\n  iran:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml"\n    interval: 86400\n    path: "./ruleset/iran.yaml"\n  arvancloud:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml"\n    interval: 86400\n    path: "./ruleset/arvancloud.yaml"\n  derakcloud:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml"\n    interval: 86400\n    path: "./ruleset/derakcloud.yaml"\n  iranserver:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml"\n    interval: 86400\n    path: "./ruleset/iranserver.yaml"\n  parspack:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml"\n    interval: 86400\n    path: "./ruleset/parspack.yaml"\n  irasn:\n    type: http\n    format: yaml\n    behavior: classical\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml"\n    interval: 86400\n    path: "./ruleset/irasn.yaml"\n  ircidr:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml"\n    interval: 86400\n    path: "./ruleset/ircidr.yaml"\n  ir:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml"\n    interval: 86400\n    path: "./ruleset/ir.yaml"\n  category_ir:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml"\n    interval: 86400\n    path: "./ruleset/category_ir.yaml"\n  whatsapp:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml"\n    interval: 86400\n    path: "./ruleset/whatsapp.yaml"\n  steam:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml"\n    interval: 86400\n    path: "./ruleset/steam.yaml"\n  SteamRegionCheck:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml"\n    interval: 86400\n    path: "./ruleset/SteamRegionCheck.yaml"\n  game:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml"\n    interval: 86400\n    path: "./ruleset/game.yaml"\n  GameDownload:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml"\n    interval: 86400\n    path: "./ruleset/GameDownload.yaml"\n  category-games:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml"\n    interval: 86400\n    path: "./ruleset/category-games.yaml"\n  Xbox:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml"\n    interval: 86400\n    path: "./ruleset/Xbox.yaml"\n  discord:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"\n    interval: 86400\n    path: "./ruleset/discord.yaml"\n  xiaomi_white_list:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml"\n    interval: 86400\n    path: "./ruleset/xiaomi_white_list.yaml"\n  xiaomi_block_list:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml"\n    interval: 86400\n    path: "./ruleset/xiaomi_block_list.yaml"\n  windows:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"\n    interval: 86400\n    path: "./ruleset/windows.yaml"\n  cloudflare:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml"\n    interval: 86400\n    path: "./ruleset/cloudflare.yaml"\n  github:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml"\n    interval: 86400\n    path: "./ruleset/xgithub.yaml"\n  google-play:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml"\n    interval: 86400\n    path: "./ruleset/google-play.yaml"\n  google:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml"\n    interval: 86400\n    path: "./ruleset/google.yaml"\n  local_ips:\n    type: http\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml"\n    interval: 86400\n    path: "./ruleset/local_ips.yaml"\n  private:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml"\n    interval: 86400\n    path: "./ruleset/private.yaml"';
+var HEADER_BLOCK = 'unified-delay: true\ntcp-concurrent: true\nfind-process-mode: strict\nprofile:\n  store-selected: true\n  store-fake-ip: true\nport: 7892\nsocks-port: 7891\nmixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: warning\nexternal-controller: "0.0.0.0:9090"\nsecret: ""\nipv6: true\ndns:\n  enable: true\n  listen: 0.0.0.0:53\n  ipv6: false\n  prefer-h3: false\n  cache-algorithm: arc\n  use-hosts: true\n  use-system-hosts: true\n  respect-rules: false\n\n  enhanced-mode: fake-ip\n  fake-ip-range: 198.18.0.1/16\n  fake-ip-filter-mode: blacklist\n\n  fake-ip-filter:\n    - "geosite:private"\n    - "+.lan"\n    - "+.localdomain"\n    - "+.invalid"\n    - "+.localhost"\n    - "+.test"\n    - "+.local"\n    - "+.home.arpa"\n    - "+.arpa"\n    - "+.ir"\n\n    - "time.*.com"\n    - "time.*.gov"\n    - "time.*.apple.com"\n    - "ntp.*.com"\n    - "+.pool.ntp.org"\n    - "+.ntp.org"\n    - "time.asis.io"\n    - "time.windows.com"\n    - "time.apple.com"\n\n    - "connectivitycheck.gstatic.com"\n    - "connectivitycheck.android.com"\n    - "clients3.google.com"\n    - "captive.apple.com"\n    - "+.msftconnecttest.com"\n    - "+.msftncsi.com"\n    - "www.msftncsi.com"\n    - "dns.msftncsi.com"\n\n    - "router.asus.com"\n    - "tplinkwifi.net"\n    - "tplinkrepeater.net"\n    - "tplinkap.net"\n    - "routerlogin.net"\n    - "routerlogin.com"\n    - "melogin.cn"\n    - "falogin.cn"\n    - "tendawifi.com"\n    - "leike.cc"\n    - "miwifi.com"\n    - "goforward.link"\n    - "+.plex.direct"\n\n  nameserver-policy:\n    "geosite:private": system\n    "+.arpa": system\n    "+.lan": system\n    "+.local": system\n    "+.home.arpa": system\n\n    "router.asus.com": system\n    "tplinkwifi.net": system\n    "tplinkrepeater.net": system\n    "tplinkap.net": system\n    "routerlogin.net": system\n    "routerlogin.com": system\n    "melogin.cn": system\n    "falogin.cn": system\n    "tendawifi.com": system\n    "leike.cc": system\n    "miwifi.com": system\n    "goforward.link": system\n\n  default-nameserver:\n    - tcp://1.1.1.1\n    - tcp://8.8.8.8\n    - 1.1.1.1\n    - 8.8.8.8\n    - 9.9.9.9\n    - tcp://1.0.0.1\n    - tcp://8.8.4.4\n    - tcp://9.9.9.9\n    - tcp://149.112.112.112\n    - tcp://208.67.222.222\n    - tcp://208.67.220.220\n\n  nameserver:\n    - "https://freedns.controld.com/p2#\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n\n  fallback:\n    - "https://dns.adguard-dns.com/dns-query#\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n\n  fallback-lazy-query: true\n\n  fallback-filter:\n    geoip: false\n    ipcidr:\n      - 10.10.34.34/32\n      - 10.10.34.35/32\n      - 10.10.34.36/32\n      - 127.0.0.1/32\n      - 240.0.0.0/4\n\n  proxy-server-nameserver:\n    - tcp://1.1.1.1\n    - tcp://8.8.8.8\n    - tcp://9.9.9.9\n    - 1.1.1.1\n    - 8.8.8.8\n    - 9.9.9.9\n    - tcp://1.0.0.1\n    - tcp://8.8.4.4\n    - tcp://149.112.112.112\n    - tcp://208.67.222.222\n    - tcp://208.67.220.220\n\n\n  direct-nameserver:\n    - 78.157.42.100\n    - 78.157.42.101\n    - tcp://78.157.42.100\n    - tcp://78.157.42.101\n\n  direct-nameserver-follow-policy: true\n\nsniffer:\n  enable: true\n  force-dns-mapping: false\n  parse-pure-ip: false\n  override-destination: true\n\n  sniff:\n    HTTP:\n      ports:\n        - 80\n        - 8080-8880\n      override-destination: true\n\n    TLS:\n      ports:\n        - 443\n        - 8443\n\n    QUIC:\n      ports:\n        - 443\n        - 8443\n\ntun:\n  enable: true\n  stack: mips\n\n  dns-mode: hijack\n\n  dns-hijack:\n    - any:53\n    - tcp://any:53\n\n  auto-route: true\n  auto-detect-interface: true\n  strict-route: true\n\n  route-exclude-address:\n    - 10.0.0.0/8\n    - 172.16.0.0/12\n    - 192.168.0.0/16\n    - 127.0.0.0/8\n    - 169.254.0.0/16\n    - "::1/128"\n    - "fc00::/7"\n    - "fe80::/10"\n\nrule-providers:\n  DownloadManagers:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/DownloadManagers.yaml"\n    interval: 86400\n    path: "./ruleset/DownloadManagers.yaml"\n  Download:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Download.yaml"\n    interval: 86400\n    path: "./ruleset/Download.yaml"\n  stremio:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/stremio.yaml"\n    interval: 86400\n    path: "./ruleset/stremio.yaml"\n  BanProgramAD:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanProgramAD.yaml"\n    interval: 86400\n    path: "./ruleset/BanProgramAD.yaml"\n  BanAD:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanAD.yaml"\n    interval: 86400\n    path: "./ruleset/BanAD.yaml"\n  PrivateTracker:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/PrivateTracker.yaml"\n    interval: 86400\n    path: "./ruleset/PrivateTracker.yaml"\n  category_public_tracker:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-public-tracker.yaml"\n    interval: 86400\n    path: "./ruleset/category_public_tracker.yaml"\n  malware:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.yaml"\n    interval: 86400\n    path: "./ruleset/malware.yaml"\n  phishing:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.yaml"\n    interval: 86400\n    path: "./ruleset/phishing.yaml"\n  cryptominers:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.yaml"\n    interval: 86400\n    path: "./ruleset/cryptominers.yaml"\n  warninglist:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/warning-list.yaml"\n    interval: 86400\n    path: "./ruleset/warninglist.yaml"\n  Ponzi:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/Ponzi.yaml"\n    interval: 86400\n    path: "./ruleset/Ponzi.yaml"\n  LiteAds:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/LiteAds.yaml"\n    interval: 86400\n    path: "./ruleset/LiteAds.yaml"\n  iran_ads:\n    type: http\n    behavior: domain\n    url: "https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"\n    interval: 86400\n    path: "./ruleset/iran_ads.yaml"\n  PersianBlocker:\n    type: http\n    behavior: domain\n    url: "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/clash_rules_ads.yaml"\n    interval: 86400\n    path: "./ruleset/PersianBlocker.yaml"\n  ads:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.yaml"\n    interval: 86400\n    path: "./ruleset/ads.yaml"\n  BanEasyList:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/BanEasyList.yaml"\n    interval: 86400\n    path: "./ruleset/BanEasyList.yaml"\n  twitch:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/twitch.yaml"\n    interval: 86400\n    path: "./ruleset/twitch.yaml"\n  telegram:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/telegram.yaml"\n    interval: 86400\n    path: "./ruleset/telegram.yaml"\n  YouTube:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTube.yaml"\n    interval: 86400\n    path: "./ruleset/YouTube.yaml"\n  youtube:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/youtube.yaml"\n    interval: 86400\n    path: "./ruleset/youtube.yaml"\n  YouTubeMusic:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/YouTubeMusic.yaml"\n    interval: 86400\n    path: "./ruleset/YouTubeMusic.yaml"\n  Chotwitter:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/twitter.yaml"\n    interval: 86400\n    path: "./ruleset/Chotwitter.yaml"\n  mihTwitter:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Twitter.yaml"\n    interval: 86400\n    path: "./ruleset/mihTwitter.yaml"\n  Domtwitter:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/twitter.yaml"\n    interval: 86400\n    path: "./ruleset/Domtwitter.yaml"\n  DomainSpotify:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/spotify.yaml"\n    interval: 86400\n    path: "./ruleset/DomainSpotify.yaml"\n  mihspotify:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Spotify.yaml"\n    interval: 86400\n    path: "./ruleset/mihSpotify.yaml"\n  instagram:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/instagram.yaml"\n    interval: 86400\n    path: "./ruleset/instagram.yaml"\n  Ai:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/Ai.yaml"\n    interval: 86400\n    path: "./ruleset/Ai.yaml"\n  category-ai:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-ai-!cn.yaml"\n    interval: 86400\n    path: "./ruleset/category-ai.yaml"\n  censor:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/censor.yaml"\n    interval: 86400\n    path: "./ruleset/censor.yaml"\n  apps:\n    type: http\n    format: yaml\n    behavior: classical\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/apps.yaml"\n    interval: 86400\n    path: "./ruleset/apps.yaml"\n  iran:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/iran.yaml"\n    interval: 86400\n    path: "./ruleset/iran.yaml"\n  arvancloud:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/arvancloud.yaml"\n    interval: 86400\n    path: "./ruleset/arvancloud.yaml"\n  derakcloud:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/derakcloud.yaml"\n    interval: 86400\n    path: "./ruleset/derakcloud.yaml"\n  iranserver:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/iranserver.yaml"\n    interval: 86400\n    path: "./ruleset/iranserver.yaml"\n  parspack:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/parspack.yaml"\n    interval: 86400\n    path: "./ruleset/parspack.yaml"\n  irasn:\n    type: http\n    format: yaml\n    behavior: classical\n    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/irasn.yaml"\n    interval: 86400\n    path: "./ruleset/irasn.yaml"\n  ircidr:\n    type: http\n    format: yaml\n    behavior: ipcidr\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ircidr.yaml"\n    interval: 86400\n    path: "./ruleset/ircidr.yaml"\n  ir:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://github.com/chocolate4u/Iran-clash-rules/releases/latest/download/ir.yaml"\n    interval: 86400\n    path: "./ruleset/ir.yaml"\n  category_ir:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/category-ir.yaml"\n    interval: 86400\n    path: "./ruleset/category_ir.yaml"\n  whatsapp:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/whatsapp.yaml"\n    interval: 86400\n    path: "./ruleset/whatsapp.yaml"\n  steam:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/main/steam.yaml"\n    interval: 86400\n    path: "./ruleset/steam.yaml"\n  SteamRegionCheck:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/SteamRegionCheck.yaml"\n    interval: 86400\n    path: "./ruleset/SteamRegionCheck.yaml"\n  game:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/game.yaml"\n    interval: 86400\n    path: "./ruleset/game.yaml"\n  GameDownload:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/GameDownload.yaml"\n    interval: 86400\n    path: "./ruleset/GameDownload.yaml"\n  category-games:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/category-games.yaml"\n    interval: 86400\n    path: "./ruleset/category-games.yaml"\n  Xbox:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/mihomo_rule/refs/heads/main/list/Xbox.yaml"\n    interval: 86400\n    path: "./ruleset/Xbox.yaml"\n  discord:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/discord.yaml"\n    interval: 86400\n    path: "./ruleset/discord.yaml"\n  xiaomi_white_list:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_white_list.yaml"\n    interval: 86400\n    path: "./ruleset/xiaomi_white_list.yaml"\n  xiaomi_block_list:\n    type: http\n    format: yaml\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/xiaomi_block_list.yaml"\n    interval: 86400\n    path: "./ruleset/xiaomi_block_list.yaml"\n  windows:\n    type: http\n    behavior: classical\n    url: "https://raw.githubusercontent.com/10ium/clash_rules/refs/heads/main/windows.yaml"\n    interval: 86400\n    path: "./ruleset/windows.yaml"\n  cloudflare:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/cloudflare.yaml"\n    interval: 86400\n    path: "./ruleset/cloudflare.yaml"\n  github:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/github.yaml"\n    interval: 86400\n    path: "./ruleset/xgithub.yaml"\n  google-play:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google-play.yaml"\n    interval: 86400\n    path: "./ruleset/google-play.yaml"\n  google:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/refs/heads/generated/google.yaml"\n    interval: 86400\n    path: "./ruleset/google.yaml"\n  local_ips:\n    type: http\n    behavior: ipcidr\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/local-ips.yaml"\n    interval: 86400\n    path: "./ruleset/local_ips.yaml"\n  private:\n    type: http\n    behavior: domain\n    url: "https://raw.githubusercontent.com/10ium/V2rayDomains2Clash/generated/private.yaml"\n    interval: 86400\n    path: "./ruleset/private.yaml"';
 var GROUPS_TEMPLATE = 'proxy-groups:\n  - name: "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n    type: select\n    proxies:\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u062A\u0648\u0632\u06CC\u0639 \u0628\u0627\u0631 \u0686\u0631\u062E\u0634\u06CC \u2696\uFE0F"\n      - "\u0642\u0637\u0639 \u0627\u06CC\u0646\u062A\u0631\u0646\u062A \u26D4"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/412721/choose.svg"\n\n  - name: "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n    type: select\n    lazy: true\n    proxies:\n__PROXIES_PLACEHOLDER__\n    icon: "https://cdn.jsdelivr.net/npm/lucide-static@1.61.0/icons/hand.svg"\n\n  - name: "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n    type: url-test\n    url: "https://www.gstatic.com/generate_204"\n    interval: 30\n    tolerance: 50\n    lazy: true\n    proxies:\n__PROXIES_PLACEHOLDER__\n    icon: "https://cdn.jsdelivr.net/npm/lucide-static@1.61.0/icons/refresh-cw.svg"\n\n  - name: "\u062A\u0648\u0632\u06CC\u0639 \u0628\u0627\u0631 \u0686\u0631\u062E\u0634\u06CC \u2696\uFE0F"\n    type: load-balance\n    strategy: round-robin\n    url: "https://www.gstatic.com/generate_204"\n    interval: 30\n    lazy: true\n    timeout: 1500\n    proxies:\n__PROXIES_PLACEHOLDER__\n    icon: "https://www.svgrepo.com/show/388466/rotating-forward.svg"\n\n  - name: "\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.sadeemrdp.com/fonts/apps/IDM-Logo.svg"\n\n  - name: "\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/354443/telegram.svg"\n\n  - name: "\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/475700/youtube-color.svg"\n\n  - name: "\u06AF\u0648\u06AF\u0644 \u{1F30D}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/475656/google-color.svg"\n\n  - name: "\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/306500/openai.svg"\n\n  - name: "\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/475689/twitter-color.svg"\n\n  - name: "\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/452229/instagram-1.svg"\n\n  - name: "\u06A9\u0644\u0648\u062F\u0641\u0644\u0631 \u2601\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://icon.icepanel.io/Technology/svg/Cloudflare.svg"\n\n  - name: "\u06AF\u06CC\u062A\u0647\u0627\u0628 \u{1F419}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/355033/github.svg"\n\n  - name: "\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/475684/spotify-color.svg"\n\n  - name: "\u0648\u0627\u062A\u0633 \u0622\u067E \u{1F7E2}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg"\n\n  - name: "\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/336358/ad.svg"\n\n  - name: "\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/12172/smartphone-ad.svg"\n\n  - name: "\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/298725/tracking-track.svg"\n\n  - name: "\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Element_(software)_logo_(2020).svg"\n\n  - name: "\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/teamspeak/default.svg"\n\n  - name: "\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Delta_chat_(Instant_Messenger)_logo.svg"\n\n  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://www.svgrepo.com/show/381135/cyber-crime-cyber-phishing-fraud-hack-money.svg"\n\n  - name: "\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/452107/steam.svg"\n\n  - name: "\u06AF\u06CC\u0645 \u{1F3AE}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/167729/game-controller.svg"\n\n  - name: "\u062A\u0648\u06CC\u06CC\u0686 \u{1F4E1}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/twitch.svg"\n\n  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Iran_%28civil%29.svg"\n\n  - name: "\u0648\u06CC\u0646\u062F\u0648\u0632 \u{1F9CA}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n    icon: "https://icon.icepanel.io/Technology/svg/Windows-11.svg"\n\n  - name: "\u062F\u06CC\u0633\u06A9\u0648\u0631\u062F \u{1F5E3}\uFE0F"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/svgs/brands/discord.svg"\n\n  - name: "\u0627\u0633\u062A\u0631\u06CC\u0645\u06CC\u0648 \u{1F3AC}"\n    type: select\n    proxies:\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://stremio.github.io/stremio-addon-guide/img/stremio.svg"\n\n  - name: "\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n    type: select\n    proxies:\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    icon: "https://www.svgrepo.com/show/331289/anydesk.svg"\n\n  - name: "\u0633\u0627\u06CC\u062A\u0627\u06CC \u0633\u0627\u0646\u0633\u0648\u0631\u06CC \u{1F92C}"\n    type: select\n    proxies:\n      - "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n      - "\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n      - "\u062E\u0648\u062F\u06A9\u0627\u0631 (\u0628\u0647\u062A\u0631\u06CC\u0646 \u067E\u06CC\u0646\u06AF) \u{1F916}"\n      - "\u062F\u0633\u062A\u06CC \u{1F90F}\u{1F3FB}"\n      - "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    icon: "https://cdn.jsdelivr.net/npm/lucide-static@1.61.0/icons/clapperboard.svg"\n\n  - name: "\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n    type: select\n    proxies:\n      - "DIRECT"\n    hidden: true\n    icon: "https://www.svgrepo.com/show/6318/connection.svg"\n\n  - name: "\u0642\u0637\u0639 \u0627\u06CC\u0646\u062A\u0631\u0646\u062A \u26D4"\n    type: select\n    proxies:\n      - "REJECT"\n    hidden: true\n    icon: "https://www.svgrepo.com/show/305372/wifi-off.svg"\n\n  - name: "\u0627\u062C\u0627\u0632\u0647 \u0646\u062F\u0627\u062F\u0646 \u{1F6AB}"\n    type: select\n    proxies:\n      - "REJECT"\n    hidden: true\n    icon: "https://www.svgrepo.com/show/444307/gui-ban.svg"\n';
 var RULES_BLOCK = 'rules:\n  - "IP-CIDR,127.0.0.0/8,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F,no-resolve"\n  - "DOMAIN,localhost,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n  - "RULE-SET,local_ips,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n  - "RULE-SET,private,\u0628\u062F\u0648\u0646 \u0641\u06CC\u0644\u062A\u0631\u0634\u06A9\u0646 \u{1F6E1}\uFE0F"\n  - "RULE-SET,DownloadManagers,\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"\n  - "RULE-SET,Download,\u062F\u0627\u0646\u0644\u0648\u062F \u0645\u0646\u06CC\u062C\u0631 \u{1F4E5}"\n  - "RULE-SET,stremio,\u0627\u0633\u062A\u0631\u06CC\u0645\u06CC\u0648 \u{1F3AC}"\n  - "PROCESS-NAME,im.vector.app,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "PROCESS-NAME,io.element.android.x,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "PROCESS-NAME,Element.exe,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,chat.aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,site.aklispro.sbs,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,electonet.xyz,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,chat.electonet.xyz,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,rainbuwu.ir,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "DOMAIN-SUFFIX,cinny.rainbuwu.ir,\u0627\u0644\u0645\u0646\u062A \u{1F4AC}"\n  - "PROCESS-NAME,chat.delta,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "PROCESS-NAME,DeltaChat.exe,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DOMAIN-SUFFIX,arsalandalvand.ir,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DST-PORT,993,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DST-PORT,465,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "DST-PORT,587,\u062F\u0644\u062A\u0627\u0686\u062A \u2709\uFE0F"\n  - "PROCESS-NAME,com.teamspeak.ts3client,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "PROCESS-NAME,ts3client_win64.exe,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "PROCESS-NAME,ts3client_win32.exe,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "PROCESS-NAME,TeamSpeak.exe,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "DOMAIN-SUFFIX,ag.tssq.ir,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "DST-PORT,9987,\u062A\u06CC\u0645 \u0627\u0633\u067E\u06CC\u06A9 \u{1F3A7}"\n  - "RULE-SET,BanProgramAD,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"\n  - "RULE-SET,BanAD,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n  - "RULE-SET,PrivateTracker,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n  - "RULE-SET,category_public_tracker,\u0631\u0647\u06AF\u06CC\u0631\u06CC \u062C\u0647\u0627\u0646\u06CC \u{1F6D1}"\n  - "RULE-SET,malware,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,phishing,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,cryptominers,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,warninglist,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,Ponzi,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0645\u062E\u0631\u0628 \u26A0\uFE0F"\n  - "RULE-SET,LiteAds,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,iran_ads,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,PersianBlocker,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,ads,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,BanEasyList,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u{1F18E}"\n  - "RULE-SET,twitch,\u062A\u0648\u06CC\u06CC\u0686 \u{1F4E1}"\n  - "PROCESS-NAME,Telegram.exe,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "PROCESS-NAME,org.telegram.messenger,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "PROCESS-NAME,org.telegram.messenger.web,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "RULE-SET,telegram,\u062A\u0644\u06AF\u0631\u0627\u0645 \u{1F4AC}"\n  - "RULE-SET,YouTube,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n  - "RULE-SET,youtube,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n  - "RULE-SET,YouTubeMusic,\u06CC\u0648\u062A\u06CC\u0648\u0628 \u25B6\uFE0F"\n  - "PROCESS-NAME,com.anydesk.anydeskandroid,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,AnyDesk.exe,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "DOMAIN-SUFFIX,anydesk.com,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,rustdesk.exe,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,com.carriez.flutter_hbb,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,dorsandesk.exe,\u0627\u0646\u06CC \u062F\u0633\u06A9 \u{1F534}"\n  - "PROCESS-NAME,Twitter.exe,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "PROCESS-NAME,com.twitter.android,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "RULE-SET,Chotwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "RULE-SET,mihTwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "RULE-SET,Domtwitter,\u062A\u0648\u06CC\u06CC\u062A\u0631 \u{1F426}"\n  - "PROCESS-NAME,com.spotify.music,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "PROCESS-NAME,Spotify.exe,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "RULE-SET,DomainSpotify,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "RULE-SET,mihspotify,\u0627\u0633\u067E\u0627\u062A\u06CC\u0641\u0627\u06CC \u{1F3B5}"\n  - "PROCESS-NAME,com.instagram.android,\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"\n  - "RULE-SET,instagram,\u0627\u06CC\u0646\u0633\u062A\u0627\u06AF\u0631\u0627\u0645 \u{1F4F8}"\n  - "RULE-SET,censor,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0633\u0627\u0646\u0633\u0648\u0631\u06CC \u{1F92C}"\n  - "RULE-SET,apps,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,iran,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,arvancloud,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,derakcloud,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,iranserver,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,parspack,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,irasn,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,ircidr,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,ir,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,category_ir,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "DOMAIN-SUFFIX,unimics.com,\u0633\u0627\u06CC\u062A\u0627\u06CC \u0627\u06CC\u0631\u0627\u0646\u06CC \u{1F1EE}\u{1F1F7}"\n  - "RULE-SET,whatsapp,\u0648\u0627\u062A\u0633 \u0622\u067E \u{1F7E2}"\n  - "RULE-SET,Ai,\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"\n  - "RULE-SET,category-ai,\u0647\u0648\u0634 \u0645\u0635\u0646\u0648\u0639\u06CC \u{1F916}"\n  - "RULE-SET,google-play,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "RULE-SET,google,\u06AF\u0648\u06AF\u0644 \u{1F30D}"\n  - "RULE-SET,steam,\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"\n  - "RULE-SET,SteamRegionCheck,\u0627\u0633\u062A\u06CC\u0645 \u{1F5A5}\uFE0F"\n  - "RULE-SET,game,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,GameDownload,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,category-games,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,Xbox,\u06AF\u06CC\u0645 \u{1F3AE}"\n  - "RULE-SET,discord,\u062F\u06CC\u0633\u06A9\u0648\u0631\u062F \u{1F5E3}\uFE0F"\n  - "RULE-SET,xiaomi_white_list,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "RULE-SET,xiaomi_block_list,\u062A\u0628\u0644\u06CC\u063A\u0627\u062A \u0627\u067E \u0647\u0627 \u{1F343}"\n  - "RULE-SET,windows,\u0648\u06CC\u0646\u062F\u0648\u0632 \u{1F9CA}"\n  - "RULE-SET,cloudflare,\u06A9\u0644\u0648\u062F\u0641\u0644\u0631 \u2601\uFE0F"\n  - "RULE-SET,github,\u06AF\u06CC\u062A\u0647\u0627\u0628 \u{1F419}"\n  - "PROCESS-NAME,com.android.vending,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "PROCESS-NAME,com.google.android.gms,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "IP-CIDR,10.10.34.0/24,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"\n  - "MATCH,\u0646\u0648\u0639 \u0627\u0646\u062A\u062E\u0627\u0628 \u067E\u0631\u0648\u06A9\u0633\u06CC \u{1F500}"';
 function buildMihomoConfig(rawProfiles, options = {}) {
@@ -9575,6 +9888,9 @@ function streamQuery(stream = {}) {
     if (xhttp.host) q.set("host", xhttp.host);
     if (xhttp.path) q.set("path", xhttp.path);
     if (xhttp.mode) q.set("mode", xhttp.mode);
+    const xPad = xhttp.xPaddingBytes || xhttp.x_padding_bytes || xhttp.extra?.xPaddingBytes || xhttp.extra?.x_padding_bytes;
+    if (xPad) q.set("x_padding_bytes", String(xPad));
+    if (xhttp.extra) q.set("extra", typeof xhttp.extra === "string" ? xhttp.extra : JSON.stringify(xhttp.extra));
   } else if (network === "xdrive") {
     const xd = stream.xdriveSettings || {};
     if (xd.service) q.set("service", xd.service);
@@ -9600,6 +9916,7 @@ function streamQuery(stream = {}) {
     if (reality.publicKey) q.set("pbk", reality.publicKey);
     if (reality.shortId) q.set("sid", reality.shortId);
     if (reality.spiderX) q.set("spx", reality.spiderX);
+    if (reality.supportX25519mlkem768) q.set("support-x25519mlkem768", "true");
   }
   if (stream.finalmaskSettings || stream.finalmask) {
     const fm = stream.finalmaskSettings || stream.finalmask;
@@ -9642,6 +9959,8 @@ function vmessLink(outbound, name) {
   const tls = s.tlsSettings || {};
   const ws = s.wsSettings || {};
   const grpc = s.grpcSettings || {};
+  const xhttp = s.xhttpSettings || s.splithttpSettings || {};
+  const isXhttpNet = network === "xhttp" || network === "splithttp";
   const legacy = {
     v: "2",
     ps: name || "VMess Config",
@@ -9652,13 +9971,19 @@ function vmessLink(outbound, name) {
     scy: String(user.security || "auto"),
     net: network,
     type: "none",
-    host: network === "ws" ? ws.host || ws.headers && ws.headers.Host || "" : network === "grpc" ? grpc.authority || "" : "",
-    path: network === "ws" ? ws.path || "" : network === "grpc" ? grpc.serviceName || "" : "",
+    host: network === "ws" ? ws.host || ws.headers && ws.headers.Host || "" : network === "grpc" ? grpc.authority || "" : isXhttpNet ? xhttp.host || "" : "",
+    path: network === "ws" ? ws.path || "" : network === "grpc" ? grpc.serviceName || "" : isXhttpNet ? xhttp.path || "" : "",
     tls: s.security === "tls" ? "tls" : "",
     sni: tls.serverName || "",
     alpn: Array.isArray(tls.alpn) ? tls.alpn.join(",") : "",
     fp: tls.fingerprint || ""
   };
+  if (isXhttpNet) {
+    if (xhttp.mode) legacy.mode = xhttp.mode;
+    const xPad = xhttp.xPaddingBytes || xhttp.x_padding_bytes || xhttp.extra?.xPaddingBytes || xhttp.extra?.x_padding_bytes;
+    if (xPad) legacy.x_padding_bytes = String(xPad);
+    if (xhttp.extra) legacy.extra = xhttp.extra;
+  }
   return "vmess://" + utf8ToBase64(JSON.stringify(legacy));
 }
 function shadowsocksLink(outbound, name) {
@@ -9797,42 +10122,57 @@ function buildStreamSettings(vp) {
   let network = String(vp.network || vp.transport || vp.net || "tcp").toLowerCase();
   if (network === "websocket") network = "ws";
   if (network === "splithttp") network = "xhttp";
-  const security = String(vp.security || (vp.tls ? "tls" : "none")).toLowerCase();
+  const realityOpts = vp["reality-opts"] || vp.realityOpts || {};
+  const wsOpts = vp["ws-opts"] || vp.wsOpts || {};
+  const grpcOpts = vp["grpc-opts"] || vp.grpcOpts || {};
+  const xhttpOpts = vp["xhttp-opts"] || vp.xhttpOpts || {};
+  const rawSec = String(vp.security || "").toLowerCase();
+  const protoLow = String(vp.protocol || vp.type || "").toLowerCase();
+  const isCipherToken = ["auto", "aes-128-gcm", "chacha20-poly1305", "zero"].includes(rawSec) || protoLow === "vmess" && rawSec === "none";
+  const resolvedSecurity = vp.reality || rawSec === "reality" ? "reality" : !isCipherToken && rawSec === "tls" || vp.tls === true || vp.tls === "tls" ? "tls" : "none";
   const stream = {
     network,
-    security: security === "none" ? vp.reality ? "reality" : "none" : security
+    security: resolvedSecurity
   };
   if (stream.network === "ws") {
     stream.wsSettings = {
-      path: vp.path || vp.wsPath || "/",
-      headers: { Host: vp.host || vp.sni || "" }
+      path: vp.path || vp.wsPath || wsOpts.path || "/",
+      headers: { Host: vp.host || wsOpts.headers?.Host || vp.sni || "" }
     };
   } else if (stream.network === "grpc") {
     stream.grpcSettings = {
-      serviceName: vp.serviceName || vp.grpcServiceName || "",
-      authority: vp.authority || vp.host || ""
+      serviceName: vp.serviceName || vp.grpcServiceName || grpcOpts["grpc-service-name"] || "",
+      authority: vp.authority || grpcOpts.authority || vp.host || ""
     };
   } else if (stream.network === "xhttp") {
     stream.xhttpSettings = {
-      path: vp.path || vp.xhttpPath || "/",
-      host: vp.host || vp.sni || "",
-      mode: vp.mode || "auto"
+      path: vp.path || vp.xhttpPath || xhttpOpts.path || "/",
+      host: vp.host || xhttpOpts.host || "",
+      mode: vp.mode || xhttpOpts.mode || "auto"
     };
+    const xPad = vp.xPaddingBytes || vp["x-padding-bytes"] || vp.x_padding_bytes || xhttpOpts["x-padding-bytes"] || vp.extra?.xPaddingBytes || vp.extra?.x_padding_bytes;
+    if (xPad) stream.xhttpSettings.xPaddingBytes = String(xPad);
+    if (vp.extra || xhttpOpts.extra) stream.xhttpSettings.extra = vp.extra || xhttpOpts.extra;
   }
   if (stream.security === "tls") {
     stream.tlsSettings = {
-      serverName: vp.sni || vp.serverName || vp.host || "",
+      serverName: vp.sni || vp.serverName || vp.servername || vp.host || "",
       fingerprint: vp.fingerprint || vp.fp || "chrome",
       allowInsecure: Boolean(vp.insecure || vp.allowInsecure)
     };
+    const alpnArr = Array.isArray(vp.alpn) ? vp.alpn.map((s) => String(s).trim()).filter(Boolean) : vp.alpn ? String(vp.alpn).split(",").map((s) => s.trim()).filter(Boolean) : [];
+    if (alpnArr.length > 0) stream.tlsSettings.alpn = alpnArr;
   } else if (stream.security === "reality") {
     stream.realitySettings = {
-      serverName: vp.sni || vp.serverName || vp.host || "",
+      serverName: vp.sni || vp.serverName || vp.servername || vp.host || "",
       fingerprint: vp.fingerprint || vp.fp || "chrome",
-      publicKey: vp.publicKey || vp.pbk || "",
-      shortId: vp.shortId || vp.sid || "",
-      spiderX: vp.spiderX || vp.spx || ""
+      publicKey: vp.publicKey || vp.pbk || realityOpts["public-key"] || "",
+      shortId: vp.shortId || vp.sid || realityOpts["short-id"] || "",
+      spiderX: vp.spiderX || vp.spx || realityOpts["spider-x"] || ""
     };
+    if (vp.supportX25519mlkem768 || vp["support-x25519mlkem768"] || realityOpts["support-x25519mlkem768"]) {
+      stream.realitySettings.supportX25519mlkem768 = true;
+    }
   }
   return stream;
 }
@@ -14663,10 +15003,18 @@ var index_default = {
           format = "mihomo";
         }
       }
+      const profileTitle = String(url.searchParams.get("title") || sub.name || sub.slug || "").trim();
       const commonHeaders = {
         "profile-update-interval": "24",
         "cache-control": "no-cache, no-store, must-revalidate"
       };
+      if (profileTitle) {
+        commonHeaders["profile-title"] = "base64:" + Buffer.from(profileTitle, "utf8").toString("base64");
+      }
+      const subFileSlug = String(sub.slug || "subscription").trim();
+      const safeAsciiSlug = subFileSlug.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^[_-]+|[_-]+$/g, "").replace(/_+/g, "_") || "subscription";
+      const utf8TitleName = (profileTitle || safeAsciiSlug).replace(/[\r\n"]/g, "");
+      const makeDisp = (suffix) => `inline; filename="${safeAsciiSlug}${suffix}"; filename*=UTF-8''${encodeURIComponent(utf8TitleName + suffix)}`;
       if (format === "html") {
         return new Response(getSubscriptionHtml(sub, url.origin), {
           headers: { ...commonHeaders, "Content-Type": "text/html; charset=utf-8" }
@@ -14678,7 +15026,7 @@ var index_default = {
           headers: {
             ...commonHeaders,
             "Content-Type": "text/yaml; charset=utf-8",
-            "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(sub.slug + "_clash.yaml")}`
+            "content-disposition": makeDisp("_clash.yaml")
           }
         });
       }
@@ -14688,7 +15036,7 @@ var index_default = {
           headers: {
             ...commonHeaders,
             "Content-Type": "application/json; charset=utf-8",
-            "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(sub.slug + "_singbox.json")}`
+            "content-disposition": makeDisp("_singbox.json")
           }
         });
       }
@@ -14700,7 +15048,7 @@ var index_default = {
         headers: {
           ...commonHeaders,
           "Content-Type": "text/plain; charset=utf-8",
-          "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(sub.slug + "_xray.txt")}`
+          "content-disposition": makeDisp("_xray.txt")
         }
       });
     }

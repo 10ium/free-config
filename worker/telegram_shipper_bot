@@ -1058,22 +1058,27 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
     return;
   }
 
-  // استعلام جفت‌های انتخاب‌شده در ۷ روز اخیر این گروه (جهت تنوع و جلوگیری از تکرار)
+  // استعلام جفت‌های انتخاب‌شده در ۷ روز اخیر و زوج‌های ردشده امروز این گروه
   const recentCouplesRes = await db.prepare(`
-    SELECT user1_id, user2_id, user3_id FROM daily_couples 
+    SELECT user1_id, user2_id, user3_id, ship_date, reroll_count FROM daily_couples 
     WHERE chat_id = ? AND created_at >= datetime('now', '-7 days')
   `).bind(chatId).all();
 
   const recentPairsSet = new Set();
+  const todayRejectedPairsSet = new Set();
   for (const rc of (recentCouplesRes?.results || [])) {
-    if (rc.user1_id && rc.user2_id) {
-      recentPairsSet.add(`${Math.min(rc.user1_id, rc.user2_id)}_${Math.max(rc.user1_id, rc.user2_id)}`);
-    }
-    if (rc.user1_id && rc.user3_id) {
-      recentPairsSet.add(`${Math.min(rc.user1_id, rc.user3_id)}_${Math.max(rc.user1_id, rc.user3_id)}`);
-    }
-    if (rc.user2_id && rc.user3_id) {
-      recentPairsSet.add(`${Math.min(rc.user2_id, rc.user3_id)}_${Math.max(rc.user2_id, rc.user3_id)}`);
+    const addPairKey = (idA, idB, targetSet) => {
+      if (idA && idB) {
+        targetSet.add(`${Math.min(idA, idB)}_${Math.max(idA, idB)}`);
+      }
+    };
+    addPairKey(rc.user1_id, rc.user2_id, recentPairsSet);
+    addPairKey(rc.user1_id, rc.user3_id, recentPairsSet);
+    addPairKey(rc.user2_id, rc.user3_id, recentPairsSet);
+    if (rc.ship_date === tehran.dateStr && rc.reroll_count === 1) {
+      addPairKey(rc.user1_id, rc.user2_id, todayRejectedPairsSet);
+      addPairKey(rc.user1_id, rc.user3_id, todayRejectedPairsSet);
+      addPairKey(rc.user2_id, rc.user3_id, todayRejectedPairsSet);
     }
   }
 
@@ -1092,13 +1097,15 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
 
       const pairKey = `${Math.min(u1.user_id, u2.user_id)}_${Math.max(u1.user_id, u2.user_id)}`;
       const isRecent = recentPairsSet.has(pairKey);
+      const isRejectedToday = todayRejectedPairsSet.has(pairKey);
 
       validPairs.push({
         u1,
         u2,
         score: match.score,
         reason: match.reason,
-        isRecent
+        isRecent,
+        isRejectedToday
       });
     }
   }
@@ -1119,8 +1126,9 @@ async function handleShippingCommand(chatId, threadId, triggerUser, token, db, i
   };
 
   while (validPairs.length > 0) {
-    const freshPairs = validPairs.filter(p => !p.isRecent);
-    const candidatePool = freshPairs.length > 0 ? freshPairs : validPairs;
+    const freshPairs = validPairs.filter(p => !p.isRecent && !p.isRejectedToday);
+    const nonRejectedToday = validPairs.filter(p => !p.isRejectedToday);
+    const candidatePool = freshPairs.length > 0 ? freshPairs : (nonRejectedToday.length > 0 ? nonRejectedToday : validPairs);
     const scoredPairs = candidatePool.filter(p => p.score !== null && p.score > 0);
 
     let picked = null;
@@ -1382,6 +1390,11 @@ async function handleReaction(reactionUpdate, token, db) {
 
   const isMember = (userId === couple.user1_id || userId === couple.user2_id || (couple.user3_id && userId === couple.user3_id));
   if (isMember && isNegative) {
+    const tehran = getTehranDate();
+    const threadId = (couple.topic_id && couple.topic_id > 0) ? couple.topic_id : undefined;
+
+    await db.prepare(`DELETE FROM couple_reactions WHERE chat_id = ? AND message_id = ? AND user_id = ?`).bind(chatId, messageId, userId).run();
+
     let blockChanges = 0;
     if (couple.user3_id) {
       const triadIds = [couple.user1_id, couple.user2_id, couple.user3_id];
@@ -1397,12 +1410,15 @@ async function handleReaction(reactionUpdate, token, db) {
       blockChanges += (res?.meta?.changes ?? res?.changes ?? 0);
     }
 
-    if (couple.reroll_count === 0) {
-      await db.prepare(`UPDATE daily_couples SET reroll_count = 1 WHERE id = ?`).bind(couple.id).run();
-      await sendMessage(token, chatId, `💔 <b>یکی از طرفین این پیوند را نپذیرفت!</b>\nاین اعضا برای یکدیگر در لیست مسدودی قرار گرفتند و شانس دوم فعال شد... 🎲`, { reply_to_message_id: couple.message_id });
-      await handleShippingCommand(chatId, couple.topic_id, { id: userId }, token, db, true);
+    if (couple.ship_date === tehran.dateStr && couple.reroll_count === 0) {
+      const rrRes = await db.prepare(`UPDATE daily_couples SET reroll_count = 1 WHERE id = ? AND reroll_count = 0`).bind(couple.id).run();
+      const rrChanges = rrRes?.meta?.changes ?? rrRes?.changes ?? 0;
+      if (rrChanges > 0) {
+        await sendMessage(token, chatId, `💔 <b>یکی از طرفین این پیوند را نپذیرفت!</b>\nاین شخص دیگر با شما شیپ نخواهد شد و شانس دوم فعال شد... 🎲`, { reply_to_message_id: couple.message_id, message_thread_id: threadId });
+        await handleShippingCommand(chatId, couple.topic_id, { id: userId }, token, db, true);
+      }
     } else if (blockChanges > 0) {
-      await sendMessage(token, chatId, `🚫 <b>پیوند نپذیرفته شد</b> و این فرد برای همیشه در لیست مسدودی شیپ شما قرار گرفت.`, { reply_to_message_id: couple.message_id });
+      await sendMessage(token, chatId, `🚫 <b>پیوند نپذیرفته شد</b> و این فرد برای همیشه در لیست مسدودی شیپ شما قرار گرفت.`, { reply_to_message_id: couple.message_id, message_thread_id: threadId });
     }
     return;
   }
@@ -1618,6 +1634,11 @@ async function checkCommunityDissatisfaction(couple, chatId, token, db) {
 async function triggerCommunityRecharge(couple, chatId, posCount, negCount, token, db) {
   const tehran = getTehranDate();
 
+  // شارژ جمعی فقط روی شیپ فعالِ همان روز (نه پیام‌های قدیمی یا جایگزین‌شده) اعمال می‌شود
+  if (couple.ship_date !== tehran.dateStr || couple.reroll_count !== 0 || couple.community_recharge_used === 1) {
+    return;
+  }
+
   // بررسی اینکه آیا این گروه امروز قبلاً از شارژ مجدد ناشی از رای منفی استفاده کرده است یا خیر
   const usedCheck = await db.prepare(`
     SELECT COUNT(*) as count 
@@ -1629,12 +1650,17 @@ async function triggerCommunityRecharge(couple, chatId, posCount, negCount, toke
     return; // فقط یک‌بار در روز شارژ می‌شود
   }
 
-  // ثبت شارژ روزانه و آزاد کردن قفل شیپ امروز
-  await db.prepare(`
+  // ثبت اتمیک شارژ روزانه و آزاد کردن قفل شیپ امروز (جلوگیری از ارسال پیام تکراری در هم‌زمانی)
+  const upRes = await db.prepare(`
     UPDATE daily_couples 
     SET community_recharge_used = 1, reroll_count = 1 
-    WHERE id = ?
+    WHERE id = ? AND reroll_count = 0 AND community_recharge_used = 0
   `).bind(couple.id).run();
+
+  const changes = upRes?.meta?.changes ?? upRes?.changes ?? 0;
+  if (changes === 0) {
+    return;
+  }
 
   const msg = `📉 <b>نارضایتی اعضای گروه از زوج منتخب!</b>\n\n` +
     `تفاضل ری‌اکشن‌ها به <b>۵-</b> رسید (نارضایتی: <b>${negCount}</b> 💔 در برابر رضایت: <b>${posCount}</b> 👍).\n\n` +
@@ -1642,7 +1668,7 @@ async function triggerCommunityRecharge(couple, chatId, posCount, negCount, toke
     `👉 هم‌اکنون هر یک از اعضا می‌تواند با ارسال دستور <code>/shipping</code> زوج جدید امروز گروه را انتخاب کند!\n` +
     `<i>(توجه: شارژ مجدد ناشی از رای منفی فقط ۱ بار در شبانه‌روز فعال می‌شود)</i>`;
 
-  await sendMessage(token, chatId, msg, { message_thread_id: couple.topic_id || undefined });
+  await sendMessage(token, chatId, msg, { message_thread_id: (couple.topic_id && couple.topic_id > 0) ? couple.topic_id : undefined });
 }
 
 async function handleGroupBlockShip(chatId, threadId, msg, token, db) {

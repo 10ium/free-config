@@ -546,9 +546,13 @@ async function handleUpdate(update, token, db) {
   const isServiceEvent = Boolean(incomingMsg?.left_chat_member || incomingMsg?.new_chat_members);
   const isNormalGroupChatter = incomingMsg && (incomingMsg.chat?.type === 'group' || incomingMsg.chat?.type === 'supergroup') && !parsedCmd && !isServiceEvent;
 
-  // جلوگیری از اسپم (برای دستورات خروج/بلاک، چت عادی و پیام‌های ورود/خروج اعمال نمی‌شود)
+  // جلوگیری از اسپم با جداسازی پیام و دکمه (تایید فوری دکمه‌های شیشه‌ای بعد از دستور یا فوروارد بدون سوختن کلیک کاربر)
   if (!update.message_reaction && !update.message_reaction_count && !isServiceEvent && fromUser?.id) {
-    if (!isNormalGroupChatter && !isOptCmd && isRateLimited(`spam_u_${fromUser.id}`, 500)) {
+    if (update.callback_query) {
+      if (isRateLimited(`spam_cb_${fromUser.id}_${update.callback_query.data}`, 400)) {
+        return;
+      }
+    } else if (!isNormalGroupChatter && !isOptCmd && isRateLimited(`spam_u_${fromUser.id}`, 500)) {
       return;
     }
 
@@ -747,10 +751,12 @@ async function handleMessage(msg, token, db) {
       const helpMsg = `🏹 <b>راهنمای جامع ربات جُفت‌چین (Cupid):</b>\n\n` +
         `• <code>/start</code> یا <code>/profile</code> : مشاهده شناسنامه عشقی و ویرایش تنظیمات\n` +
         `• <code>/status</code> : بررسی وضعیت شیپینگ امروز شما در تمام گروه‌ها\n` +
-        `• <code>/myblocks</code> : مشاهده و مدیریت افرادی که مسدود کرده‌اید\n` +
+        `• <code>/myblocks</code> : مشاهده لیست مسدودی‌ها و حذف آن‌ها برای شیپ دوباره\n` +
         `• <code>/explore</code> : کشف گروه‌های فعال و دوستانه برای شیپینگ\n` +
         `• <code>/noship</code> : خاموش کردن حضور شما در تمام گروه‌ها\n` +
         `• <code>/shipme</code> : فعال‌سازی مجدد حضور شما در شیپینگ‌ها\n\n` +
+        `💡 <b>تایید یا مسدودسازی سریع در پیوی:</b>\n` +
+        `هر زمان می‌توانید پیام یک نفر را به اینجا <b>فوروارد</b> کنید یا <b>@username</b> / <b>آیدی عددی</b> او را بفرستید تا همان لحظه اجازه شیپ شدن دوباره یا مسدودکردنش را تنظیم کنید!\n\n` +
         `🎯 <b>نحوه کارکرد:</b>\n` +
         `اطلاعات شما در پیوی کاملاً محرمانه ذخیره شده و فقط برای محاسبه دقیق درصد سازگاری (شهر، سن، اهداف، ساختار و مکمل‌های روحی) استفاده می‌شود!`;
       await sendMessage(token, chatId, helpMsg);
@@ -1798,38 +1804,167 @@ async function handleGroupPromote(chatId, threadId, msg, token, db) {
   await sendMessage(token, chatId, `🎉 <b>گروه در ویترین کشف گروه‌ها ثبت شد!</b>`, { message_thread_id: threadId });
 }
 
+async function resolvePrivateTargetUser(text, msg, db, strictPrefixOnly = false) {
+  if (msg?.forward_from) {
+    if (msg.forward_from.is_bot || SYSTEM_TELEGRAM_USER_IDS.has(msg.forward_from.id)) {
+      return { status: 'bot' };
+    }
+    return {
+      status: 'found',
+      targetId: msg.forward_from.id,
+      targetName: msg.forward_from.first_name || (msg.forward_from.username ? `@${msg.forward_from.username}` : `کاربر ${msg.forward_from.id}`),
+      targetUsername: msg.forward_from.username || null
+    };
+  }
+  if (msg?.forward_origin?.type === 'user' && msg.forward_origin.sender_user) {
+    const su = msg.forward_origin.sender_user;
+    if (su.is_bot || SYSTEM_TELEGRAM_USER_IDS.has(su.id)) {
+      return { status: 'bot' };
+    }
+    return {
+      status: 'found',
+      targetId: su.id,
+      targetName: su.first_name || (su.username ? `@${su.username}` : `کاربر ${su.id}`),
+      targetUsername: su.username || null
+    };
+  }
+  if (msg?.forward_sender_name || msg?.forward_origin?.type === 'hidden_user') {
+    return { status: 'hidden_forward' };
+  }
+
+  const cleanText = normalizeDigits(text || '').replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '').trim();
+  if (!cleanText) return { status: 'not_target' };
+
+  // آیدی عددی تلگرام (۵ تا ۱۵ رقم تا با سال تولد ۴ رقمی مثل 1378 اشتباه نشود)
+  const numMatch = cleanText.match(/^(\d{5,15})$/);
+  if (numMatch) {
+    const targetId = parseInt(numMatch[1], 10);
+    const mem = await db.prepare(`SELECT first_name, username FROM group_members WHERE user_id = ? LIMIT 1`).bind(targetId).first();
+    const up = mem || await db.prepare(`SELECT first_name, username FROM user_profiles WHERE user_id = ? LIMIT 1`).bind(targetId).first();
+    return {
+      status: 'found',
+      targetId,
+      targetName: up?.first_name || (up?.username ? `@${up.username}` : `کاربر ${targetId}`),
+      targetUsername: up?.username || null
+    };
+  }
+
+  let uname = null;
+  const linkMatch = cleanText.match(/^(?:https?:\/\/)?(?:www\.)?t\.me\/([a-zA-Z0-9_]{3,32})\/?$/i);
+  const atMatch = cleanText.match(/^@([a-zA-Z0-9_]{3,32})$/);
+  const bareMatch = !strictPrefixOnly ? cleanText.match(/^([a-zA-Z0-9_]{3,32})$/) : null;
+
+  if (linkMatch) uname = linkMatch[1];
+  else if (atMatch) uname = atMatch[1];
+  else if (bareMatch) uname = bareMatch[1];
+
+  if (!uname) return { status: 'not_target' };
+
+  const mem = await db.prepare(`SELECT user_id, first_name, username FROM group_members WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(uname).first();
+  if (mem) {
+    return {
+      status: 'found',
+      targetId: mem.user_id,
+      targetName: mem.first_name || `@${uname}`,
+      targetUsername: mem.username || uname
+    };
+  }
+  const up = await db.prepare(`SELECT user_id, first_name, username FROM user_profiles WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(uname).first();
+  if (up) {
+    return {
+      status: 'found',
+      targetId: up.user_id,
+      targetName: up.first_name || `@${uname}`,
+      targetUsername: up.username || uname
+    };
+  }
+  return { status: 'username_not_found', username: uname };
+}
+
+async function renderPairStatusCard(chatId, user, targetId, targetNameHint, token, db, editMessageId = null) {
+  const mem = await db.prepare(`SELECT first_name, username FROM group_members WHERE user_id = ? LIMIT 1`).bind(targetId).first();
+  const up = await db.prepare(`SELECT first_name, username FROM user_profiles WHERE user_id = ? LIMIT 1`).bind(targetId).first();
+  const displayName = mem?.first_name || up?.first_name || targetNameHint || `کاربر ${targetId}`;
+  const displayUser = mem?.username || up?.username || null;
+
+  const myBlock = await db.prepare(`SELECT 1 as ok FROM user_ship_blocks WHERE user_id = ? AND blocked_user_id = ? LIMIT 1`).bind(user.id, targetId).first();
+  const isBlockedByMe = Boolean(myBlock);
+
+  const myProf = await db.prepare(`SELECT is_global_opted_out FROM user_profiles WHERE user_id = ?`).bind(user.id).first();
+  const globalOffNote = myProf?.is_global_opted_out
+    ? `\n\n⚠️ <i>یادآوری: حضور کلی شما در گردونه با <code>/noship</code> خاموش است؛ تا زمانی که <code>/shipme</code> نزنید با هیچ‌کس شیپ نمی‌شوید.</i>`
+    : '';
+
+  const mentionHtml = userMention(targetId, displayName, displayUser);
+  const statusLine = isBlockedByMe
+    ? '🚫 <b>مسدودشده</b> (در هیچ گروهی و پیوی با هم شیپ نمی‌شوید)'
+    : '✅ <b>مجاز برای شیپ شدن</b> (امکان شیپ شدن و تایید مجدد وجود دارد)';
+
+  const text = `🎯 <b>تنظیم وضعیت شیپ با یک فرد</b>\n\n` +
+    `👤 <b>فرد مورد نظر:</b> ${mentionHtml} (<code>${targetId}</code>)\n` +
+    `📌 <b>وضعیت فعلی در لیست شما:</b> ${statusLine}` +
+    `${globalOffNote}\n\n` +
+    `👇 <i>با دکمه‌های زیر می‌توانید همان لحظه امکان شیپ شدن یا نشدن با این فرد را تایید یا تغییر دهید:</i>`;
+
+  const actionBtn = isBlockedByMe
+    ? { text: '✅ تایید اجازه شیپ دوباره (حذف از لیست سیاه)', callback_data: `pair_unblock_${targetId}` }
+    : { text: '🚫 مسدود کردن (با این فرد شیپ نشوم)', callback_data: `pair_block_${targetId}` };
+
+  const keyboard = {
+    inline_keyboard: [
+      [actionBtn],
+      [{ text: '🔍 بررسی فرد دیگر', callback_data: 'manage_ship_target' }, { text: '🚫 لیست سیاه من', callback_data: 'block_ship_menu' }],
+      [{ text: '🔙 بازگشت به منوی اصلی', callback_data: 'main_menu' }]
+    ]
+  };
+
+  if (editMessageId) {
+    await editMessageText(token, chatId, editMessageId, text, { reply_markup: keyboard });
+  } else {
+    await sendMessage(token, chatId, text, { reply_markup: keyboard });
+  }
+}
+
 // منوی کامل پروفایل در پیوی
 async function showBlockShipMenu(chatId, user, token, db, editMessageId = null) {
   const blocks = await db.prepare(`SELECT blocked_user_id FROM user_ship_blocks WHERE user_id = ?`).bind(user.id).all();
   const list = blocks.results || [];
 
-  let text = `🚫 <b>لیست سیاه شیپ:</b>\n\n` +
-    `افرادی که در این لیست قرار دارند، در هیچ گروهی هرگز با شما شیپ نخواهند شد.\n\n`;
+  let text = `🚫 <b>لیست سیاه شیپ و مدیریت افراد:</b>\n\n` +
+    `افرادی که با <code>/blockship</code>، این منو یا ری‌اکشن منفی (👎 / 💔) رد کرده‌اید در اینجا قرار دارند و با شما شیپ نمی‌شوند.\n\n`;
 
   const inlineKeyboard = [];
 
   if (list.length === 0) {
     text += `<i>در حال حاضر هیچ کاربری در لیست مسدودی شما قرار ندارد.</i>\n`;
   } else {
-    text += `📋 <b>تعداد افراد مسدود: ${list.length} نفر</b>\nبرای حذف هر شخص از مسدودی، روی دکمه مربوط به او بزنید:\n\n`;
+    text += `📋 <b>تعداد افراد مسدود: ${list.length} نفر</b>\nبرای <b>حذف هر شخص و بازگشت امکان شیپ دوباره</b>، روی دکمه کنار نامش بزنید:\n\n`;
 
-    for (let i = 0; i < list.length; i++) {
+    const maxShow = Math.min(list.length, 40);
+    for (let i = 0; i < maxShow; i++) {
       const bId = list[i].blocked_user_id;
       const mem = await db.prepare(`SELECT first_name, username FROM group_members WHERE user_id = ? LIMIT 1`).bind(bId).first();
-      const rawName = mem?.first_name || (mem?.username ? `@${mem.username}` : `کاربر ${bId}`);
+      const prof = mem || await db.prepare(`SELECT first_name, username FROM user_profiles WHERE user_id = ? LIMIT 1`).bind(bId).first();
+      const rawName = prof?.first_name || (prof?.username ? `@${prof.username}` : `کاربر ${bId}`);
       const shortName = rawName.length > 14 ? rawName.slice(0, 12) + '…' : rawName;
       inlineKeyboard.push([
-        { text: `❌ حذف ${shortName}`, callback_data: `unblock_ship_${bId}` }
+        { text: `❌ حذف ${shortName} (شیپ دوباره)`, callback_data: `unblock_ship_${bId}` }
       ]);
+    }
+    if (list.length > maxShow) {
+      text += `<i>(برای مشاهده یا آزادسازی نفرات بیشتر، از «🔍 بررسی و تایید وضعیت یک فرد» استفاده کنید.)</i>\n\n`;
     }
 
     inlineKeyboard.push([
-      { text: '🗑️ پاک‌سازی لیست', callback_data: 'clear_all_blocks' }
+      { text: '🗑️ پاک‌سازی کامل لیست', callback_data: 'clear_all_blocks' }
     ]);
   }
 
   inlineKeyboard.push([
-    { text: '➕ افزودن مسدودی', callback_data: 'add_block_ship' }
+    { text: '🔍 بررسی و تایید وضعیت یک فرد', callback_data: 'manage_ship_target' }
+  ]);
+  inlineKeyboard.push([
+    { text: '➕ افزودن مسدودی جدید', callback_data: 'add_block_ship' }
   ]);
   inlineKeyboard.push([
     { text: '🔙 بازگشت به منو', callback_data: 'main_menu' }
@@ -1874,7 +2009,7 @@ async function showUserProfileMenu(chatId, user, token, db) {
   const agePrefStr = `${formatAgeDiff(minDiff)} تا ${formatAgeDiff(maxDiff)}`;
 
   let text = `🏹 <b>شناسنامه عشقی شما در جُفت‌چین:</b>\n\n` +
-    `👤 <b>نام:</b> ${user.first_name}\n` +
+    `👤 <b>نام:</b> ${escapeHtml(user.first_name)}\n` +
     `🎂 <b>سال تولد:</b> ${birthYearStr}\n` +
     `⏳ <b>سن فعلی:</b> ${ageStr}\n`;
   if (bdayStr) {
@@ -1939,7 +2074,10 @@ async function handleCallbackQuery(cb, token, db) {
   }
 
   if (data === 'add_block_ship') {
-    await db.prepare(`UPDATE user_profiles SET onboarding_step = 'waiting_block_target' WHERE user_id = ?`).bind(user.id).run();
+    await db.prepare(`
+      INSERT INTO user_profiles (user_id, first_name, username, onboarding_step) VALUES (?, ?, ?, 'waiting_block_target')
+      ON CONFLICT(user_id) DO UPDATE SET onboarding_step = 'waiting_block_target';
+    `).bind(user.id, user.first_name || '', user.username || null).run();
     await answerCallback(token, cb.id);
     const cancelKeyboard = {
       inline_keyboard: [
@@ -1950,10 +2088,47 @@ async function handleCallbackQuery(cb, token, db) {
     return;
   }
 
+  if (data === 'manage_ship_target') {
+    await db.prepare(`
+      INSERT INTO user_profiles (user_id, first_name, username, onboarding_step) VALUES (?, ?, ?, 'waiting_manage_target')
+      ON CONFLICT(user_id) DO UPDATE SET onboarding_step = 'waiting_manage_target';
+    `).bind(user.id, user.first_name || '', user.username || null).run();
+    await answerCallback(token, cb.id);
+    const cancelKeyboard = {
+      inline_keyboard: [
+        [{ text: '🔙 انصراف', callback_data: 'block_ship_menu' }]
+      ]
+    };
+    await sendMessage(token, chatId, `🔍 <b>بررسی و تایید وضعیت شیپ با یک فرد:</b>\n\nبرای اینکه ببینید وضعیت شیپ شدن شما با یک شخص چیست و همان لحظه اجازه <b>شیپ شدن دوباره</b> یا <b>مسدودسازی</b> او را تایید کنید:\n\n۱. <b>یک پیام از آن شخص را به اینجا فوروارد (Forward) کنید.</b>\n۲. یا <b>آیدی کاربری او (@username)</b> را بفرستید.\n۳. یا <b>آیدی عددی (User ID)</b> او را بفرستید.\n\n<i>برای لغو می‌توانید /cancel را بفرستید یا دکمه زیر را لمس کنید.</i>`, { reply_markup: cancelKeyboard });
+    return;
+  }
+
+  if (data.startsWith('pair_block_')) {
+    const targetId = parseInt(data.replace('pair_block_', ''), 10);
+    if (targetId && targetId !== user.id) {
+      await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(user.id, targetId).run();
+      await db.prepare(`UPDATE user_profiles SET onboarding_step = 'done' WHERE user_id = ?`).bind(user.id).run();
+      await answerCallback(token, cb.id, '🚫 از این پس با این فرد شیپ نخواهید شد.', true);
+      await renderPairStatusCard(chatId, user, targetId, null, token, db, messageId);
+    }
+    return;
+  }
+
+  if (data.startsWith('pair_unblock_')) {
+    const targetId = parseInt(data.replace('pair_unblock_', ''), 10);
+    if (targetId) {
+      await db.prepare(`DELETE FROM user_ship_blocks WHERE user_id = ? AND blocked_user_id = ?`).bind(user.id, targetId).run();
+      await db.prepare(`UPDATE user_profiles SET onboarding_step = 'done' WHERE user_id = ?`).bind(user.id).run();
+      await answerCallback(token, cb.id, '✅ اجازه شیپ دوباره با این فرد تایید شد!', true);
+      await renderPairStatusCard(chatId, user, targetId, null, token, db, messageId);
+    }
+    return;
+  }
+
   if (data.startsWith('unblock_ship_')) {
     const targetId = parseInt(data.replace('unblock_ship_', ''), 10);
     await db.prepare(`DELETE FROM user_ship_blocks WHERE user_id = ? AND blocked_user_id = ?`).bind(user.id, targetId).run();
-    await answerCallback(token, cb.id, '✅ کاربر از لیست مسدودی شما خارج شد.', true);
+    await answerCallback(token, cb.id, '✅ کاربر از لیست مسدودی خارج شد و امکان شیپ دوباره برقرار است.', true);
     await showBlockShipMenu(chatId, user, token, db, messageId);
     return;
   }
@@ -2498,8 +2673,8 @@ async function handlePrivateTextInput(chatId, user, text, msg, token, db) {
   const profile = await db.prepare(`SELECT * FROM user_profiles WHERE user_id = ?`).bind(user.id).first();
   const step = profile?.onboarding_step;
 
-  // پردازش افزودن کاربر به لیست سیاه شیپ در پیوی
-  if (step === 'waiting_block_target') {
+  // پردازش افزودن به لیست سیاه یا بررسی/تایید وضعیت شیپ با یک فرد در پیوی
+  if (step === 'waiting_block_target' || step === 'waiting_manage_target') {
     if (text === '/cancel') {
       await db.prepare(`UPDATE user_profiles SET onboarding_step = 'done' WHERE user_id = ?`).bind(user.id).run();
       await sendMessage(token, chatId, `عملیات لغو شد.`);
@@ -2507,62 +2682,52 @@ async function handlePrivateTextInput(chatId, user, text, msg, token, db) {
       return;
     }
 
-    let targetId = null;
-    let targetName = null;
+    const res = await resolvePrivateTargetUser(text, msg, db, false);
 
-    if (msg.forward_from) {
-      targetId = msg.forward_from.id;
-      targetName = msg.forward_from.first_name || (msg.forward_from.username ? `@${msg.forward_from.username}` : `کاربر ${targetId}`);
-    } else if (msg.forward_origin && msg.forward_origin.type === 'user' && msg.forward_origin.sender_user) {
-      targetId = msg.forward_origin.sender_user.id;
-      targetName = msg.forward_origin.sender_user.first_name || (msg.forward_origin.sender_user.username ? `@${msg.forward_origin.sender_user.username}` : `کاربر ${targetId}`);
-    } else if (msg.forward_sender_name || (msg.forward_origin && msg.forward_origin.type === 'hidden_user')) {
+    if (res.status === 'hidden_forward') {
       await sendMessage(token, chatId, `⚠️ <b>تنظیمات فوروارد این کاربر خصوصی است:</b>\nتلگرام به دلیل تنظیمات حریم خصوصی این شخص، آیدی او را در فوروارد پنهان کرده است.\nلطفاً <b>آیدی کاربری (@username)</b> یا <b>آیدی عددی</b> او را تایپ و ارسال کنید.`);
       return;
-    } else if (text) {
-      const cleanText = text.trim();
-      const numMatch = cleanText.match(/^(\d{6,15})$/);
-      if (numMatch) {
-        targetId = parseInt(numMatch[1], 10);
-        const mem = await db.prepare(`SELECT first_name, username FROM group_members WHERE user_id = ? LIMIT 1`).bind(targetId).first();
-        targetName = mem?.first_name || `کاربر ${targetId}`;
-      } else {
-        const uMatch = cleanText.match(/^@?([a-zA-Z0-9_]{3,32})$/);
-        if (uMatch) {
-          const uname = uMatch[1];
-          const mem = await db.prepare(`SELECT user_id, first_name FROM group_members WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(uname).first();
-          if (mem) {
-            targetId = mem.user_id;
-            targetName = mem.first_name || `@${uname}`;
-          } else {
-            const up = await db.prepare(`SELECT user_id, first_name FROM user_profiles WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(uname).first();
-            if (up) {
-              targetId = up.user_id;
-              targetName = up.first_name || `@${uname}`;
-            } else {
-              await sendMessage(token, chatId, `❌ کاربری با یوزرنیم <b>@${uname}</b> در دیتابیس گروه‌ها یا ربات یافت نشد!\nاگر آیدی عددی او را دارید یا می‌توانید پیامی از او فوروارد کنید، لطفاً آن را بفرستید.`);
-              return;
-            }
-          }
-        }
-      }
     }
-
-    if (!targetId) {
+    if (res.status === 'bot') {
+      await sendMessage(token, chatId, `🤖 این پیام متعلق به یک ربات یا کانال سیستمی است؛ لطفاً پیام یک کاربر واقعی را فوروارد کنید یا آیدی/یوزرنیم او را بفرستید.`);
+      return;
+    }
+    if (res.status === 'username_not_found') {
+      await sendMessage(token, chatId, `❌ کاربری با یوزرنیم <b>@${escapeHtml(res.username)}</b> در دیتابیس گروه‌ها یا ربات یافت نشد!\nاگر آیدی عددی او را دارید یا می‌توانید پیامی از او فوروارد کنید، لطفاً آن را بفرستید.`);
+      return;
+    }
+    if (res.status !== 'found') {
       await sendMessage(token, chatId, `❌ <b>ورودی نامعتبر است!</b>\nلطفاً یا پیامی از کاربر را فوروارد کنید، یا آیدی عددی/یوزرنیم او را بفرستید.`);
       return;
     }
-
-    if (targetId === user.id) {
-      await sendMessage(token, chatId, `❌ شما نمی‌توانید خودتان را مسدود کنید!`);
+    if (res.targetId === user.id) {
+      await sendMessage(token, chatId, `❌ شما نمی‌توانید خودتان را انتخاب کنید!`);
       return;
     }
 
-    await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(user.id, targetId).run();
     await db.prepare(`UPDATE user_profiles SET onboarding_step = 'done' WHERE user_id = ?`).bind(user.id).run();
 
-    await sendMessage(token, chatId, `✅ <b>کاربر ${escapeHtml(targetName)} با موفقیت در لیست سیاه شیپینگ شما قرار گرفت!</b>\nاز این پس کیوپید در هیچ گروهی شما دو نفر را با یکدیگر شیپ نخواهد کرد. 🚫`);
-    await showBlockShipMenu(chatId, user, token, db);
+    if (step === 'waiting_manage_target') {
+      await renderPairStatusCard(chatId, user, res.targetId, res.targetName, token, db);
+      return;
+    }
+
+    // حالت waiting_block_target:
+    const alreadyBlocked = await db.prepare(`SELECT 1 as ok FROM user_ship_blocks WHERE user_id = ? AND blocked_user_id = ? LIMIT 1`).bind(user.id, res.targetId).first();
+    if (alreadyBlocked) {
+      await sendMessage(token, chatId, `🚫 کاربر <b>${escapeHtml(res.targetName)}</b> از قبل در لیست سیاه شما قرار داشت. اگر می‌خواهید اجازه شیپ دوباره بدهید، از دکمه زیر استفاده کنید:`);
+      await renderPairStatusCard(chatId, user, res.targetId, res.targetName, token, db);
+      return;
+    }
+
+    await db.prepare(`INSERT OR IGNORE INTO user_ship_blocks (user_id, blocked_user_id) VALUES (?, ?)`).bind(user.id, res.targetId).run();
+    const quickCard = {
+      inline_keyboard: [
+        [{ text: '🔓 پشیمان شدم / اجازه شیپ دوباره', callback_data: `pair_unblock_${res.targetId}` }],
+        [{ text: '📋 مشاهده لیست سیاه', callback_data: 'block_ship_menu' }]
+      ]
+    };
+    await sendMessage(token, chatId, `✅ <b>کاربر ${escapeHtml(res.targetName)} در لیست سیاه شیپینگ شما قرار گرفت!</b>\nاز این پس در هیچ گروهی با هم شیپ نخواهید شد. 🚫`, { reply_markup: quickCard });
     return;
   }
 
@@ -2670,7 +2835,28 @@ async function handlePrivateTextInput(chatId, user, text, msg, token, db) {
     return;
   }
 
-  // ۳. جستجوی نام شهر در دیتابیس ۱۶۷۲ شهر
+  // ۳. تشخیص خودکار فوروارد پیام، @username یا آیدی عددی در پیوی (وقتی منتظر شهر/تولد نیستیم) برای تایید یا مسدودسازی سریع
+  if (!step || step === 'done') {
+    const directTarget = await resolvePrivateTargetUser(text, msg, db, true);
+    if (directTarget.status === 'hidden_forward') {
+      await sendMessage(token, chatId, `⚠️ <b>تنظیمات فوروارد این کاربر خصوصی است:</b>\nتلگرام آیدی او را در فوروارد پنهان کرده است؛ لطفاً <b>@username</b> یا <b>آیدی عددی</b> او را بفرستید.`);
+      return;
+    }
+    if (directTarget.status === 'username_not_found') {
+      await sendMessage(token, chatId, `❌ کاربری با یوزرنیم <b>@${escapeHtml(directTarget.username)}</b> در دیتابیس گروه‌ها یا ربات پیدا نشد.\nاگر <b>آیدی عددی</b> او را دارید بفرستید تا وضعیت شیپش با شما ثبت یا بررسی شود.`);
+      return;
+    }
+    if (directTarget.status === 'found') {
+      if (directTarget.targetId === user.id) {
+        await sendMessage(token, chatId, `👤 این آیدی متعلق به خودتان است! برای بررسی وضعیت کلی خودتان دستور <code>/status</code> را بفرستید.`);
+        return;
+      }
+      await renderPairStatusCard(chatId, user, directTarget.targetId, directTarget.targetName, token, db);
+      return;
+    }
+  }
+
+  // ۴. جستجوی نام شهر در دیتابیس ۱۶۷۲ شهر
   const cleanCity = text.trim().replace(/ي/g, "ی").replace(/ك/g, "ک");
   const matched = await db.prepare(`
     SELECT * FROM iran_cities 
